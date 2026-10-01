@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="ace of spades">
+<defs><clipPath id="as-cl"><circle cx="64" cy="64" r="64"></circle></clipPath></defs>
+<g clip-path="url(#as-cl)">
+<circle cx="64" cy="64" r="64" fill="#1b201c"></circle>
+<text x="64" y="45" text-anchor="middle" dominant-baseline="central" font-family="Georgia,'Times New Roman',serif" font-size="54" fill="#eae6dc">A</text>
+<text x="64" y="89" text-anchor="middle" dominant-baseline="central" font-family="Georgia,'Times New Roman',serif" font-size="50" fill="#c9a961">♠</text></g>
+</svg>

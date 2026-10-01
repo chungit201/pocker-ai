@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="ace of hearts">
+<defs><clipPath id="ah-cl"><circle cx="64" cy="64" r="64"></circle></clipPath></defs>
+<g clip-path="url(#ah-cl)">
+<circle cx="64" cy="64" r="64" fill="#8f2b34"></circle>
+<text x="64" y="45" text-anchor="middle" dominant-baseline="central" font-family="Georgia,'Times New Roman',serif" font-size="54" fill="#f5ead8">A</text>
+<text x="64" y="89" text-anchor="middle" dominant-baseline="central" font-family="Georgia,'Times New Roman',serif" font-size="50" fill="#f5ead8">♥</text></g>
+</svg>

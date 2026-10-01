@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="busted">
+<defs><clipPath id="f4-cl"><circle cx="64" cy="64" r="64"></circle></clipPath></defs>
+<g clip-path="url(#f4-cl)">
+<circle cx="64" cy="64" r="64" fill="#9c8144"></circle>
+<text x="64" y="62" text-anchor="middle" dominant-baseline="central" font-family="ui-monospace,'SF Mono',Menlo,Consolas,monospace" font-size="31" fill="#f5ead8" letter-spacing="1">x_x</text></g>
+</svg>

@@ -1,49 +1,466 @@
+/* ───────────────────────────────────────────────────────────────────────────
+   Carried over verbatim from the <style> block of the original index.html.
+   Everything else in this app styles itself with inline styles, so this sheet
+   and the per-element style objects are the whole visual system: an edit here
+   is a change to the live product, not a refactor.
+
+   Edit it directly. It was assembled once by a generator that has since been
+   retired, so the "generated — do not edit" notes further down are stale; they
+   are kept only because they say where each block came from.
+
+   The file is in four parts: the carried-over sheet, the page CSS the old
+   runtime used to inject at boot, the hover/active rules the template's
+   style-hover attributes used to build in memory, and the theme tokens.
+   ─────────────────────────────────────────────────────────────────────────── */
+
+  /* Instrument Serif is self-hosted, not pulled from a CDN: it carries every
+     money figure, card rank and address, so a blocked or slow Google Fonts must
+     never drop the table's numerals to a generic serif (Georgia). Latin subset
+     only — digits, $, / and letters — which is all the figures need. */
+  @font-face { font-family: 'Instrument Serif'; font-style: normal; font-weight: 400; font-display: swap; src: url('/fonts/instrument-serif.woff2') format('woff2'); }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #131a2f; color: #e8ecf8; }
+  body { font-family: "Inter Tight", system-ui, sans-serif; font-size: 14px; line-height: 1.5; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+  pre { margin: 0; font-family: "Inter Tight", system-ui, sans-serif; }
+  a { color: #a78bfa; text-decoration: none; }
+  a:hover { color: #a78bfa; }
+  ::selection { background: rgba(139,92,246,0.3); }
+  :focus { outline: none; }
+  :focus-visible { outline: 2px solid #a78bfa; outline-offset: 2px; }
+  /* One measure for every wide page. The lobby, the leaderboard, tournaments,
+     staking and the profile are the same kind of screen — a hero, and the
+     table of whatever that hero summarises — but their shells had drifted to
+     two different widths (1512 and 1120), so walking between them pulled the
+     whole page in by nearly four hundred pixels and then pushed it back out.
+     One rule now, and the gutters hold still wherever you are.
+     The number lives on :root rather than in the rule because staking builds
+     its shell in JS: it reads the same custom property instead of carrying a
+     second copy that can drift again. Bottom padding stays per page — a board
+     that scrolls wants more tail than a lobby that does not. */
+  :root { --su-page: 1512px; --su-gutter: 44px; --su-scale: 1; }
+  .su-page { width: 100%; max-width: var(--su-page); margin: 0 auto;
+    padding-top: 52px; padding-left: var(--su-gutter); padding-right: var(--su-gutter); }
+  /* Proportion, not width. One factor fits a fixed 1512x850 design canvas to
+     the viewport and every page off the felt wears it, so a layout verified
+     once is correct at 16:9, 4:3, 1:1 and 5:4 rather than reflowing into a
+     different shape between windows. The felt has done this since it was
+     written (`geo()`); this is the same idea for everything else.
+
+     `zoom` rather than `transform` because it is layout-aware: document scroll
+     stays right and the sticky nav keeps sticking, where a transform would
+     make a containing block and break it. It also means the literal pixels
+     already in this file keep their meaning — they are canvas units now.
+
+     Measure and scale are deliberately separate classes. `.su-page` is the
+     measure, `.su-stage` is the scale, and an element may wear both — staking
+     builds its own `.su-page` inside a host that carries `.su-stage`, and two
+     zooms on one subtree would multiply.
+
+     The gutter and the top padding were `clamp(..vw..)`: viewport units are
+     NOT scaled by zoom, so inside the stage they would swell as everything
+     else shrank. They are canvas pixels now. */
+  .su-stage { zoom: var(--su-scale); }
+  /* Below the floor, scaling stops being proportional and just makes things
+     small. The width term hits SCALE_MIN at 1512 x 0.62 = 937px, so under that
+     a 390px phone and a 900px window scale identically: the stage lays out
+     629 canvas px and squashes them, painting 14px body text at 8.7px and a
+     30px touch target at 19. Hand those widths back to normal reflow — the
+     screens already wrap — and keep the scale for the range where it means
+     something. */
+  @media (max-width: 940px) { .su-stage { zoom: 1; } }
+
+  /* The landing's two hero-scale sizes, and the only ones on that page a phone
+     cannot take at their desktop value: everything else there reads fine at
+     18-23px. They live here rather than inline because below 940px the stage's
+     zoom is 1 — the page is at its drawn size — and a media query is the only
+     thing that can reach an inline style. */
+  .su-hero-title  { font-size: 62px; }
+  .su-hero-stat   { font-size: 54px; }
+  .su-hero-sub    { font-size: 23px; }
+  .su-hero-bullet { font-size: 18px; }
+  .su-hero-label  { font-size: 13px; }
+  .su-hero-statsub{ font-size: 14px; }
+  .su-hero-row    { gap: 96px; padding: 22px 0; }
+  .su-hero-stats  { padding: 31px 0 47px; }
+  .su-hero-statcol{ padding: 19px 51px 0 0; }
+  .su-hero-statcol--div { padding: 19px 51px 0; }
+  .su-hero-statcol--last{ padding: 19px 0 0 51px; }
+  /* Below the guard the stage is at zoom 1 — the page is drawn at its own
+     size — so these take the values the fluid clamps used to resolve to on a
+     phone. Same numbers as before, reached a different way. */
+  @media (max-width: 940px) {
+    .su-hero-title  { font-size: 30px; }
+    .su-hero-stat   { font-size: 24px; }
+    .su-hero-sub    { font-size: 15px; }
+    .su-hero-bullet { font-size: 14px; }
+    .su-hero-label  { font-size: 11px; }
+    .su-hero-statsub{ font-size: 11px; }
+    .su-hero-row    { gap: 24px; padding: 14px 0; }
+    .su-hero-stats  { padding: 16px 0 18px; }
+    .su-hero-statcol{ padding: 12px 14px 0 0; }
+    .su-hero-statcol--div { padding: 12px 14px 0; }
+    .su-hero-statcol--last{ padding: 12px 0 0 14px; }
+  }
+
+  /* Six tiles, and they only ever split evenly: 6, then 3x2, then 2x3. Done
+     with media queries rather than measuring the window in JS — the widths are
+     a layout fact, not state, and this way the grid reflows without a render.
+     The breakpoints read the real viewport, which is what they should: the
+     stage's zoom changes how large a tile is drawn, never how many fit. */
+  .su-stakes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  @media (min-width: 470px) { .su-stakes { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 940px) { .su-stakes { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+  /* Three states, three classes. This was one computed style string per tile,
+     four hundred characters of template literal with the same three-way
+     ternary written out three times — a thing CSS already does, done in
+     JavaScript, rebuilt on every render and unreadable in both places. */
+  .su-stake { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 5px;
+    padding: 14px 10px 13px; border-radius: 8px;
+    border: 1px solid rgba(232,236,248,0.12); background: transparent;
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease; }
+  .su-stake:hover { border-color: rgba(139,92,246,0.62); }
+  /* affordable */
+  .su-stake--open { border-color: rgba(139,92,246,0.38); background: rgba(139,92,246,0.045);
+    box-shadow: 0 0 18px -10px rgba(139,92,246,0.55), inset 0 1px 0 rgba(255,255,255,0.05); }
+  /* selected */
+  .su-stake--on { border-color: rgba(139,92,246,0.85); background: rgba(139,92,246,0.1);
+    box-shadow: 0 0 28px -8px rgba(139,92,246,0.7), inset 0 1px 0 rgba(255,255,255,0.06); }
+  .su-stake-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(148,163,196,0.35); }
+  .su-stake--busy .su-stake-dot { background: #22d3ee; }
+
+  /* The one way in, below the eyebrow and above the grid. */
+  .su-join { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 14px 18px; border-radius: 8px; border: 1px solid rgba(232,236,248,0.28);
+    background: #0a0d16; color: #e8ecf8; }
+  .su-join--shut { border-color: rgba(232,236,248,0.12); opacity: .55; cursor: not-allowed; }
+
+  /* The moving felt. One fixed layer behind every screen: the signature green
+     lit from above like a table under a lamp, two depths of brass guilloché
+     drifting left, and a vignette to keep the middle readable.
+
+     It is mounted ONCE, as the first child of the root, and never inside a
+     screen — so walking between pages does not restart the loop. Only
+     `transform` animates, on two composited layers, so it costs nothing at
+     idle; the blur is a static property of each layer, not per-frame work.
+
+     z-index -1 rather than the 0 the design handoff specifies. The handoff
+     wraps all content in one z-index:1 div; this app has twelve sibling
+     screens and no such wrapper, so a positive layer would paint OVER every
+     one of them. Negative, inside a root that makes its own stacking context,
+     puts it above the root's fill and below all content — and a screen added
+     later is above it without anyone remembering to say so. */
+  .felt-bg { position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden;
+    background: radial-gradient(120% 90% at 50% 38%, #171d2e 0%, #131826 34%, #131a2f 62%, #0b0e17 100%); }
+  .felt-band { position: absolute; left: 0; top: 0; width: 200%; height: 100%;
+    animation: bgDrift linear infinite; will-change: transform; }
+  /* No `filter: blur()`. The design handoff blurs each band, but these layers
+     are 2x viewport wide and carry ~15,000 line segments, so a blur is ~12M
+     pixels of re-raster per invalidation, twice — and it made scrolling drag.
+     The depth it bought came mostly from the opacity and speed difference,
+     which cost nothing; the softness is baked into a wider, fainter stroke on
+     the far band instead. */
+  .felt-band--far  { animation-duration: 140s; opacity: .05; }
+  .felt-band--near { animation-duration: 90s;  opacity: .07; }
+  /* Each band is its own compositor layer that only ever translates, so the
+     page can scroll over it without either one being redrawn. */
+  .felt-band { contain: paint; backface-visibility: hidden; }
+  .felt-vignette { position: absolute; inset: 0;
+    background: radial-gradient(80% 70% at 50% 42%, rgba(0,0,0,0) 40%, rgba(0,0,0,0.4) 100%); }
+  @keyframes bgDrift { from { transform: translate3d(0,0,0) } to { transform: translate3d(-50%,0,0) } }
+  /* The lines hold still; the felt and its vignette stay. */
+  @media (prefers-reduced-motion: reduce) { .felt-band { animation: none; } }
+  
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  input { font: inherit; }
+  ::-webkit-scrollbar { width: 9px; height: 9px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #1a2238; border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #3d2673; }
+  /* The cream thumb above is sized for the paper cards. A scroll box ON the
+     felt needs the opposite — a hairline that reads as part of the rule it
+     sits beside, not a bright bar down the middle of the page. */
+  .su-scroll { scrollbar-width: thin; scrollbar-color: rgba(232,236,248,0.22) transparent; }
+  .su-scroll::-webkit-scrollbar { width: 6px; }
+  .su-scroll::-webkit-scrollbar-thumb { background: rgba(232,236,248,0.22); }
+  .su-scroll::-webkit-scrollbar-thumb:hover { background: rgba(139,92,246,0.5); }
+  /* 1a "milled": actPill writes the resting look inline, so the hover/press
+     glow is carried per-button by style-hover / style-active attributes — the
+     runtime wraps those in !important, which beats the inline box-shadow. A
+     plain .pill:hover rule cannot (inline wins), which is why the glow was
+     missing. This class only supplies the transition the glow animates over. */
+  .pill { transition: box-shadow .18s ease, border-color .18s ease, color .18s ease, transform .1s ease; }
+  /* The lobby's per-row join used to be hidden until the row was hovered — five
+     cream plates down a table shouted, and a phone could never reveal them at
+     all. It is an outline pill now, which is quiet enough to stand on every
+     row: the stake is still what you read, and the way in is where you look.
+     .pill above already supplies its transition, so there is no rule to write.
+     A stake with no open seat renders a plain "full" span in its place. */
+  /* 1b off-felt: the same milled plate, but no bloom. Same hairline shape and a
+     seated hover, so the site reads as one object family without the felt glow. */
+  .pill-flat { transition: box-shadow .18s ease, border-color .18s ease, color .18s ease, transform .1s ease;
+    border-radius: 5px !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.08); }
+  .pill-flat:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.12), 0 1px 3px rgba(0,0,0,0.275); }
+  .pill-flat:active { transform: translateY(1px); box-shadow: inset 0 2px 4px rgba(0,0,0,0.25); }
+  /* 3b: the ink action on cream is the felt's paper plate inverted, and it
+     glows burnt (#f33f5d) on hover — warm on cream where brass would vanish.
+     Keyed on the ink gradient's top stop (React serializes the style
+     attribute to rgb() form, so the keys are serialized colors). */
+  .pill-flat[style*="rgb(34, 44, 71)"]:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 0 22px -6px rgba(148,163,196,0.95), 0 2px 5px rgba(0,0,0,0.375) !important; }
+  .pill-flat[style*="rgb(34, 44, 71)"]:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0,0,0,0.5) !important; }
+  /* the cream outline action: the hairline seats on hover instead of glowing */
+  .pill-flat[style*="rgba(232, 236, 248, 0.22)"]:hover, .pill-flat[style*="rgba(232, 236, 248, 0.176)"]:hover, .pill-flat[style*="rgba(232, 236, 248, 0.198)"]:hover { border-color: rgba(232,236,248,0.28) !important; }
+  /* 1a on the felt, by family: any paper-gradient plate blooms on hover, any
+     felt outline warms to brass — keyed on the resting style so the JS-built
+     buttons (funding, rakeback, claim, seat CTAs) inherit it without attrs. */
+  .pill-flat[style*="rgb(139, 92, 246)"]:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.285), 0 0 30px -6px rgba(232,236,248,0.114), 0 2px 5px rgba(0,0,0,0.4) !important; }
+  .pill-flat[style*="rgb(139, 92, 246)"]:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(10,13,22,0.28) !important; }
+  .pill-flat[style*="rgba(232, 236, 248, 0.28)"]:hover { border-color: rgba(139,92,246,0.55) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 0 18px -6px rgba(139,92,246,0.6) !important; }
+  /* 3a "fields, milled in": every cream input shares the #222c47 well, so the
+     brass focus rides an attribute selector rather than a class on each one
+     (the .felt-chip idiom). !important beats the inline resting box-shadow. */
+  input[style*="rgb(34, 44, 71)"]:focus { border-color: rgba(139,92,246,0.85) !important; box-shadow: inset 0 1px 2px rgba(10,13,22,0.14), 0 0 0 3px rgba(139,92,246,0.14) !important; outline: none !important; }
+  /* The felt-side amount wells (profile funding, tournament-result withdraw)
+     are a div wrapping a bare input, so focus lands on the wrapper. */
+  .field-felt { transition: box-shadow .16s ease, border-color .16s ease; }
+  .field-felt:focus-within { border-color: rgba(139,92,246,0.7) !important; box-shadow: inset 0 1px 2px rgba(0,0,0,0.275), 0 0 0 3px rgba(139,92,246,0.12) !important; }
+  /* 3a again, cream side: the staking page's amount well is a div wrapping a
+     bare input, so the brass focus ring lands on the wrapper. */
+  .field-paper { transition: box-shadow .16s ease, border-color .16s ease; }
+  .field-paper:focus-within { border-color: rgba(139,92,246,0.85) !important; box-shadow: inset 0 1px 2px rgba(10,13,22,0.14), 0 0 0 3px rgba(139,92,246,0.14) !important; }
+  /* Small selectors built by staking-render.js: a range/unit chip on the felt,
+     a segment of the cream tier picker, and a position row. All three are
+     inline-styled, so the hover rides a class and !important like the rest. */
+  .chip:hover { border-color: rgba(139,92,246,0.5) !important; color: #e8ecf8 !important; }
+  .seg:hover { background: rgba(232,236,248,0.055); }
+  .row-a:hover { border-color: rgba(232,236,248,0.26) !important; }
+  /* docs sidebar items and prose links are built by docs-render.js with inline
+     colors, so the hover rides a class + !important, same as everything else on
+     this page. The nav's active mark is an inset brass rule in the gutter; hover
+     previews it at half strength rather than filling the row. */
+  .docs-nav-a:hover { color: #e8ecf8 !important; box-shadow: inset 2px 0 0 rgba(139,92,246,0.45) !important; }
+  .docs-a:hover { text-decoration-color: #e8ecf8 !important; }
+  /* A fader carries a VALUE, not an object. Without this the browser reads the
+     press that grabs one as the start of a content selection: the drag sweeps
+     the scale labels and the sizing pills into a highlight, and once content
+     under the pointer is selected the next press on it starts a native
+     drag-and-drop of that selection — ghost image, copy cursor, and a
+     `pointercancel` that these sliders bind to their own pointer-up, so the
+     value stops following the cursor mid-drag. Pointer capture does not stop
+     any of it; only refusing the default does. Paired with preventDefault() on
+     each fader's pointerdown, which closes the same door from the other side. */
+  .fader, .fader * { user-select: none; -webkit-user-select: none; -webkit-user-drag: none; }
+  @keyframes blink { 0%, 48% { opacity: 1 } 49%, 100% { opacity: 0 } }
+  @keyframes drain { from { transform: scaleX(1) } to { transform: scaleX(0) } }
+  @keyframes warn { 0%, 62% { background: #1b2440 } 63%, 100% { background: #8b5cf6 } }
+  @keyframes seatPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(139,92,246,0) } 50% { box-shadow: 0 0 0 6px rgba(139,92,246,0.22) } }
+  @keyframes chipIn { from { transform: translateY(-14px) scale(.86); opacity: 0 } to { transform: translateY(0) scale(1); opacity: 1 } }
+  /* A chip is positioned entirely by its bound inline transform (which also
+     carries `position:absolute`). The index-keyed chip list reuses a node
+     across renders, so a node is briefly "un-positioned" — mounted, or reused,
+     before this render's transform is applied. It must be hidden in that frame,
+     but NOT with a transform default: the chips carry `transition:transform`,
+     so a transform default becomes the *start* of a .56s slide, and the node
+     glides into place from wherever the default put it — the loose chip seen
+     flying in from the top-left on every new bet (confirmed live: bet-N chips
+     transiting (0,-14) from a translate(-9999) default). `display:none` has no
+     transition, so an un-positioned node simply is not painted; the instant it
+     gets a real transform it appears in place. */
+  .felt-chip:not([style*="translate"]) { display: none; }
+  @keyframes pop { 0% { transform: scale(1) } 30% { transform: scale(1.16) } 100% { transform: scale(1) } }
+  @keyframes drift { 0% { transform: translate(0,0) rotate(0deg); opacity: 0 } 14% { opacity: 1 } 86% { opacity: 1 } 100% { transform: translate(var(--dx,20px), -170px) rotate(38deg); opacity: 0 } }
+  @keyframes tumble { 0% { transform: translate(0,-40px) rotate(0deg) scale(.6); opacity: 0 } 14% { opacity: 1 } 100% { transform: translate(var(--dx,0px), 320px) rotate(var(--dr,180deg)) scale(1); opacity: 0 } }
+  @keyframes auraSpin { from { transform: rotate(0deg) } to { transform: rotate(360deg) } }
+  @keyframes cardCycle { 0% { opacity: 0 } 3% { opacity: 1 } 23% { opacity: 1 } 25% { opacity: 0 } 100% { opacity: 0 } }
+  @keyframes riseIn { from { transform: translateY(14px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+  @keyframes bandIn { 0% { transform: translate(-50%,10px) scale(.94); opacity: 0 } 12% { transform: translate(-50%,0) scale(1); opacity: 1 } 86% { opacity: 1 } 100% { opacity: 0 } }
+  @keyframes scan { 0% { transform: translateX(-100%) } 100% { transform: translateX(320%) } }
+  @keyframes glowWin { 0%, 100% { box-shadow: 0 0 0 0 rgba(148,163,196,0) } 50% { box-shadow: 0 0 0 10px rgba(148,163,196,0.34) } }
+  @keyframes logIn { from { opacity: 0; transform: translateX(-6px) } to { opacity: 1; transform: translateX(0) } }
+  @keyframes suPulse { 0%, 100% { opacity: 1 } 50% { opacity: .4 } }
+  @keyframes dash { from { stroke-dashoffset: 1 } to { stroke-dashoffset: 0 } }
+  @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes suGlow {
+    0%, 100% { box-shadow: 0 0 0 1.5px rgba(148,163,196,0.85), 0 0 34px 6px rgba(148,163,196,0.34), 0 22px 54px rgba(10,13,22,0.45) }
+    50%      { box-shadow: 0 0 0 1.5px rgba(148,163,196,1), 0 0 58px 14px rgba(148,163,196,0.55), 0 22px 54px rgba(10,13,22,0.45) }
+  }
+  @keyframes suSweep { 0% { transform: translateX(-55%) } 100% { transform: translateX(55%) } }
+  /* Turn ring. The offsets are the perimeters of the two plate sizes:
+     2*(w-2r) + 2*(h-2r) + 2*pi*r at 178x60 and 136x52, both with r=13. */
+  @keyframes ringWide { from { stroke-dashoffset: 0 } to { stroke-dashoffset: -471.4 } }
+  @keyframes crownDrop { 0% { opacity: 0; transform: translateY(-26px) scale(.55) rotate(-10deg) } 55% { opacity: 1 } 100% { opacity: 1; transform: translateY(0) scale(1) rotate(0) } }
+  @keyframes confettiPop { 0% { opacity: 0; transform: translate(0,6px) scale(.4) rotate(0deg) } 22% { opacity: var(--peak,.4) } 68% { opacity: var(--peak,.4) } 100% { opacity: 0; transform: translate(var(--dx,0px), -16px) scale(1) rotate(var(--dr,180deg)) } }
+  @keyframes ringCompact { from { stroke-dashoffset: 0 } to { stroke-dashoffset: -353.7 } }
+  /* The landing strip's rule is an underline under these two em spaces (see
+     the strip). Generated here because the template runtime drops a text node
+     that is only whitespace, and the em spaces are all this one holds. */
+  .su-rule::before { content: '\2003\2003'; }
+  /* The landing fits one screen. Once the hero stacks there is no longer room
+     for the card art and the copy and the ledger, so the art — the only piece
+     that is decoration rather than information — is what gives way. Its
+     proximity flip needs a pointer anyway, which a phone does not have. */
+  /* The lobby's four fixed columns total 690px before gaps, so below roughly a
+     tablet they stop fitting and the figures stop lining up — which is the only
+     reason they are mono and tabular. Two-up keeps each number beside its own
+     label instead of scrolling the row sideways. */
+  /* The profile's money row and four stat columns both stop working once the
+     measure gets short: bankroll and rakeback stop fitting side by side, and
+     four tabular figures no longer line up. Stack them instead. */
+  @media (max-width: 980px) {
+    .su-you-grid { grid-template-columns: minmax(0, 1fr) !important }
+    .su-you-stats { grid-template-columns: repeat(2, minmax(0, 1fr)) !important }
+  }
+  @media (max-width: 900px) {
+    /* The board's rank, name and net are the row; hands, bb/100 and biggest
+       are the detail. Six columns of tabular figures do not fit a phone, and
+       the name is the only flexible one — so it is what collapses. Dropping
+       the three detail columns keeps the row legible instead. */
+    .su-lb-num { display: none !important }
+    .su-lobby-head { display: none !important }
+    .su-lobby-row { grid-template-columns: 1fr 1fr !important; gap: 6px 16px !important }
+    .su-lobby-row > div:nth-child(3), .su-lobby-row > div:nth-child(4) { text-align: left !important }
+    /* The join sits beside the stake rather than in a column of its own — so
+       the pull-back over the desktop column gap has nothing to correct for
+       here, and it aligns to the row's edge instead of a column's centre. */
+    .su-lobby-row > div:nth-child(5) { grid-row: 1 !important; grid-column: 2 !important; align-self: center !important;
+      margin-left: 0 !important; justify-content: flex-end !important }
+    /* The schedule's event, its clock and its action are the row; buy-in,
+       field and pool are the detail. Four columns of figures do not fit a
+       phone and the event name is the only flexible one, so it is what
+       collapses — the same trade the leaderboard's `.su-lb-num` makes. The
+       figures are all on the event's own detail screen, one tap away. */
+    .su-t-num { display: none !important }
+  }
+  @media (max-width: 820px) { .su-art { display: none !important } }
+  @media (max-width: 1100px) and (max-height: 900px) { .su-art { display: none !important } }
+  @media print { body { background: #222c47 } }
+
+/* ── generated: the dc runtime's own page CSS ───────────────────────────────
+   Carried over from FULL_PAGE_CSS in support.js, which injected it at boot.
+   Generated by tools/build-css.mjs — do not edit. */
+html, body { height: 100%; margin: 0 }
+#dc-root, #dc-root > .sc-host { height: 100% }
+
+/* The div SuitedClient mounts its React root into. In the original, #dc-root
+   was a direct child of <body>; here one element sits between them, and the
+   height:100% chain above only resolves if every link in it has a height. */
+.dc-mount { height: 100% }
+
+/* ── generated: depth and light ─────────────────────────────────────────────
+   Added by the neon theme on top of the carried-over sheet. Geometry is
+   untouched — this is glow, bevel and shadow only.
+   Generated by tools/build-css.mjs — do not edit. */
+
+/* The ground gets a slow violet bloom behind the content, so the page reads as
+   lit rather than merely dark. Painted on the existing fixed backdrop, which
+   already sits behind everything and animates nothing per frame. */
+.felt-bg::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(70% 50% at 50% 0%, color-mix(in srgb, var(--su-accent) 18%, transparent), transparent 70%),
+    radial-gradient(45% 40% at 85% 95%, color-mix(in srgb, var(--su-cyan) 10%, transparent), transparent 70%);
+}
+
+/* The one filled action per view. Violet gradient already; this gives it the
+   halo and the lip that make it read as a key rather than a rectangle. */
+.pill {
+  border-radius: 7px !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.084),
+    0 0 0 1px color-mix(in srgb, var(--su-accent) 55%, transparent),
+    0 8px 22px -10px color-mix(in srgb, var(--su-accent) 85%, transparent),
+    0 2px 6px rgba(0,0,0,0.563) !important;
+}
+.pill:active { transform: translateY(1px); }
+
+/* The quiet action beside it: seated into the panel rather than raised off it. */
+.pill-flat {
+  border-radius: 7px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.07), 0 2px 8px -4px rgba(0,0,0,0.72) !important;
+}
+
+/* Panels lift off the ground: a hairline of light along the top edge where it
+   would catch, and a soft drop beneath. */
+.su-stake, .su-join {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.055), 0 10px 26px -18px rgba(0,0,0,0.72) !important;
+}
+.su-stake { transition: border-color .18s ease, box-shadow .18s ease, background .18s ease, transform .18s ease !important; }
+.su-stake:hover { transform: translateY(-2px); }
+/* The chosen stake is lit from within — the same signal the acting seat uses. */
+.su-stake--on {
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.08),
+    0 0 26px -6px color-mix(in srgb, var(--su-accent) 70%, transparent),
+    0 10px 26px -18px rgba(0,0,0,0.72) !important;
+}
+
+/* A live count, a live price, a seat that is about to act: anything wearing the
+   accent as a mark gets a faint bloom so it reads as powered rather than
+   printed. Kept to the dot, which is the only always-live mark on the page. */
+.su-stake--busy .su-stake-dot {
+  box-shadow: 0 0 10px 1px color-mix(in srgb, var(--su-cyan) 85%, transparent) !important;
+}
+
+/* Avatars sit in a ring of their tier colour; on dark it needs a touch of glow
+   to separate from the panel behind it. */
+.av { box-shadow: 0 2px 10px -4px rgba(0,0,0,0.72); }
+
+/* ── generated: style-hover / style-active ─────────────────
+   The template's style-hover/style-active attributes. The old runtime built
+   these rules in memory as it walked the markup; they are generated here
+   instead, with the same !important the runtime added so a hover rule still
+   beats the inline style on the element it applies to.
+   Generated by tools/compile-template.mjs — do not edit. */
+.scp0:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,0.285),0 0 22px -7px rgba(232,236,248,0.108),0 1px 3px rgba(0,0,0,0.375) !important}
+.scp1:active{transform:translateY(1px) !important;box-shadow:inset 0 2px 5px rgba(10,13,22,0.28) !important}
+.scp2:hover{color:#a78bfa !important}
+.scp3:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,0.3),0 0 40px -6px rgba(232,236,248,0.12),0 3px 7px rgba(0,0,0,0.4) !important}
+.scp4:active{transform:translateY(1px) !important;box-shadow:inset 0 2px 6px rgba(10,13,22,0.28) !important}
+.scp5:hover{border-color:rgba(139,92,246,0.55) !important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.14),0 0 22px -8px rgba(139,92,246,0.7) !important}
+.scp6:active{transform:translateY(1px) !important;box-shadow:inset 0 2px 5px rgba(0,0,0,0.425) !important}
+.scp7:hover{border-color:rgba(139,92,246,0.8) !important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),0 0 16px -6px rgba(139,92,246,0.7) !important}
+.scp8:active{transform:translateY(1px) !important;box-shadow:inset 0 2px 4px rgba(0,0,0,0.4) !important}
+.scp9:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,0.3),0 0 30px -6px rgba(232,236,248,0.114),0 2px 6px rgba(0,0,0,0.375) !important}
+.scpa:hover{border-color:rgba(139,92,246,0.55) !important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.14),0 0 18px -6px rgba(139,92,246,0.6) !important}
+.scpb:hover{color:#e8ecf8 !important;border-color:rgba(232,236,248,0.34) !important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.1),0 0 16px -6px rgba(232,236,248,0.4),0 1px 2px rgba(0,0,0,0.35) !important}
+.scpc:hover{border-color:rgba(139,92,246,0.5) !important;color:#b497f7 !important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.14),0 0 18px -6px rgba(139,92,246,0.6),0 1px 2px rgba(0,0,0,0.35) !important}
+.scpd:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,0.285),0 0 30px -6px rgba(232,236,248,0.114),0 2px 5px rgba(0,0,0,0.4) !important}
+.scpe:active{transform:translateY(1px) !important;box-shadow:inset 0 2px 5px rgba(10,13,22,0.28) !important}
+.scpf:hover{border-color:rgba(139,92,246,0.5) !important;box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),0 0 14px -6px rgba(139,92,246,0.6) !important}
+.scpg:hover{box-shadow:inset 0 1px 0 rgba(255,255,255,0.3),0 0 34px -8px rgba(232,236,248,0.108),0 3px 7px rgba(0,0,0,0.375) !important}
+.scph:hover{color:#e8ecf8 !important}
+
+/* ── the theme's palette ────────────────────────────────────────────────────
+   This is now the source of truth for the theme. It began as a colour map in a
+   generator that applied it across the app; that generator is retired, so these
+   twenty-one values and the rules above are what remain — plus the constants at
+   the top of SuitedApp.tsx, which carry the same palette into the styles
+   renderVals builds.
+
+   Changing a token here only moves what the CSS rules in this file name. To
+   move the app's colour as a whole you also want the constants in SuitedApp.
+   Run tools/audit-contrast.mjs afterwards: several of those constants are
+   deliberately split between a surface and the text on it, and collapsing one
+   back is how text ends up the colour of what it sits on. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-html {
-  height: 100%;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
+  --su-ground: #0a0d16;
+  --su-table: #131a2f;
+  --su-table-lift: #1b2440;
+  --su-panel: #1a2238;
+  --su-panel-hi: #222c47;
+  --su-sunken: #0d1220;
+  --su-card-face: #f2f5ff;
+  --su-card-ink: #101828;
+  --su-card-red: #e5484d;
+  --su-text-hi: #e8ecf8;
+  --su-text-mid: #94a3c4;
+  --su-text-low: #5b6684;
+  --su-on-accent: #f6f3ff;
+  --su-accent: #8b5cf6;
+  --su-accent-hi: #a78bfa;
+  --su-accent-lo: #6d3fd4;
+  --su-cyan: #22d3ee;
+  --su-cyan-lo: #0e9fb8;
+  --su-hot: #f43f5e;
+  --su-red: #e5484d;
+  --su-loss-soft: #f0a8b4;
 }

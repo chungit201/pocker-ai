@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="straight flush">
+<defs><clipPath id="sf-cl"><circle cx="64" cy="64" r="64"></circle></clipPath></defs>
+<g clip-path="url(#sf-cl)">
+<circle cx="64" cy="64" r="64" fill="#0b2a20"></circle>
+<polygon points="31,84 41,97 31,110 21,97" fill="#c9a961"></polygon>
+<polygon points="53,62 63,75 53,88 43,75" fill="#c9a961"></polygon>
+<polygon points="75,40 85,53 75,66 65,53" fill="#c9a961"></polygon>
+<polygon points="97,18 107,31 97,44 87,31" fill="#c9a961"></polygon></g>
+</svg>

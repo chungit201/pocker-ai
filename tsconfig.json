@@ -1,10 +1,25 @@
 {
   "compilerOptions": {
-    "target": "ES2017",
+    /* ES2020, not create-next-app's ES2017: the staking and jackpot maths is
+       written in BigInt literals (token amounts are 18-decimal integers, and
+       doing that in doubles is how a balance loses its last few wei), and those
+       are a syntax error below ES2020. */
+    "target": "ES2020",
     "lib": ["dom", "dom.iterable", "esnext"],
     "allowJs": true,
     "skipLibCheck": true,
-    "strict": true,
+
+    /* The port carries ~340 KB of engine and ~7 000 lines of app logic across
+       from untyped JavaScript unchanged, on purpose: engine/verify.ts is a
+       byte-for-byte counterpart of the server's fair.ts, and a "while I'm here"
+       retype is how the two quietly stop agreeing about a commit-reveal.
+       So strictness starts off and is earned back per module, by hand, as each
+       one gets real types — rather than being bought up front with a sweep of
+       `any` that type-checks and means nothing. Tighten these two flags as that
+       work lands; they are the whole remaining debt. */
+    "strict": false,
+    "noImplicitAny": false,
+
     "noEmit": true,
     "esModuleInterop": true,
     "module": "esnext",
@@ -30,5 +45,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "tools"]
 }

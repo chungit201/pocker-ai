@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="cooler">
+<defs><clipPath id="cl-cl"><circle cx="64" cy="64" r="64"></circle></clipPath></defs>
+<g clip-path="url(#cl-cl)">
+<circle cx="64" cy="64" r="64" fill="#1b201c"></circle>
+<text x="64" y="62" text-anchor="middle" dominant-baseline="central" font-family="Georgia,'Times New Roman',serif" font-size="92" fill="#b3273f">♥</text>
+<rect x="20" y="59" width="88" height="11" rx="5.5" fill="#c9a961" transform="rotate(-26 64 64)"></rect>
+<circle cx="64" cy="64" r="61" fill="none" stroke="#c9a961" stroke-width="3" opacity=".45"></circle></g>
+</svg>

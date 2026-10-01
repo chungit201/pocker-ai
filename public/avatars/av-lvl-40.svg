@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="legend">
+<defs><clipPath id="l40-cl"><circle cx="64" cy="64" r="64"></circle></clipPath></defs>
+<g clip-path="url(#l40-cl)">
+<circle cx="64" cy="64" r="64" fill="#c9a961"></circle>
+<rect x="40" y="32" width="48" height="12" rx="6" fill="#1b201c"></rect>
+<rect x="40" y="52" width="48" height="12" rx="6" fill="#1b201c"></rect>
+<rect x="40" y="72" width="48" height="12" rx="6" fill="#1b201c"></rect>
+<rect x="40" y="92" width="48" height="12" rx="6" fill="#1b201c"></rect></g>
+</svg>

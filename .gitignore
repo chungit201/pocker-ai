@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ...except the template, which documents the switches and holds no secrets.
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +41,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Intermediate output of the port scripts in tools/: slices of the original
+# index.html, type-error dumps and comparison screenshots. Regenerate with
+# "node tools/extract.mjs" — nothing in there is a source file.
+/tools/out

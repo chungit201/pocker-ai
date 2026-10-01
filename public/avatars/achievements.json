@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "note": "Avatar + achievement manifest for suited. Files live beside this one; ids are stable and match av-<id>.svg.",
+  "tiers": {
+    "default": { "motion": null, "tell": "none" },
+    "common":  { "motion": null, "tell": "none" },
+    "uncommon":{ "motion": null, "tell": "brass hairline ring, baked into the SVG" },
+    "rare":    { "motion": "wipe", "tell": "2px brass ring (ink on light grounds) + one light wipe" },
+    "mythic":  { "motion": "aura", "tell": "rotating brass sweep + breathing glow" }
+  },
+  "defaults": [
+    { "id": "index-as",     "name": "ace of spades",     "svg": "av-index-as.svg" },
+    { "id": "index-ah",     "name": "ace of hearts",     "svg": "av-index-ah.svg" },
+    { "id": "index-kd",     "name": "king of diamonds",  "svg": "av-index-kd.svg" },
+    { "id": "index-qc",     "name": "queen of clubs",    "svg": "av-index-qc.svg" },
+    { "id": "face-grin",    "name": "grin",              "svg": "av-face-grin.svg" },
+    { "id": "face-deadpan", "name": "deadpan",           "svg": "av-face-deadpan.svg" },
+    { "id": "face-wide",    "name": "wide-eyed",         "svg": "av-face-wide.svg" },
+    { "id": "face-busted",  "name": "busted",            "svg": "av-face-busted.svg" }
+  ],
+  "achievements": [
+    { "id": "chip-1",         "name": "first blood",    "tier": "common",   "svg": "av-chip-1.svg",         "condition": "win your first pot",                     "check": "pots_won >= 1" },
+    { "id": "chip-5",         "name": "heater",         "tier": "common",   "svg": "av-chip-5.svg",         "condition": "win five pots in a row",                 "check": "max_consecutive_pots_won >= 5" },
+    { "id": "chip-25",        "name": "regular",        "tier": "common",   "svg": "av-chip-25.svg",        "condition": "play 25 sessions",                       "check": "sessions >= 25" },
+    { "id": "chip-100",       "name": "century",        "tier": "common",   "svg": "av-chip-100.svg",       "condition": "win 100 pots",                           "check": "pots_won >= 100" },
+
+    { "id": "boat",           "name": "boat",           "tier": "uncommon", "svg": "av-boat.svg",           "condition": "make 25 full houses",                    "check": "showdowns.full_house >= 25" },
+    { "id": "seven-deuce",    "name": "seven-deuce",    "tier": "uncommon", "svg": "av-seven-deuce.svg",    "condition": "win a showdown holding 7-2 offsuit",     "check": "won && hole == {7,2} && offsuit" },
+    { "id": "cooler",         "name": "cooler",         "tier": "uncommon", "svg": "av-cooler.svg",         "condition": "take 25 bad beats",                      "check": "bad_beats >= 25", "note": "bad beat = lost a showdown while >=80% equity after the turn; equity is computable because the deck is revealed" },
+    { "id": "all-in",         "name": "all in",         "tier": "uncommon", "svg": "av-all-in.svg",         "condition": "win an all-in pot of 200bb or more",     "check": "won && all_in && pot_bb >= 200" },
+    { "id": "button",         "name": "on the button",  "tier": "uncommon", "svg": "av-button.svg",         "condition": "play 10,000 hands",                      "check": "hands_played >= 10000" },
+    { "id": "suited",         "name": "suited",         "tier": "uncommon", "svg": "av-suited.svg",         "condition": "make 50 flushes from suited hole cards", "check": "flushes_from_suited_holes >= 50" },
+
+    { "id": "lvl-10",         "name": "reg",            "tier": "uncommon", "svg": "av-lvl-10.svg",         "condition": "reach level 10",                         "check": "level >= 10", "note": "level = xpFor(wagered).level; names follow XP_TITLES" },
+    { "id": "lvl-20",         "name": "river rat",      "tier": "uncommon", "svg": "av-lvl-20.svg",         "condition": "reach level 20",                         "check": "level >= 20" },
+    { "id": "lvl-30",         "name": "whale",          "tier": "rare",     "svg": "av-lvl-30.svg",         "condition": "reach level 30",                         "check": "level >= 30" },
+    { "id": "lvl-40",         "name": "legend",         "tier": "mythic",   "svg": "av-lvl-40.svg",         "condition": "reach level 40",                         "check": "level >= 40" },
+
+    { "id": "quads",          "name": "quads",          "tier": "rare",     "svg": "av-quads.svg",          "condition": "make four of a kind",                    "check": "showdowns.quads >= 1" },
+    { "id": "straight-flush", "name": "straight flush", "tier": "rare",     "svg": "av-straight-flush.svg", "condition": "make a straight flush",                  "check": "showdowns.straight_flush >= 1" },
+    { "id": "wheel",          "name": "the wheel",      "tier": "rare",     "svg": "av-wheel.svg",          "condition": "make a five-high straight",              "check": "showdowns.straight && straight_high_card == 5" },
+    { "id": "verified",       "name": "verified",       "tier": "rare",     "svg": "av-verified.svg",       "condition": "re-deal and check 100 hands yourself",    "check": "client_verifications_ok >= 100" },
+    { "id": "five-bills",     "name": "five bills",     "tier": "rare",     "svg": "av-five-bills.svg",     "condition": "win 25 pots over $500",                  "check": "pots_won_over_usdc(500) >= 25", "light_ground": true },
+
+    { "id": "royal",          "name": "royal",          "tier": "mythic",   "svg": "av-royal.svg",          "condition": "make a royal flush",                     "check": "showdowns.royal_flush >= 1" },
+    { "id": "jackpot",        "name": "jackpot",        "tier": "mythic",   "svg": "av-jackpot.svg",        "condition": "take down the bad-beat jackpot",         "check": "bad_beat_jackpot_paid_to_you >= 1" },
+    { "id": "the-nuts",       "name": "the nuts",       "tier": "mythic",   "svg": "av-the-nuts.svg",       "condition": "win 25 showdowns holding the nuts",      "check": "showdowns_holding_nuts_won >= 25" },
+    { "id": "day-one",        "name": "day one",        "tier": "mythic",   "svg": "av-day-one.svg",        "condition": "one of the first 77 accounts",           "check": "account_index <= 77" }
+  ]
+}

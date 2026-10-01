@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="whale">
+<defs><clipPath id="l30-cl"><circle cx="64" cy="64" r="64"></circle></clipPath></defs>
+<g clip-path="url(#l30-cl)">
+<circle cx="64" cy="64" r="64" fill="#6d1f2b"></circle>
+<rect x="36" y="40" width="56" height="12" rx="6" fill="#c9a961"></rect>
+<rect x="36" y="60" width="56" height="12" rx="6" fill="#c9a961"></rect>
+<rect x="36" y="80" width="56" height="12" rx="6" fill="#c9a961"></rect></g>
+</svg>

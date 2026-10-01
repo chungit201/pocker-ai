@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="quads">
+<defs><clipPath id="qd-cl"><circle cx="64" cy="64" r="64"></circle></clipPath></defs>
+<g clip-path="url(#qd-cl)">
+<circle cx="64" cy="64" r="64" fill="#1b201c"></circle>
+<rect x="31" y="31" width="27" height="27" rx="4" fill="#c9a961"></rect>
+<rect x="70" y="31" width="27" height="27" rx="4" fill="#c9a961"></rect>
+<rect x="31" y="70" width="27" height="27" rx="4" fill="#c9a961"></rect>
+<rect x="70" y="70" width="27" height="27" rx="4" fill="#c9a961"></rect></g>
+</svg>

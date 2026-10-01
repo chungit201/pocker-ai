@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="jackpot">
+<defs><clipPath id="jp-cl"><circle cx="64" cy="64" r="64"></circle></clipPath></defs>
+<g clip-path="url(#jp-cl)">
+<circle cx="64" cy="64" r="64" fill="#8f2b34"></circle>
+<circle cx="64" cy="64" r="56" fill="none" stroke="#c9a961" stroke-width="16" stroke-dasharray="18 25.98"></circle>
+<circle cx="64" cy="64" r="48" fill="#8f2b34"></circle>
+<circle cx="64" cy="64" r="47" fill="none" stroke="#c9a961" stroke-width="1" opacity=".28"></circle>
+<text x="64" y="64" text-anchor="middle" dominant-baseline="central" font-family="'Times New Roman',Times,Georgia,serif" font-size="34" fill="#c9a961">777</text></g>
+</svg>

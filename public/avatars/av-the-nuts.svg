@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="the nuts">
+<defs><clipPath id="nu-cl"><circle cx="64" cy="64" r="64"></circle></clipPath></defs>
+<g clip-path="url(#nu-cl)">
+<circle cx="64" cy="64" r="64" fill="#1b201c"></circle>
+<text x="43" y="43" text-anchor="middle" dominant-baseline="central" font-family="Georgia,'Times New Roman',serif" font-size="34" fill="#c9a961">♠</text>
+<text x="85" y="43" text-anchor="middle" dominant-baseline="central" font-family="Georgia,'Times New Roman',serif" font-size="34" fill="#c9a961">♥</text>
+<text x="43" y="85" text-anchor="middle" dominant-baseline="central" font-family="Georgia,'Times New Roman',serif" font-size="34" fill="#c9a961">♦</text>
+<text x="85" y="85" text-anchor="middle" dominant-baseline="central" font-family="Georgia,'Times New Roman',serif" font-size="34" fill="#c9a961">♣</text>
+<circle cx="64" cy="64" r="61" fill="none" stroke="#c9a961" stroke-width="2" opacity=".5"></circle></g>
+</svg>

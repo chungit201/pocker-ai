@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="on the button">
+<defs><clipPath id="bn-cl"><circle cx="64" cy="64" r="64"></circle></clipPath></defs>
+<g clip-path="url(#bn-cl)">
+<circle cx="64" cy="64" r="64" fill="#eae6dc"></circle>
+<text x="64" y="66" text-anchor="middle" dominant-baseline="central" font-family="Georgia,'Times New Roman',serif" font-size="60" fill="#103a2e">D</text>
+<circle cx="64" cy="64" r="60" fill="none" stroke="#c9a961" stroke-width="5" opacity="1"></circle></g>
+</svg>

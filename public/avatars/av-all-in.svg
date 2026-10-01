@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="all in">
+<defs><clipPath id="ai-cl"><circle cx="64" cy="64" r="64"></circle></clipPath></defs>
+<g clip-path="url(#ai-cl)">
+<circle cx="64" cy="64" r="64" fill="#8c491a"></circle>
+<ellipse cx="66" cy="42" rx="31" ry="7" fill="#f5ead8"></ellipse>
+<ellipse cx="62" cy="58" rx="33" ry="7" fill="#c9a961"></ellipse>
+<ellipse cx="67" cy="74" rx="31" ry="7" fill="#f5ead8"></ellipse>
+<ellipse cx="63" cy="90" rx="34" ry="7" fill="#c9a961"></ellipse>
+<circle cx="64" cy="64" r="61" fill="none" stroke="#c9a961" stroke-width="3" opacity=".45"></circle></g>
+</svg>

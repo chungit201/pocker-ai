@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="day one">
+<defs><clipPath id="d1-cl"><circle cx="64" cy="64" r="64"></circle></clipPath></defs>
+<g clip-path="url(#d1-cl)">
+<circle cx="64" cy="64" r="64" fill="#0b2a20"></circle>
+<rect x="41" y="41" width="46" height="46" rx="3" fill="#c9a961"></rect>
+<rect x="41" y="41" width="46" height="46" rx="3" fill="#e8d4a0" transform="rotate(45 64 64)"></rect>
+<circle cx="64" cy="64" r="11" fill="#0b2a20"></circle>
+<circle cx="64" cy="64" r="61" fill="none" stroke="#c9a961" stroke-width="2" opacity=".55"></circle></g>
+</svg>

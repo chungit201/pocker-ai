@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="river rat">
+<defs><clipPath id="l20-cl"><circle cx="64" cy="64" r="64"></circle></clipPath></defs>
+<g clip-path="url(#l20-cl)">
+<circle cx="64" cy="64" r="64" fill="#0b2a20"></circle>
+<rect x="34" y="48" width="60" height="12" rx="6" fill="#c9a961"></rect>
+<rect x="34" y="70" width="60" height="12" rx="6" fill="#c9a961"></rect>
+<circle cx="64" cy="64" r="61" fill="none" stroke="#c9a961" stroke-width="3" opacity=".45"></circle></g>
+</svg>
