@@ -23,6 +23,10 @@ const BACKEND = process.env.SUITED_BACKEND ?? 'http://localhost:3000';
 
 const nextConfig: NextConfig = {
 
+  /* A self-contained server (.next/standalone) so the Docker image carries only
+     what runs: no node_modules tree, and `node server.js` to start it. */
+  output: 'standalone',
+
   /* The dev overlay's button sits bottom-left, which is exactly where the
      table's action bar puts FOLD — it covers the control a player reaches for
      under a clock. Off, so what you see while developing is what ships. */
