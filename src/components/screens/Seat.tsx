@@ -54,7 +54,7 @@ export default function Seat({ v }: { v: any }) {
                     {interp(v.sitAmountLabel)}
                   </span>
                   {"\r\n                "}
-                  <span style={{ fontSize: "12px", letterSpacing: ".14em", color: "#94a3c4" }}>{"USDG"}</span>
+                  <span style={{ fontSize: "12px", letterSpacing: ".14em", color: "#94a3c4" }}>{"USDC"}</span>
                   {"\r\n              "}
                 </div>
                 {"\r\n            "}

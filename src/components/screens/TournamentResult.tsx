@@ -60,7 +60,7 @@ export default function TournamentResult({ v }: { v: any }) {
                 {"\r\n            "}
                 <input value={v.fundDraft ?? ''} onInput={v.fundInput} placeholder="25.00" inputMode="decimal" style={{ flex: "1", minWidth: "0", border: "0", background: "transparent", fontSize: "15px", fontVariantNumeric: "tabular-nums", color: "#e8ecf8", caretColor: "#a78bfa" }} />
                 {"\r\n            "}
-                <span style={{ fontSize: "10px", letterSpacing: ".2em", color: "#94a3c4", flex: "none" }}>{"USDG"}</span>
+                <span style={{ fontSize: "10px", letterSpacing: ".2em", color: "#94a3c4", flex: "none" }}>{"USDC"}</span>
                 {"\r\n          "}
               </div>
               {"\r\n          "}

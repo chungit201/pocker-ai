@@ -102,7 +102,7 @@ export default function TableDrawer({ v, floating = true }: { v: any; floating?:
               ) : null}
               <div className="td-kv">
                 <span>Bankroll</span>
-                <b>{interp(v.balanceLabel)} <small>USDG</small></b>
+                <b>{interp(v.balanceLabel)} <small>USDC</small></b>
               </div>
             </div>
           ) : (

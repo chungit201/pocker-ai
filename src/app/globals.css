@@ -363,6 +363,10 @@
      bare input, so the brass focus ring lands on the wrapper. */
   .field-paper { transition: box-shadow .16s ease, border-color .16s ease; }
   .field-paper:focus-within { border-color: rgba(139,92,246,0.85) !important; box-shadow: inset 0 1px 2px rgba(10,13,22,0.14), 0 0 0 3px rgba(139,92,246,0.14) !important; }
+  /* In both wells the wrapper's ring IS the focus indicator. Without this the
+     global :focus-visible outline also draws on the bare input, and the field
+     shows a second, tighter rectangle inside its own border. */
+  .field-felt input:focus-visible, .field-paper input:focus-visible { outline: none; }
   /* Small selectors built by staking-render.js: a range/unit chip on the felt,
      a segment of the cream tier picker, and a position row. All three are
      inline-styled, so the hover rides a class and !important like the rest. */

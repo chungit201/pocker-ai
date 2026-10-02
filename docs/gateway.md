@@ -73,7 +73,7 @@ of it, and the gateway will refuse the result.
 **On-chain deposits are off.** `/api/chain` returns `{"enabled":false}`, which in
 `Poker-BE/src/api.ts` means exactly one thing: `config.chain.mode !== 'evm'`.
 The deployment is in faucet mode, so balances are play money — a new account
-arrives with 1,000 USDG — and there is no vault, no token and no deposit or
+arrives with 1,000 USDC — and there is no vault, no token and no deposit or
 withdrawal. Note this is independent of sign-in: wallet login works regardless,
 because it authenticates an address rather than moving funds. The two were easy
 to conflate and are not related.

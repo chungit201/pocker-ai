@@ -163,7 +163,7 @@ export default function Connect({ v }: { v: any }) {
                     {interp(v.bankrollLabel)}
                   </span>
                   {"\r\n              "}
-                  <span style={{ fontSize: "12px", color: "#94a3c4" }}>{"USDG"}</span>
+                  <span style={{ fontSize: "12px", color: "#94a3c4" }}>{"USDC"}</span>
                   {"\r\n            "}
                 </div>
                 {"\r\n            "}
@@ -218,7 +218,7 @@ export default function Connect({ v }: { v: any }) {
                         {"\r\n                  "}
                         <input value={v.depositDraft ?? ''} onInput={v.depositInput} placeholder="25" inputMode="decimal" style={{ flex: "1", minWidth: "0", padding: "9px 14px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "13px", caretColor: "#a78bfa" }} />
                         {"\r\n                  "}
-                        <span style={{ fontSize: "12px", color: "#94a3c4" }}>{"USDG"}</span>
+                        <span style={{ fontSize: "12px", color: "#94a3c4" }}>{"USDC"}</span>
                         {"\r\n                "}
                       </div>
                       {"\r\n                "}

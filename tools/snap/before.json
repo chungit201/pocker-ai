@@ -1378,7 +1378,7 @@
                  "tag": "span",
                  "cls": "",
                  "style": "color: rgb(148, 163, 196);font-size: 10px;letter-spacing: 0.2em",
-                 "text": "USDG",
+                 "text": "USDC",
                  "kids": []
                 }
                ]
@@ -3019,7 +3019,7 @@
                    "tag": "span",
                    "cls": "",
                    "style": "color: rgb(148, 163, 196);font-size: 11px;letter-spacing: 0.2em;margin-left: 8px",
-                   "text": "USDG",
+                   "text": "USDC",
                    "kids": []
                   }
                  ]
@@ -4059,7 +4059,7 @@
                    "tag": "span",
                    "cls": "",
                    "style": "color: rgb(148, 163, 196);flex: 1 1 220px;font-size: 13.5px",
-                   "text": "Rewards are paid in USDG from real revenue. Nothing is minted.",
+                   "text": "Rewards are paid in USDC from real revenue. Nothing is minted.",
                    "kids": []
                   }
                  ]
@@ -4152,7 +4152,7 @@
                      "tag": "span",
                      "cls": "",
                      "style": "color: rgb(148, 163, 196);font-size: 12.5px;font-weight: 300;line-height: 1.35",
-                     "text": "all time, in USDG",
+                     "text": "all time, in USDC",
                      "kids": []
                     }
                    ]
@@ -4820,7 +4820,7 @@
                        "tag": "span",
                        "cls": "",
                        "style": "color: rgb(148, 163, 196);font-size: 13px;line-height: 1.55",
-                       "text": "Your balance, your locks and your claimable USDG are read straight from the contract. Nobody but you can move your principal.",
+                       "text": "Your balance, your locks and your claimable USDC are read straight from the contract. Nobody but you can move your principal.",
                        "kids": []
                       },
                       {
@@ -4849,7 +4849,7 @@
                        "tag": "span",
                        "cls": "",
                        "style": "color: rgb(148, 163, 196);font-size: 13px;line-height: 1.55",
-                       "text": "USDG is paid to stakers out of what the tables and the token actually earn. Rake is swept once a day, at midnight New York — next in 22h 55m; creator fees are split as they are collected.",
+                       "text": "USDC is paid to stakers out of what the tables and the token actually earn. Rake is swept once a day, at midnight New York — next in 22h 55m; creator fees are split as they are collected.",
                        "kids": []
                       },
                       {
@@ -6137,7 +6137,7 @@
                    "tag": "span",
                    "cls": "",
                    "style": "color: rgb(148, 163, 196);flex: 1 1 220px;font-size: 13.5px",
-                   "text": "Rewards are paid in USDG from real revenue. Nothing is minted.",
+                   "text": "Rewards are paid in USDC from real revenue. Nothing is minted.",
                    "kids": []
                   }
                  ]
@@ -6230,7 +6230,7 @@
                      "tag": "span",
                      "cls": "",
                      "style": "color: rgb(148, 163, 196);font-size: 12.5px;font-weight: 300;line-height: 1.35",
-                     "text": "all time, in USDG",
+                     "text": "all time, in USDC",
                      "kids": []
                     }
                    ]
@@ -6898,7 +6898,7 @@
                        "tag": "span",
                        "cls": "",
                        "style": "color: rgb(148, 163, 196);font-size: 13px;line-height: 1.55",
-                       "text": "Your balance, your locks and your claimable USDG are read straight from the contract. Nobody but you can move your principal.",
+                       "text": "Your balance, your locks and your claimable USDC are read straight from the contract. Nobody but you can move your principal.",
                        "kids": []
                       },
                       {
@@ -6927,7 +6927,7 @@
                        "tag": "span",
                        "cls": "",
                        "style": "color: rgb(148, 163, 196);font-size: 13px;line-height: 1.55",
-                       "text": "USDG is paid to stakers out of what the tables and the token actually earn. Rake is swept once a day, at midnight New York — next in 22h 55m; creator fees are split as they are collected.",
+                       "text": "USDC is paid to stakers out of what the tables and the token actually earn. Rake is swept once a day, at midnight New York — next in 22h 55m; creator fees are split as they are collected.",
                        "kids": []
                       },
                       {
@@ -9070,7 +9070,7 @@
                  "tag": "span",
                  "cls": "",
                  "style": "color: rgb(148, 163, 196);font-size: 10px;letter-spacing: 0.2em",
-                 "text": "USDG",
+                 "text": "USDC",
                  "kids": []
                 }
                ]

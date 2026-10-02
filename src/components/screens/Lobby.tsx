@@ -172,7 +172,7 @@ export default function Lobby({ v }: { v: any }) {
                 {interp(v.lobbyJkPool)}
               </span>
               {"\r\n            "}
-              <span style={{ fontSize: "10px", letterSpacing: ".2em", color: "#94a3c4" }}>{"USDG"}</span>
+              <span style={{ fontSize: "10px", letterSpacing: ".2em", color: "#94a3c4" }}>{"USDC"}</span>
               {"\r\n          "}
             </div>
             {"\r\n          "}

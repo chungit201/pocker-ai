@@ -132,14 +132,14 @@ function chip(label, on, onClick) {
 }
 
 /* ── formatting ────────────────────────────────────────────────────────────
-   Two currencies with different decimals and wildly different magnitudes: USDG
+   Two currencies with different decimals and wildly different magnitudes: USDC
    is micro and small, $SUITED is 18-decimal and in the millions. Both are
    strings on the wire (bigint does not survive JSON), so both are parsed here
    and nowhere else. */
 
 const big = (s) => { try { return BigInt(s ?? 0); } catch { return 0n; } };
 
-/** micro-USDG → a number of dollars. Safe: micro-USDG fits a double far past
+/** micro-USDC → a number of dollars. Safe: micro-USDC fits a double far past
  *  any balance this contract will hold. */
 const usd = (micro) => Number(big(micro)) / 1e6;
 
@@ -402,7 +402,7 @@ function digest(d, me, now) {
   const weight = toTokens(weightUnits, decimals);
   const supply = d.token && d.token.totalSupply ? toTokens(d.token.totalSupply, decimals) : null;
 
-  // USDG per year per unit of weight, as the gateway computed it. Used only as
+  // USDC per year per unit of weight, as the gateway computed it. Used only as
   // a fallback: see `annualPot` below for why it cannot be the primary.
   const perWeightYear = rate ? usd(rate.perTokenYear) : null;
 
@@ -434,7 +434,7 @@ function digest(d, me, now) {
    * The POT, annualised — what the streams actually bring in per year, which
    * is the figure every estimate on this page has to be built from.
    *
-   * The tempting shortcut is rate × weight: take the gateway's USDG-per-unit-
+   * The tempting shortcut is rate × weight: take the gateway's USDC-per-unit-
    * of-weight and multiply by what is locked. It is wrong in the one case that
    * matters most, an empty pool — rate × 0 is zero, so the page tells the
    * first staker in the door that they would earn nothing, when in fact they
@@ -638,7 +638,7 @@ function noticeStrip(v) {
   const wrap = el('div', `display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 18px;border:1px solid ${HAIR};border-radius:8px`);
   const line = v.paused
     ? 'New locks are paused on the contract. Withdrawing and claiming are not pausable and still work.'
-    : 'Rewards are paid in USDG from real revenue. Nothing is minted.';
+    : 'Rewards are paid in USDC from real revenue. Nothing is minted.';
   wrap.appendChild(text('span', `font-size:13.5px;color:${v.paused ? PAPER : MUTED};flex:1 1 220px`, line));
   return wrap;
 }
@@ -670,7 +670,7 @@ function tilesRow(v, d) {
     v.locked === null ? `${v.symbol} locked · share of supply` : supplyLine).node);
 
   // 2 — the rate, TRAILING, at the longest lock. No price on chain means no
-  //     percentage, so the figure becomes USDG per 100k tokens and says so.
+  //     percentage, so the figure becomes USDC per 100k tokens and says so.
   const top = v.rate && v.rate.perTier && v.rate.perTier.length ? v.rate.perTier[v.rate.perTier.length - 1] : null;
   const longest = v.tiers.length ? lockAdj(v.tiers[v.tiers.length - 1].duration) : '30-day';
   wrap.appendChild(tile('apr',
@@ -686,8 +686,8 @@ function tilesRow(v, d) {
   // 3 — what has actually been paid.
   wrap.appendChild(tile('Paid to stakers',
     v.fundedAll === null ? 'N/A' : money(v.fundedAll, 0),
-    v.fundedAll === null ? 'All time, in USDG'
-      : v.paidWeek > 0 ? `${money(v.paidWeek, 0)} in the last 7 days` : 'All time, in USDG').node);
+    v.fundedAll === null ? 'All time, in USDC'
+      : v.paidWeek > 0 ? `${money(v.paidWeek, 0)} in the last 7 days` : 'All time, in USDC').node);
 
   // 4 — the next sweep, counted down. The keeper's own next run when it has
   //     reported one; otherwise the same midnight it will pick.
@@ -930,7 +930,7 @@ function stakeCard(v, me) {
 
     estBig.textContent = hasRate ? money(e.perWeek, 2) : 'N/A';
     estBig.style.color = hasRate ? P_INK : P_SUB;
-    estUnit.textContent = hasRate ? `USDG per week, at ${boostLabel(e.tier ? e.tier.boostBps : 10_000)}`
+    estUnit.textContent = hasRate ? `USDC per week, at ${boostLabel(e.tier ? e.tier.boostBps : 10_000)}`
       : v.potYear !== null ? 'Enter an amount to see the estimate'
         : 'A rate opens after two days of payments';
 
@@ -1014,7 +1014,7 @@ function connectCard(me) {
   box.appendChild(text('span', `font-family:${SERIF};font-size:27px;line-height:1.12;color:${PAPER}`,
     'Connect to see what you can claim.'));
   box.appendChild(text('span', `font-size:13px;color:${MUTED};line-height:1.55`,
-    'Your balance, your locks and your claimable USDG are read straight from the contract. '
+    'Your balance, your locks and your claimable USDC are read straight from the contract. '
     + 'Nobody but you can move your principal.'));
   const b = plate('Connect a wallet', () => me && me.connect && me.connect(), { kind: 'paper', wide: true, size: 14.5 });
   b.style.marginTop = '2px';
@@ -1032,7 +1032,7 @@ function claimCard(v, me) {
   const tail = text('span', `font-family:${SERIF};${NUM};font-size:20px;line-height:1;color:${MUTED}`, '');
   line.appendChild(head);
   line.appendChild(tail);
-  line.appendChild(text('span', `font-size:10px;letter-spacing:.2em;color:${MUTED};margin-left:8px`, 'USDG'));
+  line.appendChild(text('span', `font-size:10px;letter-spacing:.2em;color:${MUTED};margin-left:8px`, 'USDC'));
   box.appendChild(line);
 
   /* The figure ticks between reads, at the contract's OWN rate: this wallet's
@@ -1071,7 +1071,7 @@ function claimCard(v, me) {
     claimBtn.style.opacity = ready ? '1' : '0.45';
     claimBtn.textContent = me.busy ? 'working…'
       : grown < 0.01 ? 'Nothing to claim yet'
-        : base > 0 ? `claim ${money(base)} USDG` : 'Claim what you have earned';
+        : base > 0 ? `claim ${money(base)} USDC` : 'Claim what you have earned';
   };
   paint(readAt);
   if (base !== null && perSecond > 0) tickers.push(paint);
@@ -1125,7 +1125,7 @@ function sourcesCard(v) {
   const sweepLine = text('span', `font-size:13px;color:${MUTED};line-height:1.55`, '');
   const setSweepLine = (now) => {
     const place = zoneLabel(v.sweepZone);
-    sweepLine.textContent = 'USDG is paid to stakers out of what the tables and the token actually earn. '
+    sweepLine.textContent = 'USDC is paid to stakers out of what the tables and the token actually earn. '
       + `Rake is swept once a day, at midnight ${place}`
       + (v.sweepAt ? `, next in ${dur(v.sweepAt - now)}` : '')
       + '; creator fees are split as they are collected.';
@@ -1508,7 +1508,7 @@ function chartsRow(v) {
     .concat(paidMode ? [] : [chip('log', ui.log, () => { ui.log = !ui.log; repaint(); })]);
 
   wrap.appendChild(chartCard({
-    eyebrow: paidMode ? 'USDG paid in per day · latest' : `APR at ${boostLabel(v.tiers[aprTierIndex] ? v.tiers[aprTierIndex].boostBps : 10_000)} · latest day`,
+    eyebrow: paidMode ? 'USDC paid in per day · latest' : `APR at ${boostLabel(v.tiers[aprTierIndex] ? v.tiers[aprTierIndex].boostBps : 10_000)} · latest day`,
     head: paidMode ? money(paidLast, 0) : aprNow === null ? 'N/A' : pct(aprNow),
     change: paidMode
       ? (paidFirst && paidLast !== null ? `${paidLast - paidFirst.paid >= 0 ? '+' : ''}${money(paidLast - paidFirst.paid, 0)} over ${ui.range}d` : '')
@@ -1523,7 +1523,7 @@ function chartsRow(v) {
       axis: (val) => (paidMode ? `$${compact(val)}` : `${num(val, aprTop < 8 ? 1 : 0)}%`),
       tip: (p) => (p.v === null ? 'No price that day' : paidMode ? money(p.v, 2) : pct(p.v)),
       tipSub: (p) => (p.day.tvl === null ? 'No price that day' : `${moneyA(p.day.tvl)} locked`),
-      aria: paidMode ? `USDG paid in per day over the last ${ui.range} days.`
+      aria: paidMode ? `USDC paid in per day over the last ${ui.range} days.`
         : `APR at ${boostLabel(v.tiers[aprTierIndex] ? v.tiers[aprTierIndex].boostBps : 10_000)} over the last ${ui.range} days.`,
     }),
     footChips: modeChips,
@@ -1766,13 +1766,13 @@ function sheetFor(v, me) {
     note = 'No early exit. A lock runs to its end. You can extend it but never shorten it.';
     primary = `lock ${exact(s.tokens)} ${v.symbol}`;
   } else if (s.kind === 'claim') {
-    title = `Claim ${money(usd(earned))} USDG`;
+    title = `Claim ${money(usd(earned))} USDC`;
     rows = [
       ['across', `${v.positions.length} position${v.positions.length === 1 ? '' : 's'}`, INK],
-      ['Paid in', 'USDG', INK],
+      ['Paid in', 'USDC', INK],
     ];
     note = 'One claim pays everything you have earned across every position. Your principal stays locked.';
-    primary = `claim ${money(usd(earned))} USDG`;
+    primary = `claim ${money(usd(earned))} USDC`;
   } else if (s.kind === 'withdraw') {
     title = `Withdraw ${exact(pos.tokens)} ${v.symbol}`;
     rows = [
@@ -1841,7 +1841,7 @@ function sheetFor(v, me) {
     const names = s.kind === 'lock'
       ? [['approve', 'Allow the contract to take $SUITED'], ['stake', 'Lock your $SUITED']]
       : [[s.kind === 'extend' ? 'relock' : s.kind, {
-        claim: 'Claim your USDG', relock: 'Relock your position', withdraw: 'Withdraw your $SUITED',
+        claim: 'Claim your USDC', relock: 'Relock your position', withdraw: 'Withdraw your $SUITED',
       }[s.kind === 'extend' ? 'relock' : s.kind]]];
     const shown = names.filter(([key]) =>
       key !== 'approve' || (reported.approve !== 'skipped' && (needsApproval || reported.approve)));

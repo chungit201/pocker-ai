@@ -459,7 +459,7 @@ export function evmWithdrawRake(provider, info, address, amount, contract) {
 
 /** Map a raw provider/rpc error to words a player can act on. */
 /* ── staking ──────────────────────────────────────────────────────────────
-   The staking contract holds $SUITED and pays USDG. Every call here is the
+   The staking contract holds $SUITED and pays USDC. Every call here is the
    player's own wallet acting on their own position — there is no gateway in
    the path, no authorization to fetch, and nothing the house signs. A lock is
    between the staker and the contract. */
@@ -517,7 +517,7 @@ export async function evmChainTime(info) {
   }
 }
 
-/** USDG earned across every position, claimable now. */
+/** USDC earned across every position, claimable now. */
 export async function evmStakingEarned(info, staking, address) {
   const result = await rpcCall(info, staking, enc(FN.earned, addr(address)));
   return BigInt(result ?? '0x0');
@@ -587,7 +587,7 @@ export async function evmStakingWithdraw(provider, info, address, { staking, id,
   return hash;
 }
 
-/** Collect every position's USDG in one transaction. */
+/** Collect every position's USDC in one transaction. */
 export async function evmStakingClaim(provider, info, address, { staking, onStep }) {
   const step = track(onStep);
   step('claim', 'wallet');

@@ -8,6 +8,31 @@ import { Fragment } from 'react';
 import { interp, css, asArray } from '../dc-runtime';
 
 export default function Profile({ v }: { v: any }) {
+  /* A reload: the session is there, the identity behind it is still being
+     read. The header's own shape, pulsing, so the page does not jump when the
+     real one lands — and a way out if the read never comes back. */
+  if (v.profilePending) {
+    const bar = (w: string, h: string) => ({ width: w, height: h, borderRadius: "6px", background: "rgba(232,236,248,0.10)" });
+    return (
+      <div className="su-page su-stage" aria-busy="true" style={{ flex: "1", paddingBottom: "clamp(24px,76px,52px)", display: "flex", flexDirection: "column", gap: "clamp(28px,60px,44px)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "24px", paddingBottom: "26px", borderBottom: "1px solid rgba(232,236,248,0.16)", animation: v.profileRetryOn ? "none" : "suPulse 1.4s ease-in-out infinite" }}>
+          <div style={{ flex: "none", width: "72px", height: "72px", borderRadius: "50%", background: "rgba(232,236,248,0.10)" }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: "14px", minWidth: "0" }}>
+            <div style={bar("220px", "30px")} />
+            <div style={bar("140px", "11px")} />
+          </div>
+        </div>
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "16px", fontSize: "13px", color: "#94a3c4" }}>
+          {interp(v.profilePendingNote)}
+          {v.profileRetryOn ? (
+            <button className="pill-flat" onClick={v.profileRetry} style={{ padding: "8px 18px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.28)", fontSize: "12px", color: "#e8ecf8" }}>
+              {"Try again"}
+            </button>
+          ) : null}
+        </div>
+      </div>
+    );
+  }
   return (
     <>
       {"\r\n    "}
@@ -50,26 +75,34 @@ export default function Profile({ v }: { v: any }) {
                 </div>
                 {"\r\n              "}
                 {/*
-                   278 = 4 discs of 54 + three 10px gaps + the padding, so the
-                   eight land as two even rows of four.
+                   342 = 5 discs of 54 + four 10px gaps + the padding. Three
+                   shelves, each under a full-width label that breaks the
+                   flex-wrap row: the free portraits, the prestige set (its tag
+                   is the level that unlocks it), then what was earned at the
+                   table. 14px between rows leaves the tag room to hang.
                 */}
                 {"\r\n              "}
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", padding: "0 16px 16px", width: "342px", maxHeight: "300px", overflowY: "auto", boxSizing: "border-box" }}>
-                  {"\r\n                "}
-                  {asArray(v.avatars).map((a: any, $index: number) => (
-                    <Fragment key={$index}>
-                      {"\r\n                  "}
-                      <button onClick={a?.pick} title={a?.title} style={css(a?.style)}>
-                        {"\r\n                    "}
-                        <span className="av" data-tier={a?.tier} style={{ width: "100%", height: "100%" }}>
-                          <span style={css(a?.inner)} />
-                        </span>
-                        {"\r\n                  "}
-                      </button>
-                      {"\r\n                "}
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "14px 10px", padding: "0 16px 18px", width: "342px", maxHeight: "344px", overflowY: "auto", boxSizing: "border-box" }}>
+                  {([
+                    ["PORTRAITS", "", v.avatarsFree],
+                    ["PRESTIGE", v.avatarsPrestigeNote, v.avatarsPrestige],
+                    ["EARNED", "", v.avatarsEarned],
+                  ] as [string, string, any][]).map(([label, note, cells]) => (
+                    <Fragment key={label}>
+                      <div style={css(v.avatarGroupLabel)}>
+                        <span>{label}</span>
+                        <span style={{ color: "#94a3c4" }}>{interp(note)}</span>
+                      </div>
+                      {asArray(cells).map((a: any, $index: number) => (
+                        <button key={$index} onClick={a?.pick} title={a?.title} style={css(a?.style)}>
+                          <span className="av" data-tier={a?.tier} style={css(a?.discStyle)}>
+                            <span style={css(a?.inner)} />
+                          </span>
+                          <span style={css(a?.badgeStyle)}>{interp(a?.badge)}</span>
+                        </button>
+                      ))}
                     </Fragment>
                   ))}
-                  {"\r\n              "}
                 </div>
                 {"\r\n            "}
               </div>
@@ -355,7 +388,7 @@ export default function Profile({ v }: { v: any }) {
           {"\r\n        "}
           <div style={{ fontSize: "12.5px", fontVariantNumeric: "tabular-nums", color: "#94a3c4" }}>
             {interp(v.xpWagered)}
-            {" USDG wagered"}
+            {" USDC wagered"}
           </div>
           {"\r\n      "}
         </div>
@@ -383,7 +416,7 @@ export default function Profile({ v }: { v: any }) {
                     {interp(v.fundBankroll)}
                   </span>
                   {"\r\n                "}
-                  <span style={{ fontSize: "11px", letterSpacing: ".2em", color: "#94a3c4" }}>{"USDG"}</span>
+                  <span style={{ fontSize: "11px", letterSpacing: ".2em", color: "#94a3c4" }}>{"USDC"}</span>
                   {"\r\n              "}
                 </div>
                 {"\r\n            "}
@@ -401,7 +434,7 @@ export default function Profile({ v }: { v: any }) {
                 {"\r\n              "}
                 <input value={v.fundDraft ?? ''} onInput={v.fundInput} placeholder="25.00" inputMode="decimal" style={{ flex: "1", minWidth: "0", border: "0", background: "transparent", fontSize: "15px", fontVariantNumeric: "tabular-nums", color: "#e8ecf8", caretColor: "#a78bfa" }} />
                 {"\r\n              "}
-                <span style={{ fontSize: "10px", letterSpacing: ".2em", color: "#94a3c4", flex: "none" }}>{"USDG"}</span>
+                <span style={{ fontSize: "10px", letterSpacing: ".2em", color: "#94a3c4", flex: "none" }}>{"USDC"}</span>
                 {"\r\n            "}
               </div>
               {"\r\n            "}
@@ -432,7 +465,7 @@ export default function Profile({ v }: { v: any }) {
                     {interp(v.rbClaimable)}
                   </span>
                   {"\r\n                "}
-                  <span style={{ fontSize: "11px", letterSpacing: ".2em", color: "#94a3c4" }}>{"USDG"}</span>
+                  <span style={{ fontSize: "11px", letterSpacing: ".2em", color: "#94a3c4" }}>{"USDC"}</span>
                   {"\r\n              "}
                 </div>
                 {"\r\n            "}
@@ -457,7 +490,45 @@ export default function Profile({ v }: { v: any }) {
           {"\r\n\r\n      "}
         </div>
         {"\r\n\r\n      "}
-        <div className="su-you-stats" style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", borderTop: "1px solid rgba(232,236,248,0.16)" }}>
+        {/*
+           Every deposit and withdrawal, newest first. Only a Solana session
+           has one — the gateway keeps no such list for anything else — so the
+           whole block is absent rather than empty everywhere else.
+        */}
+        {v.fundHistOn ? (
+          <div style={{ display: "flex", flexDirection: "column", minWidth: "0" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px", paddingBottom: "12px", borderBottom: "1px solid rgba(232,236,248,0.16)" }}>
+              <span style={{ fontSize: "11px", letterSpacing: ".24em", color: "#a78bfa" }}>{"DEPOSITS & WITHDRAWALS"}</span>
+              {v.fundHistMoreOn ? (
+                <button onClick={v.fundHistMore} style={{ fontSize: "11px", letterSpacing: ".16em", color: "#94a3c4" }}>
+                  {interp(v.fundHistMoreLabel)}
+                </button>
+              ) : null}
+            </div>
+            {asArray(v.fundHistRows).map((r: any, $index: number) => (
+              <div key={$index} style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "6px 16px", padding: "13px 0", borderBottom: "1px solid rgba(232,236,248,0.08)" }}>
+                <span style={{ flex: "0 0 84px", fontSize: "11px", letterSpacing: ".16em", color: "#94a3c4", textTransform: "uppercase" }}>
+                  {interp(r?.kind)}
+                </span>
+                <span style={css(r?.amountStyle)}>
+                  {interp(r?.amount)}
+                </span>
+                <span style={css(r?.statusStyle)}>
+                  {interp(r?.status)}
+                </span>
+                <span style={{ flex: "0 0 140px", fontSize: "12px", fontVariantNumeric: "tabular-nums", color: "#94a3c4" }}>
+                  {interp(r?.when)}
+                </span>
+                <a href={r?.txUrl} target="_blank" rel="noopener noreferrer" style={css(r?.txStyle)}>{"Receipt ↗"}</a>
+              </div>
+            ))}
+            <div style={css(v.fundHistNoteStyle)}>
+              {interp(v.fundHistNote)}
+            </div>
+          </div>
+        ) : null}
+        {"\r\n\r\n      "}
+        <div className="su-you-stats"style={{ display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", borderTop: "1px solid rgba(232,236,248,0.16)" }}>
           {"\r\n        "}
           {asArray(v.statTiles).map((s: any, $index: number) => (
             <Fragment key={$index}>

@@ -131,7 +131,7 @@ export default function Landing({ v }: { v: any }) {
         <section className="lp-arena">
           <div className="lp-side lp-side--l">
             <Stat label="Hands dealt" value={v.statHands} sub={v.statHandsSub} tone="#8b5cf6" />
-            <Stat label="USDG in play" value={v.statInPlay} sub={v.statTablesSub} tone="#94a3c4" />
+            <Stat label="USDC in play" value={v.statInPlay} sub={v.statTablesSub} tone="#94a3c4" />
           </div>
 
           <div className="lp-table">

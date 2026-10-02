@@ -121,7 +121,7 @@ export function validateDocs(docs = DOCS) {
 export const CHAIN_WORDS = {
   evm: {
     chain: 'Robinhood Chain',
-    token: 'USDG',
+    token: 'USDC',
     wallets: '**MetaMask** and **Rabby**',
     walletQ: 'an EVM wallet like **MetaMask** or **Rabby**',
     entropy: 'a future Ethereum block hash',
@@ -234,8 +234,8 @@ export const DOCS = [
         { name: 'Rake router', address: '0x5A89a7a1f1c6D51d789822B3bEb4b0ef17165aD3',
           source: 'https://repo.sourcify.dev/4663/0x5A89a7a1f1c6D51d789822B3bEb4b0ef17165aD3',
           note: 'The vault\'s rake exit. It is both the vault\'s owner and the one address the vault may send rake to, so every dollar of [rake](/docs/rake) that leaves is split as it lands: **12% to stakers, the rest to the house**. The key that triggers a sweep can do nothing else, it cannot pick a destination, cannot pause the vault, and cannot reach player funds.' },
-        { name: 'USDG, Global Dollar', address: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168',
-          note: 'The money itself. USDG is a dollar stablecoin issued by Global Dollar, not by Suited, Suited neither mints it nor controls it, and the vault simply holds it.' },
+        { name: 'USDC, Global Dollar', address: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168',
+          note: 'The money itself. USDC is a dollar stablecoin issued by Global Dollar, not by Suited, Suited neither mints it nor controls it, and the vault simply holds it.' },
       ] },
       { type: 'heading', level: 3, text: 'The keys' },
       { type: 'para', text: 'Two keys can send instructions to the vault, and the contract, not Suited, is what bounds them. The **settler** is the game server\'s key: it signs settlement checkpoints and withdrawal authorisations, and it can move balances only in steps that sum to zero net of rake, never minting value or overdrawing the vault. The **owner** is the administrative key: it can rotate the settler, adjust the deposit minimum and the rake cap, pause deposits and settlement, and sweep collected rake. It cannot move a player balance, and pausing never stops a withdrawal.' },
@@ -243,8 +243,8 @@ export const DOCS = [
       { type: 'heading', level: 3, text: 'Fixed by the contract' },
       { type: 'keyvals', rows: [
         { term: 'Chain', def: '{chain}, chain ID `4663`.' },
-        { term: 'Minimum deposit', def: '`1.00 USDG`.' },
-        { term: 'Rake per checkpoint', def: '`500.00 USDG` at most. One settlement call can book no more than this, so a single bad call cannot drain the rake pool.' },
+        { term: 'Minimum deposit', def: '`1.00 USDC`.' },
+        { term: 'Rake per checkpoint', def: '`500.00 USDC` at most. One settlement call can book no more than this, so a single bad call cannot drain the rake pool.' },
       ] },
       { type: 'callout', tone: 'key', title: 'The vault has to cover what it owes', text: "After every checkpoint the contract asserts that its own {token} balance is at least the sum of all player balances plus uncollected rake, and rejects the checkpoint outright if it isn't. Both sides of that are public: the vault's balance, and the liabilities it reports. See [Custody and your money](/docs/custody-and-your-money) for how settlement works." },
     ] },
@@ -402,7 +402,7 @@ export const DOCS = [
       { type: 'callout', tone: 'note', text: "Levels are cosmetic, they don't change how you're dealt or how rake works. Their only mechanical effect is gating a handful of level achievements." },
     ] },
     { id: 'achievements', title: 'Achievements', blocks: [
-      { type: 'para', text: 'Achievements track what you\'ve done at the table. Each one you unlock also becomes an equippable avatar, alongside eight default avatars that are always available regardless of progress.' },
+      { type: 'para', text: 'Achievements track what you\'ve done at the table. Each one you unlock also becomes an equippable avatar, alongside sixteen portrait avatars that are always available regardless of progress, and a prestige portrait for each level title that unlocks when you reach it.' },
       { type: 'table', headers: ['Achievement', 'Unlock condition'], rows: [
         ['First blood', 'Win 1 pot'],
         ['Century', 'Win 100 pots'],
@@ -457,7 +457,7 @@ export const DOCS = [
       { type: 'para', text: "Every recent winner on the leaderboard's jackpot page has a **verify** link. It re-runs that day's draw in your browser, a second implementation of the draw, not the server checking itself, and confirms that the seed matches the commitment, the randomness follows from the seed and the block, every entry's chance follows from its published inputs, and the walk lands on the winner. It links the Ethereum block too: check on any block explorer that its hash is the one used, and that it is the first block after 00:00 UTC." },
       { type: 'para', text: "The full record is public at `/api/jackpot/draw?day=YYYY-MM-DD`. Entrants appear under a per-day hash of their address rather than the address itself, so the list can be checked without becoming a directory of who plays; signed in, the check finds your own entry and shows the chance you had." },
       { type: 'heading', level: 3, text: 'Claiming your prize' },
-      { type: 'para', text: "The prize is paid **on chain, straight to your own wallet**. Suited never moves it for you. When you win, a **Claim** button appears on the leaderboard's jackpot page, and signing in anywhere on the site tells you a prize is waiting; one tap submits your own transaction to the jackpot contract, and the USDG lands in your wallet." },
+      { type: 'para', text: "The prize is paid **on chain, straight to your own wallet**. Suited never moves it for you. When you win, a **Claim** button appears on the leaderboard's jackpot page, and signing in anywhere on the site tells you a prize is waiting; one tap submits your own transaction to the jackpot contract, and the USDC lands in your wallet." },
       { type: 'para', text: "You have **24 hours** from the draw to claim, a day's prize is settled within a day. Until then it is held for you, out of the pool anyone else can win. Unclaimed, it goes back into the pool and is added to a later draw. A day that closes with nobody in the draw keeps its pool the same way: it rolls into the next day's." },
       { type: 'callout', tone: 'key', title: 'Yours to take, and visible to everyone', text: "The jackpot lives in its own contract, separate from the vault that holds player balances. Suited signs a voucher naming you and the exact amount; the contract pays that and nothing more, once. Every claim's transaction is linked on the recent-winners page, so a paid jackpot is something anyone can verify on chain, not a number we assert." },
     ] },

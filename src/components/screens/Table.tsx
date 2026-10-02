@@ -153,7 +153,7 @@ export default function Table({ v }: { v: any }) {
                             {interp(v.rebuyAmountLabel)}
                           </span>
                           {"\r\n                    "}
-                          <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#94a3c4" }}>{"USDG"}</span>
+                          <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#94a3c4" }}>{"USDC"}</span>
                           {"\r\n                  "}
                         </div>
                         {"\r\n                  "}

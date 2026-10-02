@@ -6,7 +6,7 @@
 //
 // Three translations happen here and nowhere else:
 //
-//   1. MONEY.  The wire carries integer micro-USDG (exact). The views render
+//   1. MONEY.  The wire carries integer micro-USDC (exact). The views render
 //      floats. Converting at this boundary keeps the server exact and the UI
 //      unchanged.
 //
@@ -40,7 +40,7 @@ const SUITS = ['s', 'h', 'd', 'c'];
  *  vanishes mid-hand loses its identity. It is simply empty. */
 export const FACE_DOWN = { r: -1, s: '', si: -1, id: '??' };
 
-// Cash tables carry integer micro-USDG on the wire; the felt renders dollars.
+// Cash tables carry integer micro-USDC on the wire; the felt renders dollars.
 const toUsd = (micro) => (micro == null ? 0 : micro / 1e6);
 const toUsdMicro = (n) => Math.round((n ?? 0) * 1e6);
 
@@ -65,7 +65,7 @@ export function createRemoteAdapter(cfg) {
 
   // Tournament tables (`priv-tt-…`) deal abstract CHIPS, not money: the wire
   // carries the chip integer directly (10000 stack, 50/100 blinds), so scaling
-  // it as micro-USDG would render a 10k stack as $0.01. Pass chips through
+  // it as micro-USDC would render a 10k stack as $0.01. Pass chips through
   // untouched here and let the felt format them as chip counts; the wallet
   // `balance` is still real money and always uses `toUsd` explicitly below.
   const chips = String(tableId).startsWith('priv-tt-');
@@ -308,6 +308,7 @@ export function createRemoteAdapter(cfg) {
   };
 
   let connectGen = 0;
+  let resyncing = false;   // the next close is ours — see `resync`
   function open() {
     if (closed) return;
     clearTimeout(retryTimer);
@@ -378,6 +379,9 @@ export function createRemoteAdapter(cfg) {
     ws.onclose = () => {
       stopHeartbeat();
       if (closed || authDead) return;
+      // A close we asked for (`resync`) is not a lost connection: redial at
+      // once, and without telling the table it is "reconnecting".
+      if (resyncing) { resyncing = false; open(); return; }
       view = { ...view, connection: 'reconnecting' };
       publish({ t: 'connection', status: 'reconnecting' });
       // Backoff, capped — a table that is down should not be hammered.
@@ -610,6 +614,23 @@ export function createRemoteAdapter(cfg) {
     // seat 1s to act and releases it after 30s (actor.ts). "resume now" on the
     // reconnect scrim just redials early.
     restoreConnection: open,
+
+    /**
+     * Take the table again from scratch, on a new socket — what a page reload
+     * does on the wire, without the reload. `since` is dropped so the gateway
+     * answers the fresh `hello` with a full sync rather than "nothing new",
+     * and anything sent meanwhile waits in the outbox and goes out behind it.
+     * For when the view is known to be stale and no frame is coming to fix it.
+     */
+    resync() {
+      if (closed || authDead) return;
+      lastEventId = 0;
+      // A live socket is closed and `onclose` redials; a dead one is redialled here.
+      if (ws && ws.readyState <= 1) {
+        resyncing = true;
+        try { ws.close(); } catch { resyncing = false; open(); }
+      } else open();
+    },
 
     destroy() {
       closed = true;

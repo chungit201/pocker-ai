@@ -291,7 +291,7 @@ const stakeOf = (id) => {
 };
 const roomById = (id) => ROOMS_ALL().find((r) => r.id === id);
 /* Private-room tables the client has joined this session. The server owns the
-   real stakes; this mirrors them (converted from wire micro-USDG to the dollars
+   real stakes; this mirrors them (converted from wire micro-USDC to the dollars
    STAKES uses) so the seat screen and openTable read the room's own blinds and
    buy-in bounds rather than the nl200 fallback stakeOf lands on for an
    unrecognised id. Not in the lobby list — a room is reached by link, never
@@ -335,8 +335,10 @@ const seatsFor = (tbl, heroStack) => [
    to: a rank belongs beside a suit mark, a face does not, and slicing a rank off
    `^_^` to force one gives `^`. The faces keep their whole glyph and go
    without. */
-// Avatar registry: 8 free defaults + 23 earned. id === av-<id>.svg === achievement
-// code. Mirrors apps/web/avatars/achievements.json \u2014 keep the two in sync.
+// Avatar registry: 8 letter defaults (av-<id>.svg) + 23 earned (id ===
+// achievement code === earned/<id>.webp), then the generated portraits \u2014 16
+// free, 8 level-gated. All the art but the letters is tools/gen-avatars.mjs.
+// Mirrors apps/web/avatars/achievements.json \u2014 keep the two in sync.
 const AV = [
   { id: 'index-as', tier: 'default', name: 'Ace of spades',    def: true },
   { id: 'index-ah', tier: 'default', name: 'Ace of hearts',    def: true },
@@ -369,16 +371,41 @@ const AV = [
   { id: 'five-bills',   tier: 'rare',     name: 'Five bills',   condition: 'Win 25 pots over $500', light: true },
   { id: 'verified',     tier: 'rare',     name: 'Verified',     condition: 'Re-deal and check 100 hands yourself' },
   { id: 'the-nuts',     tier: 'mythic',   name: 'The nuts',     condition: 'Win 25 showdowns holding the nuts' },
-];
+  /* The portraits (tools/gen-avatars.mjs). `free` are the sixteen faces anyone
+     may wear — they are what the picker offers in place of the letter defaults
+     above, which stay registered only so an account still holding one resolves.
+     `level` is the prestige set: one per level title, usable from that level
+     on. Both carry their own `src`; see avSrc for the rest. */
+  ...([
+    'The tux', 'Red', 'The don', 'Hoodie', 'Ice', 'Cowboy', 'Velvet', 'Aviator',
+    'The boss', 'Dealer', 'High roller', 'The shadow', 'Wildcard', 'Pearls', 'Scar', 'The fox',
+  ].map((name, i) => {
+    const n = String(i + 1).padStart(2, '0');
+    return { id: `p-${n}`, tier: 'default', name, free: true, src: `/avatars/portraits/p-${n}.webp` };
+  })),
+  ...([
+    [5, 'Grinder', 'uncommon'], [10, 'Reg', 'uncommon'], [15, 'Shark', 'rare'], [20, 'River rat', 'rare'],
+    [25, 'Crusher', 'rare'], [30, 'Whale', 'rare'], [40, 'Legend', 'mythic'], [50, 'Mythic', 'mythic'],
+  ] as [number, string, string][]).map(([level, title, tier]) => {
+    const n = String(level).padStart(2, '0');
+    return { id: `pr-${n}`, tier, name: `${title} prestige`, level, condition: `Reach level ${level}`, src: `/avatars/portraits/pr-${n}.webp` };
+  }),
+] as any[];
 const avById = new Map(AV.map((a) => [a.id, a]));
-const DEFAULT_AVATARS = AV.filter((a) => a.def).map((a) => a.id);
+const FREE_AVATARS = AV.filter((a) => a.free);
+const PRESTIGE_AVATARS = AV.filter((a) => a.level);
 const DEFAULT_AVATAR = 'index-as';
 const TIER_MOTION = new Set(['rare', 'mythic']); // only these two carry motion (tiers.css)
 const avEntry = (id) => avById.get(id) || avById.get(DEFAULT_AVATAR);
 // Root-relative (/avatars/…), not relative: the disc renders on the table too,
 // whose route is two segments (/table/<id>) — a relative `avatars/…` there
 // resolves to /table/avatars/… and 404s, leaving only the tier aura showing.
-const avSrc = (id) => `/avatars/av-${avEntry(id).id}.svg`;
+const avSrc = (id) => {
+  const e = avEntry(id);
+  // Portraits name their own file; an achievement is its emblem, earned/<code>;
+  // only the letter defaults are still the hand-drawn av-<id>.svg.
+  return e.src || (e.def ? `/avatars/av-${e.id}.svg` : `/avatars/earned/${e.id}.webp`);
+};
 const avTier = (id) => { const t = avEntry(id).tier; return TIER_MOTION.has(t) ? t : ''; };
 const avName = (id) => avEntry(id).name;
 // The avatar disc lives in a POSITIONED child of the .av wrapper, carrying the
@@ -393,13 +420,15 @@ const avInner = (id) => `position:relative;width:100%;height:100%;border-radius:
    avatar — bots, and anyone who never chose — so the felt shows faces rather
    than a column of initials. Picked by a hash of the seat's id (or name), so a
    given player keeps the same face from hand to hand and table to table. */
-const PORTRAIT_COUNT = 16;
+const PORTRAIT_COUNT = FREE_AVATARS.length;
 const portraitHash = (key) => {
   let h = 0;
   for (const ch of String(key || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
   return h % PORTRAIT_COUNT;
 };
-const portraitInner = (n) => `position:relative;width:100%;height:100%;border-radius:50%;background:center/cover no-repeat url(/avatars/portraits/p-${String(n + 1).padStart(2, '0')}.webp)`;
+const portraitInner = (n) => avInner(FREE_AVATARS[n].id);
+/** Which of the sixteen a free-portrait id is, or -1 for anything else. */
+const portraitIndex = (id) => FREE_AVATARS.findIndex((a) => a.id === id);
 /* The eight free defaults are letters on a disc (A♠, ^_^) — and `index-as` is
    what every account holds until it picks something, so on the felt they would
    put the initials straight back. A seat wearing one of those gets a portrait;
@@ -409,9 +438,10 @@ const wearsPortrait = (id) => !id || !!avEntry(id).def;
    collide two times in three, so a taken face steps to the next free one. Seat
    0 (the viewer) claims first and the rest follow in key order, which keeps the
    assignment independent of seat rotation and of who sat down when. */
-const seatPortraits = (keys) => {
+const seatPortraits = (keys, worn = []) => {
   const out = keys.map(() => null);
-  const taken = new Set();
+  // A face somebody at the table chose is theirs; nobody is handed its twin.
+  const taken = new Set(worn);
   const order = keys.map((k, i) => i).filter((i) => keys[i] != null)
     .sort((a, b) => (a === 0 ? -1 : b === 0 ? 1 : String(keys[a]) < String(keys[b]) ? -1 : 1));
   for (const i of order) {
@@ -605,7 +635,7 @@ const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
  * The action bar works in floating-point dollars, and rounding to whole ones
  * made a 1c/2c table unplayable: the slider's whole range — 0.04 to 2.00 —
  * collapsed to 0, 1 and 2, and half-pot, two-thirds-pot and pot all rounded to
- * 0 preflop and clamped to the same min-raise. A cent is the granularity USDG
+ * 0 preflop and clamped to the same min-raise. A cent is the granularity USDC
  * is quoted in, so this needs to know nothing about the blinds to be right at
  * every stake. It also clears the float noise that would otherwise send
  * 0.06999999999999999 to a server that quietly re-clamps it.
@@ -618,7 +648,7 @@ const snapBet = (v, isChips) => (isChips ? Math.round(v) : snapMoney(v));
 const buyPct = (v, lo, hi) => (hi <= lo ? 100 : clamp(((v - lo) / (hi - lo)) * 100, 0, 100));
 const usd = (n) => '$' + (Math.abs(n % 1) > 0.001 ? n.toFixed(2) : String(n));
 const stakes = (t) => `${usd(t.sb)}/${usd(t.bb)}`;
-// Micro-USDG → the profile funding card's amount-field convention ('25.00'),
+// Micro-USDC → the profile funding card's amount-field convention ('25.00'),
 // or '' when there's nothing to withdraw. Shared by every route into the
 // tournament results screen so the withdraw field opens pre-filled with the
 // payout, exactly like a hand-typed deposit/withdraw amount.
@@ -885,6 +915,7 @@ export default class SuitedApp extends React.Component<any, any> {
   declare _noCrown: any;
   declare _pill: any;
   declare _raiseW: any;
+  declare _rebuy: any;
   declare _rebuyLock: any;
   declare _resuming: any;
   declare _seatConfirmedAt: any;
@@ -920,6 +951,7 @@ export default class SuitedApp extends React.Component<any, any> {
   declare fieldRaf: any;
   declare fieldReduced: any;
   declare frontEl: any;
+  declare fundHistToken: any;
   declare hasPointer: any;
   declare jkTimer: any;
   declare layers: any;
@@ -1019,7 +1051,15 @@ export default class SuitedApp extends React.Component<any, any> {
     // The explorer link for the last deposit or withdrawal, so the receipt
     // outlives the toast that announced it. Null on a build with no explorer.
     fundTx: null,
-    stats: null,          // /api/stats: real site numbers, never placeholders
+    // Deposits and withdrawals for the profile. Null means "this session has no
+    // history to show" (not Solana, or never asked) and hides the section;
+    // loading and failed are their own flags for the reason `meErr` is.
+    sessionErr: false,    // the reload's /api/me failed with the token still good
+    fundHist: null,
+    fundHistBusy: false,
+    fundHistErr: false,
+    fundHistAll: false,   // past the first few rows
+    stats: null,         // /api/stats: real site numbers, never placeholders
     tournaments: [],       // /api/tournaments: joinable events, with your registered flag when signed in
     tMine: [],             // /api/tournaments/mine: this caller's own registrations (pollMine) — feeds the list rows and "your events"
     tournamentBusy: {},    // { [id]: true } for tournaments mid register/unregister — a map, not a
@@ -1544,7 +1584,7 @@ export default class SuitedApp extends React.Component<any, any> {
     // wallet extension for a returning wallet user, so the next deposit or
     // withdrawal needs no reconnect click.
     if (this.server && this.hasToken()) {
-      this.wallet.refresh().catch(() => {});
+      this.resumeSession();
       this.wallet.resumeWallet && this.wallet.resumeWallet();
       this.checkJackpotWin();
       // Part 4 Task 3: resume an in-flight tournament. If the runtime has a live
@@ -1755,7 +1795,7 @@ export default class SuitedApp extends React.Component<any, any> {
       // deposit" \u2014 re-read it on the way in rather than showing the figure
       // from connect time.
       if (this.wallet && this.wallet.refreshWallet) this.wallet.refreshWallet();
-      this.toast(`${tbl.name} needs ${fmt(tbl.min)} USDG, top up your bankroll`, 'bad');
+      this.toast(`${tbl.name} needs ${fmt(tbl.min)} USDC, top up your bankroll`, 'bad');
       return;
     }
     if (this.wallet && this.wallet.refreshWallet) this.wallet.refreshWallet();
@@ -1887,7 +1927,7 @@ export default class SuitedApp extends React.Component<any, any> {
                 // In big blinds the figure carries its own unit, so the trailing
                 // "usdg"/"chips" would read "12.5 bb usdg". The blind comes off
                 // this event's own projection, like the log's — see `pushLog`.
-                amount: `${top.split ? 'Split \u00b7 ' : ''}${this.amt(top.amount, t.bb)}${this.state.amountUnit === 'bb' ? '' : ` ${isChipTable ? 'chips' : 'USDG'}`} to ${name(top.seat)}`,
+                amount: `${top.split ? 'Split \u00b7 ' : ''}${this.amt(top.amount, t.bb)}${this.state.amountUnit === 'bb' ? '' : ` ${isChipTable ? 'chips' : 'USDC'}`} to ${name(top.seat)}`,
                 win: !!heroWin, big,
               } : null,
             },
@@ -2002,7 +2042,9 @@ export default class SuitedApp extends React.Component<any, any> {
          owns that state and clears it with its own sit-in. */
       const heroSeat = t.heroIdx != null ? (t.seats || [])[0] : null;
       const srvOut = heroSeat ? !!heroSeat.sittingOut : null;
-      if (srvOut != null && this._srvSittingOut != null && srvOut !== this._srvSittingOut
+      // (Not while a rebuy is settling: its own sit-up/sit-down would read
+      // here as the server sitting the player out, and say so in a toast.)
+      if (srvOut != null && this._srvSittingOut != null && srvOut !== this._srvSittingOut && !this._rebuy
         && srvOut !== this.state.sittingOut && (!srvOut || (heroSeat.stack || 0) > 0)) {
         seatPatch.sittingOut = srvOut;
         if (srvOut) {
@@ -2011,6 +2053,9 @@ export default class SuitedApp extends React.Component<any, any> {
         }
       }
       this._srvSittingOut = srvOut;
+      // A rebuy in flight reads every frame: the one that shows the chips on
+      // the seat is the cue for its sit-in.
+      if (this._rebuy) this.rebuyStep(t);
     }
 
     /* Merge, do not replace. Two sources fill `history` and they carry
@@ -2251,6 +2296,21 @@ export default class SuitedApp extends React.Component<any, any> {
     return this.wallet.connect('guest');
   }
   hasToken() { return !!(this.wallet && this.wallet.token && this.wallet.token()); }
+
+  /* A reload keeps the session token but not the identity behind it: that
+     comes back with /api/me a moment later, and until it does `state.wallet`
+     is null. The profile used to read that gap as "signed out" and throw a
+     signed-in player onto the connect screen on every refresh. It waits now
+     (see `profilePending`), which means this read has to say how it ended:
+     a token that died goes to sign-in as before, anything else is a server we
+     could not reach — said so, with a retry, rather than a spinner for ever. */
+  resumeSession = () => {
+    this.setState({ sessionErr: false });
+    this.wallet.refresh().catch(() => {
+      if (this.hasToken()) this.setState({ sessionErr: true });
+      else if (this.state.screen === 'profile') this.sessionDead();
+    });
+  };
 
   /* One place a REJECTED session is noticed, as opposed to an expired one.
      Every signed call below now passes its Response through here before its own
@@ -2662,6 +2722,46 @@ export default class SuitedApp extends React.Component<any, any> {
   };
   betUp = () => this.setState({ drag: null });
 
+  /* A rebuy is two messages, the top-up and the sit-in, and their ORDER on the
+     gateway is what restarts a frozen table: the sit-in is what makes it look
+     for a hand to deal, and it only finds one if the chips are already on the
+     seat. Sent back to back, the sit-in was read first — the top-up waits on
+     the ledger — found a seat with nothing behind it, dealt nothing, and by
+     the time the chips landed nothing was left to ask again. Both seats
+     funded, both sat in, no hand: "top up and it just stands there", cured by
+     sit up / sit down, which is the same sit-in said after the chips arrived.
+
+     So the sit-in now waits for the chips. `rebuyStep` runs on every table
+     frame (and on a timer, for a table too frozen to send one) until a hand
+     has been dealt:
+       chips not on the seat yet   wait; after a couple of seconds with no
+                                   frame at all, take the table afresh once
+       chips on the seat           sit in — once
+       still no hand after that    sit up, sit down — the sequence a player
+                                   was doing by hand — once
+     and then it lets go. */
+  rebuyStep = (t) => {
+    const r = this._rebuy, a = this.adapter;
+    if (!r || !a || a.kind !== 'remote') { this._rebuy = null; return; }
+    const hero = t && t.heroIdx != null ? (t.seats || [])[0] : null;
+    const now = Date.now();
+    // Over: the seat is gone, a hand has been dealt since, or it has run long enough.
+    if (!hero || (t.handNo || 0) > r.hand || now - r.at > 20000) { this._rebuy = null; return; }
+    if ((hero.stack || 0) <= 0) {
+      if (!r.resynced && now - r.at > 2500 && a.resync) { r.resynced = true; a.resync(); }
+      return;
+    }
+    if (!r.satAt) { r.satAt = now; a.sitIn(); return; }
+    // Somebody to play against, chips down, sit-in said, and still no cards.
+    const opponents = (t.seats || []).filter((s, i) => i !== 0 && s && !s.empty && (s.stack || 0) > 0 && !s.sittingOut).length;
+    if (!r.cycled && opponents > 0 && now - r.satAt > 3000) { r.cycled = true; a.sitUp(); a.sitIn(); }
+  };
+  rebuyFollowUp = () => {
+    if (!this._rebuy || !this.adapter) return;
+    this.rebuyStep(this.adapter.getState());
+    if (this._rebuy) this.later(this.rebuyFollowUp, 1000);
+  };
+
   /* Click = mute toggle, press-and-drag up/down = volume. The drag is gated on
      `volStart` alone: React state has not committed by the time the first
      pointermove lands, so gating on it swallowed short drags and they fell
@@ -2799,7 +2899,7 @@ export default class SuitedApp extends React.Component<any, any> {
       if (screen === 'profile' && this.state.wallet && this.wallet && this.wallet.refresh) {
         this.wallet.refresh().catch(() => {});
       }
-      if (screen === 'profile') { this.loadRakeback(); this.loadMe(); this.loadRarity(); }
+      if (screen === 'profile') { this.loadRakeback(); this.loadMe(); this.loadRarity(); this.loadFundHistory(); }
       // The hands hero states your record, which is /api/me — the same payload
       // the profile reads. Without this the hero sat on em dashes until the
       // player happened to visit their profile first.
@@ -2830,7 +2930,9 @@ export default class SuitedApp extends React.Component<any, any> {
       if (screen === 'table' && this.state.tSession && this.state.tSession.tournamentId && this.state.tSession.status !== 'busted') {
         this.startTournamentSession();
       }
-      if (screen === 'profile' && this.server && !this.state.wallet) {
+      // No wallet AND no token is signed out. No wallet with a token is a
+      // session still resuming after a reload — the profile waits for it.
+      if (screen === 'profile' && this.server && !this.state.wallet && !this.hasToken()) {
         this.setState({ screen: 'connect', connectStep: 0 });
         this.toast('Connect a wallet to create a profile', 'ok');
       }
@@ -3044,30 +3146,16 @@ export default class SuitedApp extends React.Component<any, any> {
   pickWallet = (name, _unusedShort?) => () => {
     if (!this.wallet) return;
     this.setState({ approving: name });
-    this.wallet.connect(name).then((me) => {
-      // Where a sign-in goes next:
-      //   - a screen that asked to be returned to (the staking page) gets it;
-      //   - someone who can already afford a seat goes straight to the lobby.
-      //     Asking a funded member to deposit on every sign-in is the bug this
-      //     fixes: the funding step exists for people who cannot yet play;
-      //   - everyone else funds the bankroll, which doubles as sign-up.
-      // "Can afford a seat" = the bankroll covers the cheapest table's minimum
-      // buy-in, read from the live table list so it follows the stakes rather
-      // than a number copied here. $0.40 (1¢/2¢ at 20bb) is only the fallback
-      // for a lobby that has not loaded yet.
+    this.wallet.connect(name).then(() => {
+      // Where a sign-in goes next: a screen that asked to be returned to (the
+      // staking page) gets it, and everyone else lands in the lobby — funded
+      // or not. The funding step used to be forced on anyone who could not yet
+      // afford a seat; it is still one click away (the account menu's Deposit,
+      // or sitting at a table the bankroll does not cover), but a sign-in no
+      // longer ends on a deposit form nobody asked for.
       const back = this.state.connectReturn;
-      const mins = (LIVE_ROOMS || []).map((r) => r.min).filter((m) => m > 0);
-      const cheapestSeat = mins.length ? Math.min(...mins) : 0.4;
-      const funded = !!me && typeof me.balance === 'number' && me.balance >= cheapestSeat;
-      if (back) {
-        this.setState({ approving: null, connectReturn: null }, () => this.go(back, true)());
-      } else if (funded) {
-        this.setState({ approving: null }, () => this.go('lobby', true)());
-      } else {
-        this.setState({ approving: null, connectStep: 1 });
-      }
-      // The funding step doubles as sign-up, and its name prompt needs to
-      // know whether this account already claimed one.
+      this.setState({ approving: null, connectReturn: null, connectStep: 0 }, () => this.go(back || 'lobby', true)());
+      // The profile and the funding step's name prompt both read this.
       this.loadMe();
       this.toast('Wallet connected \u00b7 ' + name, 'ok');
       this.checkJackpotWin();
@@ -3172,18 +3260,38 @@ export default class SuitedApp extends React.Component<any, any> {
         // seconds and a link nobody can reach is not a receipt.
         this.setState({
           fundBusy: false, fundDraft: '', fundBad: false,
-          fundNote: `${dir === 'deposit' ? 'Deposited' : 'Withdrew'} ${fmt(amount)} USDG`,
+          fundNote: `${dir === 'deposit' ? 'Deposited' : 'Withdrew'} ${fmt(amount)} USDC`,
           fundTx: (r && r.explorer) || null,
         });
         this.toast(`${dir === 'deposit' ? 'Deposited' : 'Withdrew'} ${fmt(amount)} usdg`, 'ok');
         this.sfx('chips');
+        this.loadFundHistory();
       })
       .catch((e) => {
         // The server names which of the four "still in play" cases applies, so
         // showing it verbatim beats any generic line we could substitute.
         this.setState({ fundBusy: false, fundBad: true, fundNote: String((e && e.message) || e), fundTx: null });
         this.sfx('error');
+        // A move that "failed" here can still have left a row behind — a
+        // withdrawal held for review, a deposit still confirming.
+        this.loadFundHistory();
       });
+  };
+
+  /** The profile's deposit and withdrawal list. See `wallet.fundingHistory`. */
+  loadFundHistory = () => {
+    if (!this.server || !this.wallet || !this.wallet.fundingHistory) return;
+    const token = this.wallet.token && this.wallet.token();
+    // Rows read under another session are another account's. Those are dropped
+    // before the fetch, not after it, so they cannot outlive a read that fails.
+    const mine = !!token && token === this.fundHistToken;
+    this.fundHistToken = token;
+    this.setState({ fundHist: mine ? this.state.fundHist : null, fundHistBusy: true, fundHistErr: false });
+    const current = () => this.fundHistToken === token;
+    this.wallet.fundingHistory()
+      .then((rows) => { if (current()) this.setState({ fundHist: rows, fundHistBusy: false }); })
+      // Keep this session's rows on screen: a failed re-read is not an empty history.
+      .catch(() => { if (current()) this.setState({ fundHistBusy: false, fundHistErr: true }); });
   };
 
   fundDeposit = () => this.fundMove('deposit');
@@ -3241,8 +3349,8 @@ export default class SuitedApp extends React.Component<any, any> {
           revealed: h.revealed || [],
           // Normalised into the shape the live `hand:end` path produces, because
           // both land in the same `st.history` and the renderer can only read
-          // one of them. The wire is micro-USDG and the screen is dollars, and
-          // nothing converted — which is why a 29.97 USDG pot displayed as
+          // one of them. The wire is micro-USDC and the screen is dollars, and
+          // nothing converted — which is why a 29.97 USDC pot displayed as
           // "+29,966,900". Hero goes to seat 0, which is how the row marks
           // itself as yours.
           seats: (h.seats || []).map((s) => ({
@@ -3335,7 +3443,7 @@ export default class SuitedApp extends React.Component<any, any> {
         this.setState({ rbBusy: false, rbTx: (r && r.explorer) || null });
         this.wallet.refresh && this.wallet.refresh();
         this.loadRakeback();
-        this.toast(`redeemed ${fmt(r.redeemed / 1e6)} USDG rakeback`, 'ok');
+        this.toast(`redeemed ${fmt(r.redeemed / 1e6)} USDC rakeback`, 'ok');
         this.sfx('chips');
       })
       .catch((e) => { this.setState({ rbBusy: false, rbTx: null }); this.toast(String((e && e.message) || e), 'bad'); });
@@ -4189,15 +4297,15 @@ export default class SuitedApp extends React.Component<any, any> {
       });
   };
 
-  /** The token this deployment funds with: USDC on the Solana path, USDG on the EVM one. */
-  tokenSymbol = () => (this.state.chain && this.state.chain.symbol) || 'USDG';
+  /** The token this deployment funds with: USDC on the Solana path, USDC on the EVM one. */
+  tokenSymbol = () => (this.state.chain && this.state.chain.symbol) || 'USDC';
 
   doFaucet = () => {
     if (!this.wallet || !this.wallet.faucet) return;
     const onChain = !!(this.state.chain && this.state.chain.kind === 'solana');
     if (onChain) this.toast('Approve in your wallet, then the test tokens arrive', 'ok');
     this.wallet.faucet()
-      .then((b) => this.toast(onChain ? `Test ${this.tokenSymbol()} sent to your wallet — deposit it to play` : `Test USDG added · bankroll ${fmt(b)}`, 'ok'))
+      .then((b) => this.toast(onChain ? `Test ${this.tokenSymbol()} sent to your wallet — deposit it to play` : `Test USDC added · bankroll ${fmt(b)}`, 'ok'))
       .catch((e) => this.toast(String((e && e.message) || e), 'bad'));
   };
 
@@ -4213,7 +4321,7 @@ export default class SuitedApp extends React.Component<any, any> {
     const amount = this.state.buyIn == null
       ? clamp(this.state.balance, 0, tbl.max)
       : clamp(snapMoney(this.state.buyIn), tbl.min, ceil);
-    if (amount < tbl.min) { this.toast(`${tbl.name} needs ${fmt(tbl.min)} USDG to sit`, 'bad'); return; }
+    if (amount < tbl.min) { this.toast(`${tbl.name} needs ${fmt(tbl.min)} USDC to sit`, 'bad'); return; }
     if (!this.adapter || !this.state.session || this.state.session.tableId !== tbl.id) {
       this.openTable(tbl.id, { buyIn: amount });
     }
@@ -4251,7 +4359,7 @@ export default class SuitedApp extends React.Component<any, any> {
     const stakesLabel = () => {
       if (isTournamentTable) return t && t.bb ? `${fmt(t.sb)}/${fmt(t.bb)}` : '';
       const s = st.session ? tableById(st.session.tableId) : null;
-      return s ? `${stakes(s)} USDG` : '';
+      return s ? `${stakes(s)} USDC` : '';
     };
     const g = this.geo();
     const c = st.compact;
@@ -4262,6 +4370,13 @@ export default class SuitedApp extends React.Component<any, any> {
     const tight = c || mini;
     const scr = st.screen;
     const walletShort = st.wallet ? st.wallet.addr.slice(0, 4) + '\u2026' + st.wallet.addr.slice(-4) : 'Not connected';
+    /* The viewer's own disc \u2014 header, drawer, profile. An account that has not
+       chosen (or still holds a letter default) wears the portrait its address
+       hashes to, the same rule the felt uses for its seat, so the face on the
+       profile is the face at the table rather than an A\u2660 nobody else sees. */
+    const myAvId = wearsPortrait(st.avatar)
+      ? FREE_AVATARS[portraitHash(st.wallet && st.wallet.addr)].id
+      : st.avatar;
 
     // Fund & sit. With one bankroll behind every table there is nothing to pick
     // a buy-in with: you bring the table maximum, or everything you have if
@@ -4532,8 +4647,8 @@ export default class SuitedApp extends React.Component<any, any> {
       tabTournaments: tab(scr === 'tournaments'), tabStaking: tab(scr === 'staking'),
       walletOn: !!st.wallet, walletOff: !st.wallet,
       // The shell's avatar is now the equipped image, keyed by id.
-      headerAvInner: avInner(st.avatar || DEFAULT_AVATAR),
-      headerTier: avTier(st.avatar || DEFAULT_AVATAR),
+      headerAvInner: avInner(myAvId),
+      headerTier: avTier(myAvId),
       headerNameStyle: `max-width:${c ? 96 : 168}px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:${UI};font-size:13px;color:${FELT_INK}`,
       headerCaretStyle: `position:absolute;right:-2px;bottom:-2px;display:flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:${BG};box-shadow:0 0 0 1.5px #b497f7;transform:rotate(${st.walletMenu ? 180 : 0}deg);transition:transform .18s ease`,
       copyNote: st.copied ? 'Copied' : 'Copy',
@@ -4613,7 +4728,7 @@ export default class SuitedApp extends React.Component<any, any> {
       // stack) and sit-up/leave show only when actually seated at a table.
       menuSeated: scr === 'table' && !!st.seated,
       inPlayLabel: fmt(((st.table || { seats: [{}] }).seats[0] || {}).stack || 0),
-      inPlayUnit: isTournamentTable ? 'CHIPS' : 'USDG', // a tournament "stack" is chips, not money
+      inPlayUnit: isTournamentTable ? 'CHIPS' : 'USDC', // a tournament "stack" is chips, not money
 
       leaveNote: `Cash out ${fmt(((st.table || { seats: [{}] }).seats[0] || {}).stack || 0)} after this hand`,
       volDown: this.volDown, volMove: this.volMove, volUp: this.volUp,
@@ -4716,7 +4831,7 @@ export default class SuitedApp extends React.Component<any, any> {
       sitBbLabel: sitTable.bb > 0 ? `${Math.round(sitAmount / sitTable.bb)} big blinds` : '',
       sitMinLabel: fmt(sitTable.min),
       sitMaxLabel: fmt(Math.min(sitTable.max, st.balance || sitTable.max)),
-      sitLeftLabel: `${fmt(Math.max(0, st.balance - sitAmount))} USDG`,
+      sitLeftLabel: `${fmt(Math.max(0, st.balance - sitAmount))} USDC`,
       tableRangeLabel: `${fmt(sitTable.min)} \u2013 ${fmt(sitTable.max)} usdg`,
       sitBtnLabel: canSit ? `Take your seat \u00b7 ${fmt(sitAmount)}` : `Deposit at least ${fmt(sitTable.min)} to play`,
       /* The one filled action on this screen, painted like every other one.
@@ -4750,7 +4865,7 @@ export default class SuitedApp extends React.Component<any, any> {
          while seated is refused by the server (409) because chips on a table
          are not yours to move yet; that is surfaced as plain language rather
          than a status code. */
-      // Bare figure: the screen prints its own USDG label beside it, and
+      // Bare figure: the screen prints its own USDC label beside it, and
       // stating the unit twice is the rule this system is most insistent about.
       fundBankroll: fmt(st.balance),
       fundWalletNote: st.walletBalance != null ? `${fmt(st.walletBalance)} in your wallet` : '',
@@ -4796,7 +4911,7 @@ export default class SuitedApp extends React.Component<any, any> {
           ? rb.pausedReason
           : rb.canClaim
             ? 'Ready to claim'
-            : `Minimum ${fmt(rb.minClaim / 1e6)} USDG to claim`,
+            : `Minimum ${fmt(rb.minClaim / 1e6)} USDC to claim`,
       rbTxUrl: st.rbTx || '',
       rbTxStyle: st.rbTx ? RECEIPT_LINK : 'display:none',
       rbBtnLabel: st.rbBusy ? 'Claiming…' : 'Claim',
@@ -5487,7 +5602,7 @@ export default class SuitedApp extends React.Component<any, any> {
         label: 'BIGGEST POT',
         value: ps && ps.best > 0 ? fmt(ps.best / 1e6) : 'N/A',
         valueStyle: bigStyle(),
-        note: ps && ps.rank ? `Rank #${ps.rank} all-time` : 'USDG',
+        note: ps && ps.rank ? `Rank #${ps.rank} all-time` : 'USDC',
         noteStyle,
       },
     ];
@@ -5498,19 +5613,63 @@ export default class SuitedApp extends React.Component<any, any> {
       ...t,
       cellStyle: `display:flex;flex-direction:column;gap:12px;min-width:0;padding:26px ${i === vals.statTiles.length - 1 ? '0' : 'clamp(16px,39px,40px)'} 0 ${i === 0 ? '0' : 'clamp(16px,39px,40px)'};${i === 0 ? '' : 'border-left:1px solid rgba(232,236,248,0.12);'}`,
     }));
+    /* ── profile: deposits and withdrawals ─────────────────────────────
+       One list, newest first, both directions — the sign and the word say
+       which. Built only on the profile, for the reason the jackpot rows are
+       built only on the leaderboard. */
+    const fhRows = scr === 'profile' && st.fundHist ? st.fundHist : [];
+    const fhSolana = !!(st.chain && st.chain.kind === 'solana');
+    const FH_SHORT = 8;
+    /* The gateway's words, in the page's. Anything it adds later falls through
+       to its own name rather than to a guess about what it means. */
+    const fhStatus = (r) => {
+      const s = r.status;
+      if (s === 'credited' || s === 'confirmed') return { label: 'Completed', colour: '#22d3ee' };
+      if (s === 'failed' || s === 'rejected') return { label: s === 'rejected' ? 'Rejected' : 'Failed', colour: '#f33f5d' };
+      if (s === 'expired') return { label: 'Not credited', colour: '#f33f5d' };
+      if (s === 'review') return { label: 'Awaiting approval', colour: '#a78bfa' };
+      return { label: s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Pending', colour: '#a78bfa' };
+    };
+    vals.fundHistOn = scr === 'profile' && (st.fundHist !== null || (fhSolana && (st.fundHistBusy || st.fundHistErr)));
+    vals.fundHistRows = (st.fundHistAll ? fhRows : fhRows.slice(0, FH_SHORT)).map((r) => {
+      const s = fhStatus(r);
+      const out = r.kind === 'withdraw';
+      return {
+        kind: out ? 'Withdraw' : 'Deposit',
+        amount: `${out ? '−' : '+'}${fmt(r.amount)} ${this.tokenSymbol()}`,
+        amountStyle: `flex:1 1 110px;min-width:0;font-size:14px;font-variant-numeric:tabular-nums;color:${out ? '#e8ecf8' : '#22d3ee'}`,
+        status: s.label,
+        statusStyle: `flex:0 0 130px;font-size:11px;letter-spacing:.08em;color:${s.colour}`,
+        when: r.at ? new Date(r.at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '',
+        txUrl: r.explorer || '',
+        txStyle: r.explorer ? 'flex:0 0 70px;text-align:right;font-size:12px;color:#a78bfa;text-decoration:none' : 'flex:0 0 70px;visibility:hidden',
+      };
+    });
+    vals.fundHistNote = fhRows.length
+      ? (st.fundHistErr ? 'Could not refresh — showing what loaded last' : '')
+      : st.fundHistBusy ? '…' : st.fundHistErr ? 'Could not load your history' : 'No deposits or withdrawals yet';
+    vals.fundHistNoteStyle = vals.fundHistNote ? 'font-size:12px;color:#94a3c4;padding-top:16px' : 'display:none';
+    vals.fundHistMoreOn = fhRows.length > FH_SHORT;
+    vals.fundHistMoreLabel = st.fundHistAll ? 'Show fewer' : `Show all ${fhRows.length}`;
+    vals.fundHistMore = () => this.setState({ fundHistAll: !st.fundHistAll });
     vals.resultsCardStyle = 'padding:22px;border-radius:26px;background:#1a2238';
     vals.lifetimeNet = ps ? `${ps.net > 0 ? '+' : ''}${fmt(ps.net / 1e6)} usdg` : 'N/A';
     vals.lifetimeNetStyle = `font-family:'Inter Tight',system-ui,sans-serif;font-weight:600;letter-spacing:-.03em;font-size:24px;color:${ps && ps.net > 0 ? '#7d4cf0' : ps && ps.net < 0 ? '#f33f5d' : '#e8ecf8'}`;
     vals.resultsNote = ps
-      ? `${ps.hands.toLocaleString()} hands \u00b7 ${fmt(ps.volume / 1e6)} USDG wagered \u00b7 ${ps.handsThisWeek.toLocaleString()} today`
+      ? `${ps.hands.toLocaleString()} hands \u00b7 ${fmt(ps.volume / 1e6)} USDC wagered \u00b7 ${ps.handsThisWeek.toLocaleString()} today`
       : noRecord('Play a hand and this fills in');
 
     /* ── profile: xp from volume wagered, preset avatars ──────────────
        Lifetime volume comes from /api/rakeback, which is the same number the
        tier and the rate are derived from — so the level a player sees and the
-       rakeback they are paid can never disagree. `st.wagered` is the offline
-       demo's own figure and is only used when there is no server. */
-    const wagered = st.rb ? st.rb.lifetimeVolume / 1e6 : st.wagered;
+       rakeback they are paid can never disagree. A gateway that does not serve
+       /api/rakeback (the deployed one answers 404) leaves `st.rb` null, and the
+       level would then sit at 1 for ever — so the volume /api/me reports with
+       the play stats stands in for it. `st.wagered` is the offline demo's own
+       figure and is only used when there is neither. */
+    const wagered = st.rb ? st.rb.lifetimeVolume / 1e6
+      : ps && ps.volume != null ? ps.volume / 1e6
+      : st.wagered;
     const xp = xpFor(wagered);
     vals.xpLevel = xp.level;
     vals.xpTitle = xp.title;
@@ -5527,8 +5686,15 @@ export default class SuitedApp extends React.Component<any, any> {
     // and padding, so a 100%-sized child fills a non-square content box and the
     // round avatar renders as an oval. Zeroing them keeps the disc a true circle.
     vals.avatarDiscStyle = `position:relative;display:flex;align-items:center;justify-content:center;width:72px;height:72px;box-sizing:border-box;flex:none;border:0;padding:0;border-radius:50%;background:${PAPER};box-shadow:none`;
-    vals.heroAvInner = avInner(st.avatar || DEFAULT_AVATAR);
-    vals.heroTier = avTier(st.avatar || DEFAULT_AVATAR);
+    /* The identity is still on its way back after a reload (see resumeSession):
+       the screen holds its shape with a placeholder instead of rendering a
+       profile for nobody. */
+    vals.profilePending = scr === 'profile' && !!this.server && !st.wallet && this.hasToken();
+    vals.profilePendingNote = st.sessionErr ? 'Could not reach the server' : 'Loading your profile…';
+    vals.profileRetryOn = !!st.sessionErr;
+    vals.profileRetry = this.resumeSession;
+    vals.heroAvInner = avInner(myAvId);
+    vals.heroTier = avTier(myAvId);
     vals.avatarMenuToggle = (e) => {
       if (e && e.stopPropagation) e.stopPropagation();
       this.setState((s) => ({ avatarMenu: !s.avatarMenu }));
@@ -5613,13 +5779,22 @@ export default class SuitedApp extends React.Component<any, any> {
     const heldSet = new Set(st.achievements || []);
     const rarity = st.rarity || {};
     const pctOf = (id) => (rarity[id] && rarity[id].pct != null) ? rarity[id].pct : 100;
-    const earnable = AV.filter((a) => !a.def);
+    // Achievements only: the portraits are not earned by a feat (free ones are
+    // nobody's trophy, prestige ones are gated on level — see below).
+    const earnable = AV.filter((a) => !a.def && !a.free && !a.level);
     const earned = earnable.filter((a) => heldSet.has(a.id));
     const hasEarned = earned.length > 0;
     // Rarest = lowest %; ties break toward the harder (later) curated rank.
     const rarest = [...earned].sort((x, y) => (pctOf(x.id) - pctOf(y.id)) || (avOrderKey(y.id) - avOrderKey(x.id)));
-    // Nothing earned? Tease the easiest still-locked ones as a "next up" preview.
-    const teaser = earnable.filter((a) => !heldSet.has(a.id)).sort((x, y) => avOrderKey(x.id) - avOrderKey(y.id));
+    /* Nothing earned? Tease the easiest still-locked ones as a "next up"
+       preview — led by the next prestige portrait, which is the one thing on
+       this row a player can see themselves closing in on (the xp bar is right
+       below it). */
+    const nextPrestige = PRESTIGE_AVATARS.find((a) => a.level > xp.level);
+    const teaser = [
+      ...(nextPrestige ? [nextPrestige] : []),
+      ...earnable.filter((a) => !heldSet.has(a.id)).sort((x, y) => avOrderKey(x.id) - avOrderKey(y.id)),
+    ];
     const showRow = (hasEarned ? rarest : teaser).slice(0, 5);
     vals.achShowcaseLabel = hasEarned ? 'RAREST' : 'NEXT UP';
     vals.showcaseAch = showRow.map((a) => ({
@@ -5657,19 +5832,35 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.achHands = AV_GROUPS[2].ids.map(achCell);
     vals.achFeats = AV_GROUPS[3].ids.map(achCell);
     vals.achLegacy = AV_GROUPS[4].ids.map(achCell);
-    const owned = new Set([...DEFAULT_AVATARS, ...(st.achievements || [])]);
-    vals.avatars = AV.map((a) => {
-      const locked = !owned.has(a.id);
-      return {
-        inner: avInner(a.id),
-        tier: avTier(a.id),
-        title: locked ? `${a.name}: ${a.condition || 'locked'}` : a.name,
-        pick: () => { if (locked) return; this.wallet ? this.wallet.setAvatar(a.id) : this.setState({ avatar: a.id }); },
-        style: `position:relative;display:flex;align-items:center;justify-content:center;width:54px;height:54px;box-sizing:border-box;border:0;padding:0;background:none;border-radius:50%;`
-          + (locked ? 'filter:grayscale(1) brightness(.5);cursor:not-allowed;' : 'cursor:pointer;')
-          + (a.id === (st.avatar || DEFAULT_AVATAR) ? `outline:2px solid ${ACC};outline-offset:3px;` : ''),
-      };
+    /* The picker, in three shelves: the free portraits, the prestige set, and
+       whatever has been earned at the table. The letter defaults are not
+       offered any more — the portraits replaced them.
+
+       Prestige unlocks on the level the xp bar shows, worked out here: the
+       gateway stores whichever avatar id it is sent and checks nothing, so this
+       gate is the page's own and not a security boundary. */
+    const avCell = (a, locked) => ({
+      inner: avInner(a.id),
+      // A locked disc does not get to shimmer: the motion is the reward.
+      tier: locked ? '' : avTier(a.id),
+      title: locked ? `${a.name}: ${a.condition || 'locked'}` : a.name,
+      pick: () => { if (locked) return; this.wallet ? this.wallet.setAvatar(a.id) : this.setState({ avatar: a.id }); },
+      style: `position:relative;display:flex;align-items:center;justify-content:center;width:54px;height:54px;box-sizing:border-box;border:0;padding:0;background:none;border-radius:50%;`
+        + (locked ? 'cursor:not-allowed;' : 'cursor:pointer;')
+        + (a.id === myAvId ? `outline:2px solid ${ACC};outline-offset:3px;` : ''),
+      // The grey goes on the disc rather than the button, so the level tag
+      // underneath it stays readable — it is the only thing a locked one says.
+      discStyle: `width:100%;height:100%${locked ? ';filter:grayscale(1) brightness(.5)' : ''}`,
+      badge: a.level ? `LV ${a.level}` : '',
+      badgeStyle: a.level
+        ? `position:absolute;left:50%;bottom:-5px;z-index:4;transform:translateX(-50%);padding:1px 6px;border-radius:999px;background:${locked ? '#2a3350' : '#c9a961'};color:${locked ? '#94a3c4' : '#1b201c'};font-size:8.5px;letter-spacing:.08em;line-height:1.5;white-space:nowrap`
+        : 'display:none',
     });
+    vals.avatarsFree = FREE_AVATARS.map((a) => avCell(a, false));
+    vals.avatarsPrestige = PRESTIGE_AVATARS.map((a) => avCell(a, xp.level < a.level));
+    vals.avatarsPrestigeNote = nextPrestige ? `NEXT AT LEVEL ${nextPrestige.level}` : 'ALL UNLOCKED';
+    vals.avatarsEarned = earnable.map((a) => avCell(a, !heldSet.has(a.id)));
+    vals.avatarGroupLabel = `display:flex;justify-content:space-between;gap:10px;width:100%;font-size:9px;letter-spacing:.22em;color:#a78bfa`;
 
     /* ── settings ─────────────────────────────────────────────────────
        Three device preferences, one row shape. `setSegBtn` is the underline
@@ -5688,7 +5879,7 @@ export default class SuitedApp extends React.Component<any, any> {
     const inBb = st.amountUnit === 'bb';
     vals.unitNote = inBb
       ? 'Every figure on the felt is counted against the table’s big blind, to two decimal places at most, a stack, a pot, a bet, the buttons you act with.'
-      : 'Money, the way it leaves your stack. The felt reads in USDG, pots, bets, stacks and the buttons you act with.';
+      : 'Money, the way it leaves your stack. The felt reads in USDC, pots, bets, stacks and the buttons you act with.';
     vals.unitUsdStyle = setSegBtn(!inBb);
     vals.unitBbStyle = setSegBtn(inBb);
     /* A preference, not an account setting — same reasoning as `hotkeys`, and
@@ -5699,7 +5890,7 @@ export default class SuitedApp extends React.Component<any, any> {
       this.sfx('ui');
       this.setState({ amountUnit: u });
       try { localStorage.setItem('suited:amount-unit', u); } catch {}
-      this.toast(u === 'bb' ? 'Amounts in big blinds' : 'Amounts in USDG', 'ok');
+      this.toast(u === 'bb' ? 'Amounts in big blinds' : 'Amounts in USDC', 'ok');
     };
     vals.unitUsd = setUnit('usd');
     vals.unitBb = setUnit('bb');
@@ -6799,7 +6990,10 @@ export default class SuitedApp extends React.Component<any, any> {
     // hero prefers its own live `st.avatar`, so re-equipping updates the felt
     // instantly. No avatar, or only a letter default → a generated portrait.
     const seatAv = seats.map((s, i) => (s.empty ? null : ((i === 0 ? (st.avatar || s.avatar) : s.avatar) || null)));
-    const seatFace = seatPortraits(seats.map((s, i) => (!s.empty && wearsPortrait(seatAv[i]) ? (s.id || s.name || `seat-${i}`) : null)));
+    const seatFace = seatPortraits(
+      seats.map((s, i) => (!s.empty && wearsPortrait(seatAv[i]) ? (s.id || s.name || `seat-${i}`) : null)),
+      seatAv.map(portraitIndex).filter((n) => n >= 0),
+    );
     vals.seatCells = seats.map((s, i) => {
       const isHero = i === 0;
       const empty = !!s.empty;
@@ -7374,14 +7568,14 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.rebuyUp = () => this.setState({ dragRebuy: false });
     vals.rebuyBtnLabel = `Rebuy ${fmt(rbAmount)}`;
     vals.rebuyBtnStyle = `display:block;width:100%;padding:14px;border-radius:999px;background:${CTA};color:${CTA_INK};font-size:14px;font-weight:500;text-align:center;opacity:${rbValid ? 1 : .4};pointer-events:${rbValid ? 'auto' : 'none'}`;
-    vals.rebuyNeedLabel = `You need ${fmt(rbTbl.min)} USDG to sit, top up your bankroll first`;
+    vals.rebuyNeedLabel = `You need ${fmt(rbTbl.min)} USDC to sit, top up your bankroll first`;
     vals.rebuyDepositStyle = `display:block;width:100%;padding:14px;border-radius:999px;background:${CTA};color:${CTA_INK};font-size:14px;font-weight:500;text-align:center`;
     vals.rebuyDeposit = () => this.go('profile')();
     vals.rebuyDismiss = () => this.setState({ rebuyDismissed: true });
     // The pill the dismissed modal leaves behind, in the action row.
     vals.rebuyBarStyle = `display:${rbBusted && st.rebuyDismissed ? 'flex' : 'none'};flex:1;align-items:center;gap:12px;min-width:0${mini ? ';pointer-events:auto' : ''}`;
     vals.rebuyReopen = () => this.setState({ rebuyDismissed: false });
-    vals.rebuyPillLabel = rbCanAfford ? `Buy back in · ${fmt(rbBankroll)} USDG` : 'Add funds to play on';
+    vals.rebuyPillLabel = rbCanAfford ? `Buy back in · ${fmt(rbBankroll)} USDC` : 'Add funds to play on';
     vals.doRebuy = () => {
       if (!this.adapter) return;
       if (!rbCanAfford) { this.go('profile')(); return; }   // bankroll too low → deposit
@@ -7395,11 +7589,19 @@ export default class SuitedApp extends React.Component<any, any> {
       if (this._rebuyLock && Date.now() - this._rebuyLock < 3000) return;
       this._rebuyLock = Date.now();
       this.adapter.topUp(rbAmount);
-      this.adapter.sitIn();
+      // The sit-in has to reach the gateway AFTER the chips do (see rebuyStep),
+      // so on a real table it is sent from there, off the frame that shows
+      // them. The offline table applies a top-up on the spot and sits in now.
+      if (this.adapter.kind === 'remote') {
+        this._rebuy = { at: Date.now(), hand: (this.state.table && this.state.table.handNo) || 0, satAt: 0, resynced: false, cycled: false };
+        this.later(this.rebuyFollowUp, 1000);
+      } else {
+        this.adapter.sitIn();
+      }
       // Fold the modal on this click (rebuyPending), don't wait on the round-trip.
       this.setState({ sittingOut: false, rebuyDraft: null, rebuyDismissed: false, rebuyPending: true });
       this.sfx('seat');
-      this.toast(`rebought ${fmt(rbAmount)} USDG, dealt in the next hand`, 'ok');
+      this.toast(`rebought ${fmt(rbAmount)} USDC, dealt in the next hand`, 'ok');
       // Backstop: if the sit-in never acks (a dropped socket), un-hide the modal
       // so the player can try again rather than staring at a chipless felt.
       setTimeout(() => { if (this.state.rebuyPending) this.setState({ rebuyPending: false }); }, 4000);
@@ -7742,7 +7944,7 @@ export default class SuitedApp extends React.Component<any, any> {
         { seated: false, sittingOut: false, screen: 'lobby' },
         () => { this.onResize(); this.syncTitle(this.state.table); },
       );
-      this.toast(`Seat closed \u00b7 ${fmt(amount)} USDG back in your wallet`, 'ok');
+      this.toast(`Seat closed \u00b7 ${fmt(amount)} USDC back in your wallet`, 'ok');
     };
     // Not currently wired to any template control (no display binding
     // exists for it) — guarded anyway so a tournament table can never reach

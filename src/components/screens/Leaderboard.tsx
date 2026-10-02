@@ -36,7 +36,7 @@ export default function Leaderboard({ v }: { v: any }) {
                   {interp(v.jkPool)}
                 </span>
                 {"\r\n              "}
-                <span style={{ fontSize: "11px", letterSpacing: ".2em", color: "#94a3c4", marginLeft: "8px" }}>{"USDG"}</span>
+                <span style={{ fontSize: "11px", letterSpacing: ".2em", color: "#94a3c4", marginLeft: "8px" }}>{"USDC"}</span>
                 {"\r\n            "}
               </div>
               {"\r\n            "}

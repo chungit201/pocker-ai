@@ -223,7 +223,7 @@ export default function Chrome({ v }: { v: any }) {
                       <span style={{ fontFamily: "'Instrument Serif',serif", fontSize: "18px", lineHeight: "1", color: "#94a3c4" }}>
                         {interp(v.balanceLabel)}
                       </span>
-                      <span style={{ fontSize: "11px", color: "#94a3c4" }}>{"USDG"}</span>
+                      <span style={{ fontSize: "11px", color: "#94a3c4" }}>{"USDC"}</span>
                     </div>
                     {"\r\n              "}
                   </div>

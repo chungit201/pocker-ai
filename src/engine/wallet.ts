@@ -354,7 +354,7 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
    * as opposed to the bankroll, which is what the program already holds.
    *
    * Without this the deposit page shows "bankroll 0" to somebody holding 500
-   * USDG and looks broken. They are different numbers and both belong on screen.
+   * USDC and looks broken. They are different numbers and both belong on screen.
    */
   async function walletTokens() {
     const info = await chainInfo().catch(() => null);
@@ -558,7 +558,10 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
     } catch (err) {
       const m = String((err && err.message) || err);
       if (/no record of a prior credit|insufficient lamports|insufficient funds for fee/i.test(m)) {
-        throw new Error('this wallet has no SOL to pay the network fee — get some test SOL first');
+        // Name the cluster: SOL held on devnet is invisible to a testnet RPC,
+        // and "no SOL" to somebody looking at 5 SOL in their wallet reads as a bug.
+        const where = cfg.cluster || 'this cluster';
+        throw new Error(`this wallet has no SOL on Solana ${where} to pay the network fee — SOL on another cluster does not count; get some ${where} SOL first`);
       }
       throw err;
     }
@@ -769,7 +772,7 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
     },
 
     /* ── staking ──────────────────────────────────────────────────────────
-       $SUITED locked in SuitedStaking, paying USDG. None of this touches the
+       $SUITED locked in SuitedStaking, paying USDC. None of this touches the
        gateway: the contract holds the stake and pays the reward, so every call
        below is the player's own wallet against a contract address the page
        read from /api/staking. The gateway cannot stake, cannot withdraw and
@@ -845,7 +848,7 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
       }
     },
 
-    /** Collect every position's USDG in one transaction. */
+    /** Collect every position's USDC in one transaction. */
     async claimStakingRewards(staking, onStep) {
       const info = await chainInfo();
       const provider = providerRef || evmProviderFor(st.evmProviderId ?? st.label ?? 'injected');
@@ -864,7 +867,7 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
     walletTokens,
 
     /**
-     * Fund the bankroll. `amount` is in display USDG; the on-chain minimum
+     * Fund the bankroll. `amount` is in display USDC; the on-chain minimum
      * (`minDeposit`, $1 as deployed) is checked here for a fast error and again
      * by the program, which is what actually enforces it.
      */
@@ -873,7 +876,7 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
       if (!info.enabled) throw new Error('deposits are not enabled on this server');
       const micro = Math.round(amount * 1e6);
       if (micro < info.minDeposit) {
-        throw new Error(`minimum deposit is ${info.minDeposit / 1e6} USDG`);
+        throw new Error(`minimum deposit is ${info.minDeposit / 1e6} USDC`);
       }
       if (info.kind === 'solana') {
         const cfg = await solConfig();
@@ -905,7 +908,7 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
         return { signature, balance: st.balance, explorer: solExplorerTx(cfg, signature) };
       }
       // A wrong-token deposit is the single most confusing failure on this
-      // page: the wallet holds "USDG", the site wants "USDG", and the chain
+      // page: the wallet holds "USDC", the site wants "USDC", and the chain
       // rejects it because they are different mints. Name both.
       if (info.mint || info.kind === 'evm') {
         const holding = await walletTokens().catch(() => null);
@@ -1102,7 +1105,7 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
      * blob module and cannot resolve module specifiers — it gets the wallet
      * handle through `mount(root, ctx)` instead and calls this.
      *
-     * `amount` is micro-USDG, as a string or bigint. Caller decides the figure;
+     * `amount` is micro-USDC, as a string or bigint. Caller decides the figure;
      * the contract enforces `amount <= rakeCollected`, and the panel clamps it
      * to what is safe to take without stranding accrued rakeback.
      */
@@ -1126,6 +1129,48 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
         throw why ? new Error(why) : err;
       }
       return { signature: hash, explorer: evmExplorerTx(info, hash) };
+    },
+
+    /**
+     * This account's deposits and withdrawals, newest first, for the profile.
+     *
+     * Solana only — `/api/sol/deposits` and `/api/sol/withdrawals` are the only
+     * history the gateway keeps, and both 404 with Solana switched off — so any
+     * other session answers null and the profile shows no history section at
+     * all. Each list is the gateway's newest 50 with no paging; that is its
+     * limit, not ours.
+     *
+     * Amounts come back in display units, like every other figure this file
+     * hands out, and `explorer` is built here so the page never spells the
+     * explorer's domain.
+     */
+    async fundingHistory() {
+      if (!token || !isSolSession()) return null;
+      const cfg = await solConfig();
+      if (!cfg || !cfg.enabled) return null;
+      const [d, w] = await Promise.all([api('/api/sol/deposits'), api('/api/sol/withdrawals')]);
+      // Epoch ms or an ISO string — `Date` reads both; anything else sorts last.
+      const when = (t) => { const n = t == null ? NaN : new Date(t).getTime(); return Number.isFinite(n) ? n : 0; };
+      const row = (kind, x) => ({
+        kind,
+        id: `${kind}:${x.id}`,
+        // A deposit carries what was asked for (`amount`) and what the bankroll
+        // actually gained (`credited`, null until it lands). The second is the
+        // money that moved, so it wins when there is one.
+        amount: Number(x.credited ?? x.amount ?? 0) / 1e6,
+        status: String(x.status || ''),
+        signature: x.signature || null,
+        explorer: x.signature ? solExplorerTx(cfg, x.signature) : null,
+        at: when(x.finishedAt ?? x.creditedAt ?? x.createdAt),
+      });
+      return [
+        /* Every click on Deposit opens a request, paid or not. One that expired
+           with no transfer behind it moved no money and is not history; one
+           that carries a signature is kept, because that is the row support
+           would need to match a transfer that was never credited. */
+        ...((d && d.deposits) || []).filter((x) => x.status !== 'expired' || x.signature).map((x) => row('deposit', x)),
+        ...((w && w.withdrawals) || []).map((x) => row('withdraw', x)),
+      ].sort((a, b) => b.at - a.at);
     },
 
     /** Re-read the on-chain wallet balance. The funding screen calls this on
