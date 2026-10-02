@@ -4590,6 +4590,11 @@ export default class SuitedApp extends React.Component<any, any> {
       walletRows: this.walletRowsForChain()
         .map((w) => {
           const short = w.short;
+          /* "Usable", not "detected": in the offline demo every row works,
+             because the wallet behind them all is a mock. Every visual cue on
+             the row hangs off this, so a row that connects never looks like one
+             that cannot — and vice versa. */
+          const usable = w.detected || !this.server;
           return {
             label: w.label,
             short,
@@ -4600,16 +4605,22 @@ export default class SuitedApp extends React.Component<any, any> {
             iconStyle: `display:${w.icon ? 'block' : 'none'};position:absolute;inset:0;width:100%;height:100%;border-radius:50%;object-fit:cover`,
             /* Three states, not two. "NOT FOUND" alone was a dead end; INSTALL
                says the row still does something, and the browsers that cannot
-               use a Chrome store link keep the honest dead end. */
-            state: w.detected ? 'DETECTED' : (w.install ? 'INSTALL' : 'NOT FOUND'),
-            pick: w.detected ? this.pickWallet(w.id, short) : this.openInstall(w),
-            rowStyle: `display:flex;align-items:center;gap:20px;width:100%;text-align:left;padding:22px ${w.detected ? '4px' : '18px'};border-top:1px solid rgba(232,236,248,0.14);border-bottom:1px solid rgba(232,236,248,0.14);margin-bottom:-1px;${w.detected ? 'background:rgba(232,236,248,0.05);' : ''}cursor:pointer`,
+               use a Chrome store link keep the honest dead end.
+             *
+             * `!this.server` is the offline demo, where the wallet is a mock
+             * that connects to anything you click. Sending that visitor to the
+             * Chrome Web Store would be absurd — and it would make the demo
+             * unreachable, since no row would ever be DETECTED in a browser
+             * with no extension, which is exactly the browser the demo is for. */
+            state: usable ? 'DETECTED' : (w.install ? 'INSTALL' : 'NOT FOUND'),
+            pick: usable ? this.pickWallet(w.id, short) : this.openInstall(w),
+            rowStyle: `display:flex;align-items:center;gap:20px;width:100%;text-align:left;padding:22px ${usable ? '4px' : '18px'};border-top:1px solid rgba(232,236,248,0.14);border-bottom:1px solid rgba(232,236,248,0.14);margin-bottom:-1px;${usable ? 'background:rgba(232,236,248,0.05);' : ''}cursor:pointer`,
             // `position:relative` so the icon can sit over the letters.
-            badgeStyle: `position:relative;display:flex;align-items:center;justify-content:center;flex:none;width:34px;height:34px;border-radius:50%;overflow:hidden;font-size:13px;letter-spacing:.04em;${w.detected ? `background:${PAPER};color:${ON_FILL};margin-left:14px` : `border:1px solid rgba(232,236,248,0.28);color:${MUTED}`}`,
-            nameStyle: `flex:1;font-size:20px;font-weight:400;color:${w.detected ? FELT_INK : MUTED}`,
-            stateStyle: `display:flex;align-items:center;gap:9px;font-size:11.5px;letter-spacing:.14em;${w.detected ? `color:${BRASS};margin-right:14px` : `color:${MUTED};opacity:.7`}`,
+            badgeStyle: `position:relative;display:flex;align-items:center;justify-content:center;flex:none;width:34px;height:34px;border-radius:50%;overflow:hidden;font-size:13px;letter-spacing:.04em;${usable ? `background:${PAPER};color:${ON_FILL};margin-left:14px` : `border:1px solid rgba(232,236,248,0.28);color:${MUTED}`}`,
+            nameStyle: `flex:1;font-size:20px;font-weight:400;color:${usable ? FELT_INK : MUTED}`,
+            stateStyle: `display:flex;align-items:center;gap:9px;font-size:11.5px;letter-spacing:.14em;${usable ? `color:${BRASS};margin-right:14px` : `color:${MUTED};opacity:.7`}`,
             // Olive presence dot only where there is presence to report.
-            dotStyle: `display:${w.detected ? 'block' : 'none'};width:6px;height:6px;border-radius:50%;background:${BRASS};animation:suPulse 2.2s ease-in-out infinite`,
+            dotStyle: `display:${usable ? 'block' : 'none'};width:6px;height:6px;border-radius:50%;background:${BRASS};animation:suPulse 2.2s ease-in-out infinite`,
           };
         }),
       approveStyle: `display:${st.approving ? 'flex' : 'none'};flex-direction:column;gap:12px`,

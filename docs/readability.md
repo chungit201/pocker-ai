@@ -60,6 +60,21 @@ Two of them — the winner's plate and the urgent clock — only appear while a 
 is being played, which is why `probe-live.mjs` sits at a real table against the
 gateway's bots rather than stopping at an empty felt.
 
+## Seeing a card at all
+
+Both tools above sit at a live table, where the cards you get are whatever the
+gateway deals — and the hero is often not dealt in during the short window a
+probe is seated. To look at card rendering deterministically, run the **offline
+demo**, where bots deal locally and a hand starts at once:
+
+```bash
+NEXT_PUBLIC_SUITED_SERVER=offline npx next dev -p 3001
+```
+
+Next refuses a second dev server in the same directory, so stop the normal one
+first. That is how the ten was confirmed to print as "10" across a full set of
+ranks; chasing one through the live gateway took minutes and found nothing.
+
 ## Two notes on fixing
 
 - **A control with two background states needs two text colours.** The turn
