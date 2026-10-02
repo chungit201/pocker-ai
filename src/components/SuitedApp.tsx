@@ -30,11 +30,18 @@ import * as SUITED from '@/engine';
 import { SUITED_SERVER, SUITED_OFFLINE } from '@/config';
 import {
   FELT, FELT_DEEP, PAPER, PAPER_COOL, MUTED, CARD_FACE, CTA, CTA_INK, ON_FILL, PAPER_INK,
-  BRASS, CLARET, RED, RED_INK, WIN, LOSS, INK, INK_MUT, FELT_INK,
+  BRASS, CLARET, TURN, RED, RED_INK, WIN, LOSS, INK, INK_MUT, FELT_INK,
   SERIF, UI, MONO, DISP, EASE,
   FELT_LIGHT, FLAT_CARD, LIT_CARD, RED_CARD, RECEIPT_LINK, SIGILS,
   BG, SURF, ACC, ACC2, MUT, DIM,
 } from '@/lib/palette';
+import {
+  TABLE_STYLES, TABLE_STYLE_KEY, tableStyle, storedTableStyle,
+  tableSurfaceCss, tableGroundCss, tableSwatchCss,
+} from '@/lib/table-styles';
+import {
+  CARD_BACKS, CARD_BACK_KEY, cardBack, storedCardBack, cardBackCss, cardBackSwatchCss,
+} from '@/lib/card-backs';
 
 /* The palette lives in @/lib/palette — see the note at the top of that file
    about the constants that look redundant and are not. */
@@ -54,7 +61,11 @@ import {
    on the corner cards holds them off the plate until the fixed 472px board
    frame's edge catches up, then yields, so the two never collide. */
 const CANVAS = { w: 1420, h: 750 };
-const SCALE_MIN = 0.55, SCALE_MAX = 1.35;
+/* The floor was 0.55, and below it the canvas simply overflowed its box and was
+   clipped — which on a phone cut the top seat and the hero's own plate off the
+   screen. A table that is small is still a table; one with seats missing is
+   not. So the floor is now only where it stops being drawable at all. */
+const SCALE_MIN = 0.3, SCALE_MAX = 1.35;
 
 /* The page's design canvas — the felt's CANVAS, for every screen that is not
    the felt. 1512x850 is 16:9 at the measure the pages already use, so a normal
@@ -966,6 +977,13 @@ export default class SuitedApp extends React.Component<any, any> {
     docSlug: null,
     ready: false,
     compact: false,
+    /* The two shapes a phone gives the table (see `onResize`). `mini` is a
+       phone on its side: the felt takes the whole screen and the controls sit
+       over its bottom corners. `upright` is a phone held upright, where the
+       table cannot be drawn at a size anyone can read — the felt asks to be
+       turned instead. */
+    mini: false,
+    upright: false,
     scale: 1,
     // The measured felt. Every seat position is a fraction of this, so it is
     // seeded with a plausible size rather than zero — one frame of seats piled
@@ -1077,6 +1095,12 @@ export default class SuitedApp extends React.Component<any, any> {
        hand's net, a stake's average pot); a bankroll, a deposit and a rakeback
        balance belong to no table and stay in dollars under either setting. */
     amountUnit: (() => { try { return localStorage.getItem('suited:amount-unit') === 'bb' ? 'bb' : 'usd'; } catch { return 'usd'; } })(),
+    /* Which table is drawn under the game (@/lib/table-styles). A device
+       preference like the two above: it is what this screen looks like, and
+       nobody else at the table sees it. */
+    tableStyle: storedTableStyle(),
+    // And which back the face-down cards wear (@/lib/card-backs), for the same reason.
+    cardBackStyle: storedCardBack(),
     playersOnline: 0,
     /* Private rooms. `room*` back the join screen a shared `/<slug>` link lands
        on; `cr*` back the create-a-room modal, and `createdRoom` flips that modal
@@ -1445,13 +1469,23 @@ export default class SuitedApp extends React.Component<any, any> {
      was the fixed-stage model, and it is what made a wide window render an
      absurdly large board rather than a wider one. */
   onResize = () => {
-    const compact = window.innerWidth < 900;
-    if (compact !== this.state.compact) this.setState({ compact });
+    const w = window.innerWidth, h = window.innerHeight;
+    const compact = w < 900;
+    /* A phone, by the shape of its viewport rather than its user agent. On its
+       side it is short — no laptop window anyone plays in is under 520px tall —
+       and the table is a landscape drawing, so that is the orientation it is
+       laid out for. Upright it is narrow, and only a touch device is asked to
+       turn: a desktop window dragged narrow just gets a smaller table. */
+    const mini = h < 520 && w > h;
+    const upright = w < 700 && h > w && !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    if (compact !== this.state.compact || mini !== this.state.mini || upright !== this.state.upright) {
+      this.setState({ compact, mini, upright });
+    }
     if (this._docsMounted) this.layoutDocs();
     // A short stacked window cannot hold a playable felt and an open rail at
     // once, so the rail starts closed there — once only, and never after the
     // player has touched the toggle, whose choice outranks the heuristic.
-    if (compact && window.innerHeight < 640 && this.state.railOpen && !this.railTouched && !this.railAutoClosed) {
+    if ((mini || (compact && h < 640)) && this.state.railOpen && !this.railTouched && !this.railAutoClosed) {
       this.railAutoClosed = true;
       this.setState({ railOpen: false });
     }
@@ -4199,6 +4233,11 @@ export default class SuitedApp extends React.Component<any, any> {
     };
     const g = this.geo();
     const c = st.compact;
+    // A phone on its side (see `onResize`). `tight` is where the table's own
+    // controls take their small sizes: a narrow window, or that phone — whose
+    // long edge can be past the 900px that `compact` stops at.
+    const mini = st.mini;
+    const tight = c || mini;
     const scr = st.screen;
     const walletShort = st.wallet ? st.wallet.addr.slice(0, 4) + '\u2026' + st.wallet.addr.slice(-4) : 'Not connected';
 
@@ -4396,7 +4435,10 @@ export default class SuitedApp extends React.Component<any, any> {
       // stacking context the felt background's z-index:-1 is measured against.
       // Without it that layer escapes to the root stacking context, paints
       // behind the body's own fill, and simply is not there.
-      rootStyle: `${scr === 'table' || scr === 'docs' ? 'height:100vh' : 'min-height:100vh'};display:flex;flex-direction:column;background:${FELT};position:relative;z-index:0;overflow:hidden`,
+      // The table is `dvh`, not `vh`: on a phone `100vh` is the screen with the
+      // browser's bars retracted, so the bottom of the felt — the hero's seat
+      // and the action buttons — sat under the toolbar.
+      rootStyle: `${scr === 'table' ? 'height:100dvh' : scr === 'docs' ? 'height:100vh' : 'min-height:100vh'};display:flex;flex-direction:column;background:${FELT};position:relative;z-index:0;overflow:hidden`,
       // One word decides whether the landing page mentions the token at all —
       // `TOKEN_CA` in engine/token.js, the same value the docs page reads.
       caOn: !!CA, ca: CA, caBuyHref: `https://fomo.family/tokens/robinhood/${CA}`,
@@ -5648,6 +5690,48 @@ export default class SuitedApp extends React.Component<any, any> {
       { label: 'TO CALL', value: this.amt(6.75, PV_BB) },
     ];
 
+    /* The table's skin. Offered here and in the table's own drawer, where a
+       pick repaints the felt behind it — the same list and the same handler,
+       so the two can never disagree. */
+    const skinNow = tableStyle(st.tableStyle);
+    vals.tableStyleNote = skinNow.note;
+    vals.tableStyles = TABLE_STYLES.map((s) => {
+      const on = s.id === skinNow.id;
+      return {
+        id: s.id,
+        name: s.name,
+        on,
+        swatch: tableSwatchCss(s),
+        btn: `display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 4px 4px;border-radius:9px;background:transparent;font-size:12px;color:${on ? FELT_INK : MUTED};outline:${on ? `2px solid ${BRASS}` : '0'};outline-offset:1px;transition:color .18s ease`,
+        pick: () => {
+          if (st.tableStyle === s.id) return;
+          this.sfx('ui');
+          this.setState({ tableStyle: s.id });
+          try { localStorage.setItem(TABLE_STYLE_KEY, s.id); } catch {}
+        },
+      };
+    });
+
+    // The cards' back: the same shape of choice as the skin, and the same two places.
+    const backNow = cardBack(st.cardBackStyle);
+    vals.cardBackNote = backNow.note;
+    vals.cardBacks = CARD_BACKS.map((b) => {
+      const on = b.id === backNow.id;
+      return {
+        id: b.id,
+        name: b.name,
+        on,
+        swatch: cardBackSwatchCss(b),
+        btn: `display:flex;flex-direction:column;align-items:center;gap:8px;padding:6px 4px 4px;border-radius:9px;background:transparent;font-size:12px;color:${on ? FELT_INK : MUTED};outline:${on ? `2px solid ${BRASS}` : '0'};outline-offset:1px;transition:color .18s ease`,
+        pick: () => {
+          if (st.cardBackStyle === b.id) return;
+          this.sfx('ui');
+          this.setState({ cardBackStyle: b.id });
+          try { localStorage.setItem(CARD_BACK_KEY, b.id); } catch {}
+        },
+      };
+    });
+
     vals.hotkeysNote = st.hotkeys
       ? 'F folds, c checks or calls, r raises, space takes the default action. The letter is underlined in the button itself.'
       : 'The keyboard does nothing at the table, every action is a click.';
@@ -6412,11 +6496,23 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.trViewDetail = () => tr && tr.tournamentId && this.openTournament(tr.tournamentId);
 
     /* ── the table ────────────────────────────────────────────────── */
-    vals.tableShell = `position:relative;flex:1;display:flex;flex-direction:${c ? 'column' : 'row'};align-items:stretch;gap:0;min-height:0`;
+    // On a phone's side the rail is an overlay, so nothing stacks under the felt.
+    vals.tableShell = `position:relative;flex:1;display:flex;flex-direction:${c && !mini ? 'column' : 'row'};align-items:stretch;gap:0;min-height:0`;
+    /* The felt's column. min-height:0 is load-bearing: without it `flex:1` on
+       the felt's container does not cap its height, and since the felt's
+       measured height becomes its rendered height, the two grow each other
+       every frame until the table runs off the page. On a phone's side the
+       padding goes and it becomes the positioning box for the action controls,
+       which lie over the felt's bottom corners instead of under it. */
+    vals.feltCol = `flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;${mini ? 'position:relative;padding:0' : 'padding:14px 12px 0'}`;
     // The container the play area is fitted into: felt green with a lit centre.
     // It holds the design's own aspect via nothing at all — the play area scales
     // to whatever box this is, so this just needs to be a bounded, clipped box.
-    vals.stageBox = `position:relative;flex:1;min-height:0;overflow:hidden;width:100%;background-color:${FELT};background-image:radial-gradient(56% 54% at 50% 44%, rgba(148,163,196,0.085), rgba(0,0,0,0.325) 100%)`;
+    // Under an oval skin it is the dark ground instead, and the table itself is
+    // `tableSurface`, the first thing painted inside the play area.
+    const skin = tableStyle(st.tableStyle);
+    vals.stageBox = `position:relative;flex:1;min-height:0;overflow:hidden;width:100%;${tableGroundCss(skin)}`;
+    vals.tableSurface = tableSurfaceCss(skin);
     // The fixed design canvas, centred and scaled as one unit.
     vals.playArea = `position:absolute;left:50%;top:50%;width:${CANVAS.w}px;height:${CANVAS.h}px;transform:translate(-50%,-50%) scale(${g.s.toFixed(4)});transform-origin:center;font-family:${UI}`;
 
@@ -6436,12 +6532,24 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.feltRef = this.feltRef;
 
     // What is happening, top-left; the street, top-right.
-    vals.feltStatusStyle = `position:absolute;left:40px;top:26px;display:flex;align-items:center;gap:9px;font-size:13px;font-weight:500;letter-spacing:.01em;pointer-events:none;z-index:5;max-width:60%`;
+    // An oval's rail curves down through this corner, so under one both lines
+    // move up into the ground above it and the status stops 300px along, short
+    // of where the rail arrives; the hand id already ellipsises.
+    const corner = skin.felt ? { x: 24, y: 8, max: '280px' } : { x: 40, y: 26, max: '60%' };
+    vals.feltStatusStyle = `position:absolute;left:${corner.x}px;top:${corner.y}px;display:flex;align-items:center;gap:9px;font-size:13px;font-weight:500;letter-spacing:.01em;pointer-events:none;z-index:5;max-width:${corner.max}`;
     vals.handIdSep = `opacity:.4;color:#94a3c4`;
     // MUTED at full strength: at 0.7 over the felt's darkest corner this read
     // 4.36:1, and a hand id is what you quote when disputing a hand.
     vals.handIdOnFelt = `font-size:11px;letter-spacing:.12em;color:${MUTED};white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
-    vals.streetStyle = `position:absolute;right:40px;top:28px;display:flex;align-items:center;gap:10px;font-size:12px;letter-spacing:.22em;color:#94a3c4;text-transform:uppercase;pointer-events:none;z-index:5`;
+    /* While the rail is closed the menu button floats in the screen's top-right
+       corner (TableDrawer), 52px in from the edge. Where the canvas leaves less
+       than that beside itself — a table as wide as its box, which is every
+       narrow phone and any window with the rail shut — the street moves
+       inboard far enough to clear it, in canvas pixels. */
+    const sideGap = Math.max(0, (st.felt.w - CANVAS.w * g.s) / 2);
+    const menuClear = st.railOpen ? 0 : (mini ? 60 : 48);   // the felt's column is padded 12px off a phone
+    const streetX = Math.max(corner.x, (menuClear - sideGap) / g.s);
+    vals.streetStyle = `position:absolute;right:${streetX.toFixed(0)}px;top:${corner.y + 2}px;display:flex;align-items:center;gap:10px;font-size:12px;letter-spacing:.22em;color:#94a3c4;text-transform:uppercase;pointer-events:none;z-index:5`;
     vals.streetDotStyle = `width:6px;height:6px;border-radius:50%;background:${BRASS};${t && t.phase !== 'complete' && t.running !== false ? 'animation:suPulse 1.6s ease-in-out infinite' : 'opacity:.4'}`;
 
     // The board's own frame: a stroked path with a real gap, the wordmark in it,
@@ -6502,6 +6610,8 @@ export default class SuitedApp extends React.Component<any, any> {
     const crownOn = hasWinner;
     const reduceMotion = typeof window !== 'undefined' && !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 
+    // Every face-down card wears the chosen back (@/lib/card-backs).
+    const backCss = cardBackCss(cardBack(st.cardBackStyle));
     const cards = [];
     const deckX = BOARD.cx, deckY = BOARD.cy;
     for (let seat = 0; seat < 6; seat++) {
@@ -6535,7 +6645,7 @@ export default class SuitedApp extends React.Component<any, any> {
         cards.push({
           wrap: `position:absolute;left:0;top:0;width:${cw}px;height:${ch}px;transform:translate3d(${x.toFixed(1)}px,${(y - lift).toFixed(1)}px,0) rotate(${crown ? 0 : rot}deg) scale(${cScale});opacity:${has && !folded ? 1 : 0};transition:transform .55s ${EASE},opacity .34s ease;z-index:${crown ? 50 : (isHero ? 26 : 12)};pointer-events:none;filter:drop-shadow(0 ${crown ? 16 : arrived ? 7 : 2}px ${crown ? 30 : arrived ? 18 : 5}px rgba(0,0,0,${crown ? 0.5 : 0.42}))`,
           inner: `position:relative;width:100%;height:100%;transform-style:preserve-3d;transform:rotateY(${faceUp ? 0 : 180}deg);transition:transform .42s ${EASE}`,
-          back: `position:absolute;inset:0;border-radius:${cr}px;backface-visibility:hidden;transform:rotateY(180deg);background:${FELT_DEEP};box-shadow:inset 0 0 0 1px rgba(232,236,248,0.26), ${FLAT_CARD}`,
+          back: `position:absolute;inset:0;border-radius:${cr}px;backface-visibility:hidden;transform:rotateY(180deg);${backCss};box-shadow:inset 0 0 0 1px rgba(232,236,248,0.26), ${FLAT_CARD}`,
           face: `position:absolute;inset:0;border-radius:${cr}px;backface-visibility:hidden;background:${CARD_FACE};box-shadow:${crown ? LIT_CARD : FLAT_CARD};transition:box-shadow .42s ease`,
           cornerA: `position:absolute;left:${(cw * 0.12).toFixed(1)}px;top:${(ch * 0.045).toFixed(1)}px;font-family:${SERIF};font-size:${(ch * 0.3).toFixed(1)}px;line-height:1;color:${red ? RED_CARD : '#101828'}`,
           cornerB: `position:absolute;right:${(cw * 0.12).toFixed(1)}px;bottom:${(ch * 0.05).toFixed(1)}px;font-size:${(ch * 0.235).toFixed(1)}px;line-height:1;color:${red ? RED_CARD : '#101828'}`,
@@ -6564,7 +6674,7 @@ export default class SuitedApp extends React.Component<any, any> {
       cards.push({
         wrap: `position:absolute;left:0;top:0;width:${cw}px;height:${ch}px;transform:translate3d(${x.toFixed(1)}px,${(y - lift).toFixed(1)}px,0) rotate(${arrived ? 0 : 8}deg) scale(${crown ? 1.05 : 1});opacity:${has ? 1 : 0};transition:transform .55s ${EASE},opacity .3s ease;z-index:${crown ? 50 : 14};pointer-events:none;filter:drop-shadow(0 ${crown ? 16 : 7}px ${crown ? 30 : 18}px rgba(0,0,0,${crown ? 0.5 : 0.42}))`,
         inner: `position:relative;width:100%;height:100%;transform-style:preserve-3d;transform:rotateY(${arrived ? 0 : 180}deg);transition:transform .5s ${EASE}`,
-        back: `position:absolute;inset:0;border-radius:${cr}px;backface-visibility:hidden;transform:rotateY(180deg);background:${FELT_DEEP};box-shadow:inset 0 0 0 1px rgba(232,236,248,0.26), ${FLAT_CARD}`,
+        back: `position:absolute;inset:0;border-radius:${cr}px;backface-visibility:hidden;transform:rotateY(180deg);${backCss};box-shadow:inset 0 0 0 1px rgba(232,236,248,0.26), ${FLAT_CARD}`,
         face: `position:absolute;inset:0;border-radius:${cr}px;backface-visibility:hidden;background:${CARD_FACE};box-shadow:${crown ? LIT_CARD : FLAT_CARD};transition:box-shadow .42s ease`,
         cornerA: `position:absolute;left:8px;top:4px;font-family:${SERIF};font-size:${(ch * 0.3).toFixed(1)}px;line-height:1;color:${red ? RED_CARD : '#101828'}`,
         cornerB: `position:absolute;right:8px;bottom:5px;font-size:${(ch * 0.235).toFixed(1)}px;line-height:1;color:${red ? RED_CARD : '#101828'}`,
@@ -6654,7 +6764,7 @@ export default class SuitedApp extends React.Component<any, any> {
         wrap: `position:absolute;${SEAT_ANCHORS[i].plate};width:${PLATE.w}px;height:${PLATE.h}px;z-index:23;pointer-events:none`,
         path: RING_PATH,
         track: `fill:none;stroke:rgba(232,236,248,0.28);stroke-width:2.5`,
-        sweep: `fill:none;stroke:${CLARET};stroke-width:3;stroke-linecap:round;stroke-dasharray:${RING_LEN};animation:ringWide ${clock.duration}ms linear both;filter:drop-shadow(0 0 6px rgba(148,163,196,0.95))`,
+        sweep: `fill:none;stroke:${TURN};stroke-width:3;stroke-linecap:round;stroke-dasharray:${RING_LEN};animation:ringWide ${clock.duration}ms linear both;filter:drop-shadow(0 0 6px rgba(34,197,94,0.9))`,
       };
     }).filter(Boolean);
 
@@ -6684,13 +6794,13 @@ export default class SuitedApp extends React.Component<any, any> {
         : PAPER;
       // The winner's plate is the hero of the showdown: a bright brass crown ring
       // that reads over the dimmed felt, and lifted above the dim on z (below).
-      // Gold is the win; the live turn is claret. A seat that is neither acting
+      // Gold is the win; the live turn is green (TURN). A seat that is neither acting
       // nor the winner recedes while someone else is on the clock, so the acting
       // seat reads first.
       const someoneActing = !!(clock && t.toAct != null && t.phase !== 'complete');
       const recede = empty ? 0.7 : (someoneActing && !acting ? 0.82 : 1);
       // Only the winner gets a plate glow (brass). The acting seat's signal is
-      // the claret timer ring alone — the two together read as a double halo.
+      // the green timer ring alone — the two together read as a double halo.
       const ring = won ? '0 0 0 2.5px #a78bfa, 0 0 34px 8px rgba(139,92,246,0.62)' : 'none';
       const dash = (sittingOut || empty) ? '1px dashed rgba(232,236,248,0.06)' : '0';
 
@@ -6721,9 +6831,12 @@ export default class SuitedApp extends React.Component<any, any> {
         avWrap: av || portrait ? 'position:absolute;inset:0;width:100%;height:100%' : 'display:none',
         avInner: av ? avInner(av) : portrait ? portraitInner(seatFace[i]) : '',
         name: empty ? 'Open seat' : (isHero ? 'You' : s.name),
-        nameStyle: `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:${textCol}`,
+        // On a phone's side the canvas is drawn at about half size, so the two
+        // lines a seat is read by are set larger to land near 8px and 10px
+        // rather than 7 and 8. The plate itself does not grow: it has the room.
+        nameStyle: `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:${mini ? 15 : 13}px;color:${textCol}`,
         sub,
-        subStyle: `display:${sub ? 'block' : 'none'};${isStack ? `font-family:${SERIF};font-size:16px;line-height:1;` : 'font-size:12px;letter-spacing:.06em;'}color:${textCol}`,
+        subStyle: `display:${sub ? 'block' : 'none'};${isStack ? `font-family:${SERIF};font-size:${mini ? 19 : 16}px;line-height:1;` : `font-size:${mini ? 14 : 12}px;letter-spacing:.06em;`}color:${textCol}`,
       };
     });
 
@@ -6833,7 +6946,11 @@ export default class SuitedApp extends React.Component<any, any> {
        inner edge where it reads as sitting on the table. */
     // Inset past the 16px corner radius so the discs sit on green, not on the
     // curve — 20px in from each edge clears it at both furniture scales.
-    vals.volWrap = `position:absolute;right:20px;bottom:20px;z-index:46;display:flex;flex-direction:column;align-items:center;gap:8px`;
+    // On a phone's side the bottom corners belong to the action controls, so
+    // the speaker goes to the top-left, under the status line.
+    vals.volWrap = mini
+      ? `position:absolute;left:10px;top:34px;z-index:46;display:flex;flex-direction:column-reverse;align-items:center;gap:8px`
+      : `position:absolute;right:20px;bottom:20px;z-index:46;display:flex;flex-direction:column;align-items:center;gap:8px`;
     vals.sndBtnStyle = `display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;touch-action:none;cursor:ns-resize;background:${st.muted ? 'rgba(232,236,248,0.1)' : INK};color:${st.muted ? 'rgba(232,236,248,0.086)' : BG};border:1px solid ${st.muted ? 'rgba(232,236,248,0.041)' : 'transparent'};box-shadow:${vdrag ? '0 0 0 5px rgba(232,236,248,0.198)' : 'none'};transition:background .2s ease,color .2s ease,box-shadow .2s ease`;
     // The speaker's ink runs x=2..19 in a 24 box when live, x=2..21 when muted;
     // either way it is left-weighted, so the box needs pulling right to look centred.
@@ -6890,13 +7007,23 @@ export default class SuitedApp extends React.Component<any, any> {
        which is constant — the floor just makes that a stated guarantee, so no
        label change (hotkey hints on or off, call amount growing) can move the
        felt above by a pixel. */
-    vals.actionBar = `width:100%;box-sizing:border-box;display:flex;flex-wrap:${c ? 'wrap' : 'nowrap'};`
+    /* On a phone's side there is no bar. The row would take a quarter of a
+       390px-tall screen from a table that is already small, so its two halves
+       lie over the felt's bottom corners instead — sizing on the left, the
+       three decisions on the right, the hero's seat between them — where the
+       canvas has nothing but the curve of the rail. The strip itself lets
+       touches through; only the two clusters take them. The side padding
+       honours the notch. */
+    vals.actionBar = mini
+      ? 'position:absolute;left:0;right:0;bottom:0;z-index:45;box-sizing:border-box;display:flex;align-items:flex-end;'
+        + 'padding:0 max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));pointer-events:none'
+      : `width:100%;box-sizing:border-box;display:flex;flex-wrap:${c ? 'wrap' : 'nowrap'};`
       + `align-items:center;gap:${c ? 10 : 14}px;margin:${c ? 8 : 10}px 0 14px;`
       + `padding:${c ? '12px 14px' : '14px 20px'};`
       + 'background:#0d1220;border:1px solid rgba(232,236,248,.09);border-radius:14px;'
       + 'box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 18px 40px -28px rgba(0,0,0,1);'
       + `${c ? '' : 'min-height:78px'}`;
-    vals.turnDotStyle = `width:7px;height:7px;border-radius:999px;flex:0 0 auto;background:${myTurn ? CLARET : 'rgba(232,236,248,0.5)'};${myTurn ? 'animation:suPulse 1.4s ease-in-out infinite' : ''}`;
+    vals.turnDotStyle = `width:7px;height:7px;border-radius:999px;flex:0 0 auto;background:${myTurn ? TURN : 'rgba(232,236,248,0.5)'};${myTurn ? 'animation:suPulse 1.4s ease-in-out infinite' : ''}`;
     const spectating = !st.seated;
 
     /* A table needs two players who can act. Below that the felt simply sits
@@ -7072,17 +7199,37 @@ export default class SuitedApp extends React.Component<any, any> {
     // share the row.
     // One standard gap between every control, so the row reads as evenly spaced
     // rather than tuned pill by pill.
-    vals.heroControls = `display:${spectating || heroBroke ? 'none' : 'flex'};flex:1;flex-wrap:${c ? 'wrap' : 'nowrap'};align-items:center;gap:${c ? 8 : 10}px;min-width:0`;
+    vals.heroControls = mini
+      ? `display:${spectating || heroBroke ? 'none' : 'flex'};flex:1;align-items:flex-end;justify-content:space-between;gap:10px;min-width:0`
+      : `display:${spectating || heroBroke ? 'none' : 'flex'};flex:1;flex-wrap:${c ? 'wrap' : 'nowrap'};align-items:center;gap:${c ? 8 : 10}px;min-width:0`;
+    /* The row's two halves. Everywhere but a phone's side they are
+       `display:contents` — boxes that are not there, so the row lays out its
+       ten controls exactly as it did before they existed. On a phone's side
+       they are the two corner clusters: the decisions keep to the right, and
+       the sizing, which only means anything on your turn, shows only then. */
+    vals.decisionGroup = mini
+      ? 'order:2;display:flex;align-items:flex-end;gap:6px;pointer-events:auto'
+      : 'display:contents';
+    vals.sizingGroup = mini
+      ? `order:1;display:flex;flex-wrap:wrap;align-items:center;gap:5px 4px;box-sizing:border-box;width:min(292px, 38vw);padding:6px 8px;border-radius:12px;background:rgba(10,13,22,0.78);border:1px solid rgba(232,236,248,.09);pointer-events:auto;visibility:${myTurn ? 'visible' : 'hidden'}`
+      : 'display:contents';
     // The slider takes the slack — it grows to eat the space that used to sit
     // empty on the right — but shrinks first when the row is tight, down to a
     // small floor, so a raise prompt can never push the presets off the screen.
     // Side margin on top of the row gap: the thumb sits centred on the track's
     // ends, so at min or max it would otherwise touch the neighbouring button.
-    vals.betBlockStyle = `display:flex;flex-direction:column;gap:4px;flex:1 1 auto;min-width:${c ? 90 : 96}px;margin:0 ${c ? 8 : 18}px;opacity:${myTurn ? 1 : 0.32};pointer-events:${myTurn ? 'auto' : 'none'};transition:opacity 260ms linear`;
-    vals.specControls = `display:${spectating && t ? 'flex' : 'none'};flex:1;flex-wrap:wrap;align-items:center;gap:12px;justify-content:${c ? 'flex-start' : 'flex-end'}`;
+    /* The scale under the slider: floor, current size, ceiling. Not drawn on a
+       phone's side. The cluster has to stay under the corner seat's plate, and
+       with a browser's bars showing that leaves about 75px; the row was the
+       17 that did not fit. Nothing is lost with it — the raise button carries
+       the size, and Min and All-in are the two ends. */
+    vals.betScaleStyle = `display:${mini ? 'none' : 'flex'};align-items:center;justify-content:space-between;gap:6px;font-size:9.5px;letter-spacing:.14em;color:#94a3c4;font-variant-numeric:tabular-nums;overflow:hidden`;
+    vals.betReadoutStyle = `color:#ffffff;white-space:nowrap;overflow:hidden;font-family:${SERIF};font-size:19px;letter-spacing:0;line-height:1`;
+    vals.betBlockStyle = `display:flex;flex-direction:column;gap:4px;${mini ? 'flex:1 0 100%;margin:0 6px' : `flex:1 1 auto;min-width:${c ? 90 : 96}px;margin:0 ${c ? 8 : 18}px`};opacity:${myTurn ? 1 : 0.32};pointer-events:${myTurn ? 'auto' : 'none'};transition:opacity 260ms linear`;
+    vals.specControls = `display:${spectating && t ? 'flex' : 'none'};flex:1;flex-wrap:wrap;align-items:center;gap:12px;justify-content:${c && !mini ? 'flex-start' : 'flex-end'}${mini ? ';pointer-events:auto' : ''}`;
 
     // The rail's own toggle disappears with it, so a floating tab reopens it.
-    vals.railShowTab = `position:absolute;right:0;top:${c ? '20%' : '50%'};transform:translateY(-50%);display:${!st.railOpen ? 'flex' : 'none'};flex-direction:column;align-items:center;gap:8px;padding:14px 7px;border:1px solid rgba(232,236,248,0.176);border-right:0;border-radius:12px 0 0 12px;background:rgba(139,92,246,0.7);z-index:30`;
+    vals.railShowTab = `position:absolute;right:0;top:${c && !mini ? '20%' : '50%'};transform:translateY(-50%);display:${!st.railOpen ? 'flex' : 'none'};flex-direction:column;align-items:center;gap:8px;padding:14px 7px;border:1px solid rgba(232,236,248,0.176);border-right:0;border-radius:12px 0 0 12px;background:rgba(139,92,246,0.7);z-index:30`;
     /* One pill, in two sizes. The action area had three separate button
        vocabularies in one row — a filled ink slab, a bordered pill at a
        different size, and a third set for bank/top-up/leave — which is what
@@ -7102,9 +7249,9 @@ export default class SuitedApp extends React.Component<any, any> {
          theme's violet, and the sizing presets stay small and quiet so they
          never compete with the three that matter. */
       const base = `font-family:${UI};font-weight:${lead ? 600 : 500};text-transform:uppercase;`
-        + `font-size:${lead ? (c ? 12 : 13) : (c ? 9.5 : 10)}px;letter-spacing:${lead ? '.06em' : '.04em'};`
+        + `font-size:${lead ? (tight ? 12 : 13) : (tight ? 9.5 : 10)}px;letter-spacing:${lead ? '.06em' : '.04em'};`
         + `border-radius:${lead ? 10 : 7}px;`
-        + `padding:${lead ? (c ? '12px 16px' : '15px 22px') : (c ? '7px 8px' : '9px 10px')};`
+        + `padding:${lead ? (mini ? '12px 13px' : c ? '12px 16px' : '15px 22px') : (tight ? '7px 8px' : '9px 10px')};`
         + 'white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;'
         + 'transition:transform .12s ease,box-shadow .18s ease,filter .18s ease';
       /* One recipe for every plate: a lit top edge, a coloured rim, and a drop
@@ -7208,7 +7355,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.rebuyDeposit = () => this.go('profile')();
     vals.rebuyDismiss = () => this.setState({ rebuyDismissed: true });
     // The pill the dismissed modal leaves behind, in the action row.
-    vals.rebuyBarStyle = `display:${rbBusted && st.rebuyDismissed ? 'flex' : 'none'};flex:1;align-items:center;gap:12px;min-width:0`;
+    vals.rebuyBarStyle = `display:${rbBusted && st.rebuyDismissed ? 'flex' : 'none'};flex:1;align-items:center;gap:12px;min-width:0${mini ? ';pointer-events:auto' : ''}`;
     vals.rebuyReopen = () => this.setState({ rebuyDismissed: false });
     vals.rebuyPillLabel = rbCanAfford ? `Buy back in · ${fmt(rbBankroll)} USDG` : 'Add funds to play on';
     vals.doRebuy = () => {
@@ -7282,8 +7429,8 @@ export default class SuitedApp extends React.Component<any, any> {
        measured once per hand rather than guessed at in `ch`, which would
        over-reserve badly in a proportional face. Tabular figures then keep
        equal-length numbers from wobbling inside the reserved box. */
-    const raisePad = c ? 15 : 18;
-    const raiseFont = `500 ${c ? 12 : 13}px ${UI}`;
+    const raisePad = mini ? 13 : c ? 15 : 18;
+    const raiseFont = `500 ${tight ? 12 : 13}px ${UI}`;
     /* The widest label is NOT the one at `maxTo`. `fmt` drops the cents on a
        round figure, so "raise to 200" is narrower than "raise to 128.40" — a
        value in the middle of the range renders wider than the top of it.
@@ -7366,7 +7513,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.hotkeysTitle = st.hotkeys
       ? 'Action hotkeys are on · f / c / r / a · click to turn off'
       : 'Action hotkeys are off · click to turn on';
-    vals.hotkeysStyle = `display:${spectating ? 'none' : 'flex'};align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;flex:0 0 auto;background:${st.hotkeys ? INK : 'rgba(232,236,248,0.1)'};color:${st.hotkeys ? BG : 'rgba(232,236,248,0.086)'};border:1px solid ${st.hotkeys ? 'transparent' : 'rgba(232,236,248,0.041)'};transition:background .2s ease,color .2s ease`;
+    vals.hotkeysStyle = `display:${spectating || mini ? 'none' : 'flex'};align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;flex:0 0 auto;background:${st.hotkeys ? INK : 'rgba(232,236,248,0.1)'};color:${st.hotkeys ? BG : 'rgba(232,236,248,0.086)'};border:1px solid ${st.hotkeys ? 'transparent' : 'rgba(232,236,248,0.041)'};transition:background .2s ease,color .2s ease`;
     vals.hotkeysStrike = `opacity:${st.hotkeys ? 0 : 1};transition:opacity .2s ease`;
     vals.toggleHotkeys = () => {
       const next = !st.hotkeys;
@@ -7425,7 +7572,9 @@ export default class SuitedApp extends React.Component<any, any> {
     // Narrow pills with the label stacked, so all six fit a minimised tab
     // instead of overflowing the row.
     const sizeBase = `${actPill('', 'minor')};display:flex;flex-direction:column;align-items:center;`
-      + `justify-content:center;line-height:1.05;gap:1px;min-width:${c ? 34 : 42}px;flex:0 0 auto;`
+      // On a phone's side the six share their cluster's one row equally, so
+      // they can never wrap into a second and cover the seat above.
+      + `justify-content:center;line-height:1.05;gap:1px;${mini ? 'min-width:0;flex:1 1 0;padding:7px 2px' : `min-width:${tight ? 34 : 42}px;flex:0 0 auto`};`
       + `${outOfTurnDim}`;
     /* A preset whose sizing is past your stack is not that sizing: the clamp
        turns it into the shove, and the row gave no sign that several buttons now
@@ -7447,7 +7596,7 @@ export default class SuitedApp extends React.Component<any, any> {
        it sits beside. Built from the same base so it keeps their geometry. */
     vals.sizeAllInStyle = sizeBase.replace(/background:linear-gradient\([^)]*\)/, 'background:linear-gradient(180deg,#6d1829,#430e1b)')
       .replace(/border:1px solid rgba\(148,163,196,\.4\)/, 'border:1px solid rgba(244,63,94,.42)');
-    vals.sizeSubStyle = `font-size:${c ? 8 : 8.5}px;letter-spacing:.04em;color:${MUTED}`;
+    vals.sizeSubStyle = `font-size:${tight ? 8 : 8.5}px;letter-spacing:.04em;color:${MUTED}`;
 
     vals.sizeMin = () => legal && this.setState({ betTo: minTo });
     vals.sizeAllIn = () => legal && this.setState({ betTo: maxTo });
@@ -7593,15 +7742,43 @@ export default class SuitedApp extends React.Component<any, any> {
     /* Stacked, the rail's height comes out of the same budget as the felt —
        a fixed 320px on a 500px window was most of the screen. Viewport-aware,
        so short windows keep the table and get a shorter log. */
-    vals.railStyle = c
+    /* On a phone's side it is neither: there is no width to give up beside the
+       felt and no height under it, so the rail slides over the table's right
+       edge as a panel and takes nothing from the layout. */
+    const railW = 'min(320px, 62vw)';
+    vals.railStyle = mini
+      // It stops 58px short of the bottom: that strip is the three decisions,
+      // and a log that covered them would hide the buttons on your own turn.
+      ? `position:absolute;right:0;top:0;bottom:58px;z-index:60;border-radius:0 0 0 14px;width:${st.railOpen ? railW : '0px'};display:flex;flex-direction:column;overflow:hidden;border-left:${st.railOpen ? '1px solid rgba(232,236,248,0.14)' : '0'};background:rgba(13,18,32,0.97);box-shadow:${st.railOpen ? '-18px 0 40px -18px rgba(0,0,0,0.8)' : 'none'};transition:width .3s ease`
+      : c
       ? `flex:none;width:100%;overflow:hidden;max-height:${st.railOpen ? 'min(320px, 34vh)' : '0px'};border-top:${st.railOpen ? '1px solid rgba(232,236,248,0.14)' : '0'};background:transparent;transition:max-height .3s ease`
       : `flex:0 0 ${st.railOpen ? '320px' : '0px'};width:${st.railOpen ? '320px' : '0px'};display:flex;flex-direction:column;min-height:0;overflow:hidden;border-left:${st.railOpen ? '1px solid rgba(232,236,248,0.14)' : '0'};background:transparent;transition:flex-basis .3s ease,width .3s ease`;
-    vals.railInner = c
+    vals.railInner = mini
+      ? `width:${railW};flex:none;display:flex;flex-direction:column;min-height:0;height:100%`
+      : c
       ? `display:flex;flex-direction:column;min-height:0;max-height:min(320px, 34vh)`
       : `width:320px;flex:none;display:flex;flex-direction:column;min-height:0;height:100%`;
     // The body cedes room to the tab strip and chat input, so the input is
     // never the part the viewport cap clips away.
-    vals.railBody = `flex:1;overflow-y:auto;min-height:0;max-height:${c ? 'calc(min(320px, 34vh) - 60px)' : 'none'}`;
+    vals.railBody = `flex:1;overflow-y:auto;min-height:0;max-height:${c && !mini ? 'calc(min(320px, 34vh) - 60px)' : 'none'}`;
+
+    /* A phone held upright. The table is a landscape drawing — at 390px wide it
+       would be a quarter of its design size, with a seat's name three pixels
+       tall — so the felt is covered and asks to be turned. Where the browser
+       can do the turning itself (Android: fullscreen, then an orientation
+       lock), the button offers it; elsewhere there is no such API and the
+       button is not shown. Best-effort either way: a refusal just leaves the
+       prompt up, which is still true. */
+    vals.rotateOn = !!st.upright;
+    vals.rotateCanLock = typeof screen !== 'undefined' && !!(screen.orientation && (screen.orientation as any).lock)
+      && typeof document !== 'undefined' && !!document.documentElement.requestFullscreen;
+    vals.rotateLock = () => {
+      const lock = () => (screen.orientation as any).lock('landscape');
+      Promise.resolve()
+        .then(() => document.documentElement.requestFullscreen())
+        .then(lock)
+        .catch(() => {});
+    };
     vals.railToggleLabel = st.railOpen ? 'Hide' : 'Show';
     vals.railOpen = !!st.railOpen;
     vals.toggleRail = () => { this.railTouched = true; this.setState((s) => ({ railOpen: !s.railOpen }), this.onResize); };

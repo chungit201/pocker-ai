@@ -848,6 +848,22 @@ html, body { height: 100%; margin: 0 }
 .td-item--two small { font-size: 12px; color: #94a3c4; }
 .td-item--danger > span { color: #f2676b; }
 .td-item--muted { color: #94a3c4; }
+/* ── the table on a phone held upright: turn it ─────────────────────────────
+   Over everything on the screen, the drawer's button included — there is
+   nothing on the felt to reach until the phone is turned. */
+.tb-rotate { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 32px 28px; text-align: center; color: #e8ecf8;
+  background: radial-gradient(70% 50% at 50% 42%, rgba(109,63,212,0.42), rgba(10,13,22,0) 100%), #0a0d16; }
+.tb-rotate-phone { color: #a78bfa; margin-bottom: 6px; animation: tbRotate 2.4s cubic-bezier(.6,0,.3,1) infinite; }
+@keyframes tbRotate { 0%, 18% { transform: rotate(0deg); } 52%, 82% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
+@media (prefers-reduced-motion: reduce) { .tb-rotate-phone { animation: none; transform: rotate(-90deg); } }
+.tb-rotate-title { font-size: 24px; font-weight: 500; letter-spacing: -.02em; }
+.tb-rotate-note { max-width: 30ch; font-size: 14px; line-height: 1.5; color: #94a3c4; }
+.tb-rotate-btn { margin-top: 10px; padding: 12px 22px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #f6f3ff;
+  background: linear-gradient(180deg, #8b5cf6, #6d3fd4); border: 1px solid rgba(255,255,255,0.165); }
+.tb-rotate-link { margin-top: 4px; padding: 10px 14px; font-size: 13px; color: #94a3c4; text-decoration: underline; text-underline-offset: 3px; }
+
+.td-styles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 6px; padding: 2px 6px 0; }
 
 /* ── the side rail's header on the felt ─────────────────────────────────────
    Two rows: the table (name over stakes) with the menu and collapse icons on

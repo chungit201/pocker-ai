@@ -132,6 +132,32 @@ export default function TableDrawer({ v }: { v: any }) {
             </div>
           ) : null}
 
+          {/* The skin, picked where it can be seen: the drawer stays open, so
+              each tap repaints the table behind the scrim. */}
+          <div className="td-group">
+            <div className="td-label">Table style</div>
+            <div className="td-styles">
+              {(v.tableStyles || []).map((s: any) => (
+                <button key={s.id} onClick={s.pick} aria-pressed={s.on} style={css(s.btn)}>
+                  <span style={css(s.swatch)} />
+                  {interp(s.name)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="td-group">
+            <div className="td-label">Card back</div>
+            <div className="td-styles">
+              {(v.cardBacks || []).map((b: any) => (
+                <button key={b.id} onClick={b.pick} aria-pressed={b.on} style={css(b.btn)}>
+                  <span style={css(b.swatch)} />
+                  {interp(b.name)}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="td-group">
             <div className="td-label">Go to</div>
             {nav.map(([icon, label, go]) => (

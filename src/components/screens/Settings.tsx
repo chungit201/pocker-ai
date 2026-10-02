@@ -46,6 +46,39 @@ export default function Settings({ v }: { v: any }) {
           </div>
           {"\r\n\r\n        "}
           <div style={css(v.setRow)}>
+            <div style={css(v.setText)}>
+              <div style={css(v.setLabel)}>{"TABLE STYLE"}</div>
+              <div style={css(v.setNote)}>
+                {interp(v.tableStyleNote)}
+              </div>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "10px 8px", flex: "0 1 auto" }}>
+              {asArray(v.tableStyles).map((s: any) => (
+                <button key={s.id} className="scph" onClick={s.pick} aria-pressed={s.on} style={css(s.btn)}>
+                  <span style={css(s.swatch)} />
+                  {interp(s.name)}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={css(v.setRow)}>
+            <div style={css(v.setText)}>
+              <div style={css(v.setLabel)}>{"CARD BACK"}</div>
+              <div style={css(v.setNote)}>
+                {interp(v.cardBackNote)}
+              </div>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", gap: "10px 8px", flex: "0 1 auto" }}>
+              {asArray(v.cardBacks).map((b: any) => (
+                <button key={b.id} className="scph" onClick={b.pick} aria-pressed={b.on} style={css(b.btn)}>
+                  <span style={css(b.swatch)} />
+                  {interp(b.name)}
+                </button>
+              ))}
+            </div>
+          </div>
+          {"\r\n\r\n        "}
+          <div style={css(v.setRow)}>
             {"\r\n          "}
             <div style={css(v.setText)}>
               {"\r\n            "}

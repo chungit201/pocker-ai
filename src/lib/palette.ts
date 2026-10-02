@@ -48,8 +48,13 @@ export const PAPER_INK = '#e8ecf8';
 
 /* ── state ────────────────────────────────────────────────────────────────── */
 export const BRASS = '#a78bfa';       // live state: the acting ring, a live value
-/** Act now — the turn clock and the acting seat. Deliberately not BRASS: brass
- *  marked both whose turn it is and who won, and the two collided. */
+/** Whose turn it is — the clock tracing the acting seat's plate, and the dot
+ *  beside "Your action". Deliberately not BRASS: brass marked both whose turn
+ *  it is and who won, and the two collided. Green, because a turn is time you
+ *  have; the alarm for running out of it is CLARET's. */
+export const TURN = '#22c55e';
+/** Time is nearly up — the seconds pill in its last moments. It was the whole
+ *  turn clock too, until that went green (TURN). */
 export const CLARET = '#f43f5e';
 export const RED = '#e5484d';
 /** Red as TEXT on a dark surface, as opposed to RED the fill. Same split as

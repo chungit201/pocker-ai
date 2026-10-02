@@ -11,6 +11,25 @@ import { openTableMenu } from './TableDrawer';
 export default function Table({ v }: { v: any }) {
   return (
     <>
+      {/*
+         A phone held upright: the table is a landscape drawing and cannot be
+         read at that width, so it is covered and asks to be turned (see
+         `rotateOn`). The game underneath carries on — the seat is not given up.
+      */}
+      {v.rotateOn ? (
+        <div className="tb-rotate" role="dialog" aria-label="Turn your phone sideways">
+          <svg className="tb-rotate-phone" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+            <rect x="21" y="8" width="22" height="48" rx="5" style={{ fill: "none", stroke: "currentColor", strokeWidth: 2.5 }} />
+            <path d="M29 49h6" style={{ fill: "none", stroke: "currentColor", strokeWidth: 2.5, strokeLinecap: "round" }} />
+          </svg>
+          <div className="tb-rotate-title">{"Turn your phone sideways"}</div>
+          <div className="tb-rotate-note">{"The table plays in landscape. Your seat is kept, and the hand carries on while you turn."}</div>
+          {v.rotateCanLock ? (
+            <button className="tb-rotate-btn" onClick={v.rotateLock}>{"Rotate for me"}</button>
+          ) : null}
+          <button className="tb-rotate-link" onClick={v.goLobby}>{"Back to the lobby"}</button>
+        </div>
+      ) : null}
       {"\r\n    "}
       <div style={css(v.tableShell)}>
         {"\r\n      "}
@@ -211,14 +230,9 @@ export default function Table({ v }: { v: any }) {
           </>
         ) : null}
         {"\r\n\r\n      "}
-        {/*
-           min-height:0 is load-bearing. Without it `flex:1` on the felt's
-           container does not actually cap its height, and since the felt's
-           measured height becomes the felt's rendered height, the two grow each
-           other every frame until the table runs off the page.
-        */}
+        {/* the felt's column: see `feltCol` for why its min-height:0 matters */}
         {"\r\n      "}
-        <div style={{ flex: "1", minWidth: "0", minHeight: "0", display: "flex", flexDirection: "column", alignItems: "center", padding: "14px 12px 0" }}>
+        <div style={css(v.feltCol)}>
           {"\r\n\r\n        "}
           <div ref={v.feltRef} style={css(v.stageBox)}>
             {"\r\n          "}
@@ -232,6 +246,8 @@ export default function Table({ v }: { v: any }) {
             */}
             {"\r\n          "}
             <div style={css(v.playArea)}>
+              {/* the table's skin: an oval under everything, or nothing (lib/table-styles) */}
+              <div style={css(v.tableSurface)} />
               {"\r\n\r\n            "}
               {/* what is happening, top-left; the street, top-right */}
               {"\r\n            "}
@@ -631,6 +647,10 @@ export default function Table({ v }: { v: any }) {
                  underline never points at the wrong character.
               */}
               {"\r\n            "}
+              {/* Two groups that are `display:contents` — one row, as ever —
+                  except on a phone's side, where they become the two clusters
+                  over the felt's bottom corners (see `decisionGroup`). */}
+              <div style={css(v.decisionGroup)}>
               <button className="pill scpb scp6" onClick={v.doFold} style={css(v.foldStyle)}>
                 <span style={css(v.foldDotStyle)} />
                 <span style={css(v.foldKeyStyle)}>
@@ -649,6 +669,8 @@ export default function Table({ v }: { v: any }) {
                 <span style={css(v.raiseKeyStyle)}>{"R"}</span>
                 {interp(v.raiseRest)}
               </button>
+              </div>
+              <div style={css(v.sizingGroup)}>
               {"\r\n            "}
               {/*
                  Slider carrying its floor, current size in big blinds, and
@@ -672,12 +694,12 @@ export default function Table({ v }: { v: any }) {
                    its middle figure, never fold each label into a column.
                 */}
                 {"\r\n              "}
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "6px", fontSize: "9.5px", letterSpacing: ".14em", color: "#94a3c4", fontVariantNumeric: "tabular-nums", overflow: "hidden" }}>
+                <div style={css(v.betScaleStyle)}>
                   {"\r\n                "}
                   <span style={{ whiteSpace: "nowrap", flex: "none" }}>
                     {interp(v.betMinLabel)}
                   </span>
-                  <span style={{ color: "#ffffff", whiteSpace: "nowrap", overflow: "hidden", fontFamily: "'Instrument Serif', Georgia, serif", fontSize: "19px", letterSpacing: "0", lineHeight: "1" }}>
+                  <span style={css(v.betReadoutStyle)}>
                     {interp(v.betBBLabel)}
                   </span>
                   <span style={{ whiteSpace: "nowrap", flex: "none" }}>
@@ -746,6 +768,7 @@ export default function Table({ v }: { v: any }) {
                 <span>{"All"}</span>
                 <span style={css(v.sizeSubStyle)}>{"In"}</span>
               </button>
+              </div>
               {"\r\n          "}
             </div>
             {"\r\n\r\n          "}
