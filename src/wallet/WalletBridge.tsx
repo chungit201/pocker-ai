@@ -42,10 +42,12 @@ const bytesToB64 = (bytes: Uint8Array) => {
 };
 
 /** A wagmi connector as the connect screen wants it. */
-const row = (c: { id: string; name: string; icon?: string }) => ({
+const row = (c: { id: string; name: string; icon?: string; type?: string }) => ({
   id: c.id,
   name: c.name,
-  icon: c.icon ?? null,
+  // WalletConnect's connector announces no icon of its own; its mark is served
+  // from this origin, the same file the Solana row uses (engine/wallet.ts).
+  icon: c.type === 'walletConnect' ? '/wallets/walletconnect.png' : (c.icon ?? null),
   ready: true,
 });
 
@@ -66,9 +68,9 @@ export default function WalletBridge() {
     bridge.evm = {
       wallets() {
         /* wagmi discovers EIP-6963 announcements by itself, so this is one
-           entry per wallet the browser actually has — not a hardcoded list.
-           With a WalletConnect project id configured, its connector and
-           Coinbase's appear here too and get rows like any other.
+           entry per wallet the browser actually has — not a hardcoded list —
+           followed by WalletConnect, which is not a wallet in this browser at
+           all but the way to one that is somewhere else.
          *
          * The generic `injected` connector is the awkward one. wagmi always
          * provides it, whether or not anything is installed, and it duplicates
@@ -78,10 +80,14 @@ export default function WalletBridge() {
          * unconditionally would put a row on the connect screen that cannot
          * connect, which is worse than an empty list that says so. */
         const all = latest.current.connectors;
-        const named = all.filter((c) => c.id !== 'injected');
-        if (named.length) return named.map(row);
+        // WalletConnect is set apart first: it is always there, so counting it
+        // as a "named" wallet would hide the injected fallback from the very
+        // browser that needs it.
+        const wc = all.filter((c) => c.type === 'walletConnect');
+        const named = all.filter((c) => c.id !== 'injected' && c.type !== 'walletConnect');
         const hasInjected = typeof window !== 'undefined' && !!(window as { ethereum?: unknown }).ethereum;
-        return hasInjected ? all.filter((c) => c.id === 'injected').map(row) : [];
+        const local = named.length ? named : hasInjected ? all.filter((c) => c.id === 'injected') : [];
+        return [...local, ...wc].map(row);
       },
       async connect(connectorId) {
         const l = latest.current;

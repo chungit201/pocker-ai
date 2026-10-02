@@ -62,16 +62,25 @@ export function storedTableStyle(): string {
    hero's — so every seat sits on the rail, as the landing page draws it. The
    box leaves 10px of canvas for the rings outside the rail. */
 const OVAL = { x: 50, y: 12, w: 1320, h: 726 };
+/* The same table stood on end, for the 680-wide canvas a phone held upright
+   plays on (`tallLayout`, in SuitedApp). Still a stadium, turned: the
+   semicircles are the head and the foot, carrying the top seat and the hero's,
+   and the two straight runs pass through the four side plates (x 96, so the
+   rail at 70 crosses each one). That canvas's height varies with the screen,
+   so the oval's is whatever it is, less 20px at each end. */
+const ovalTall = (canvasH: number) => ({ x: 70, y: 20, w: 540, h: canvasH - 40 });
 const RAIL = 12;
 
 const feltGradient = (s: TableStyle) =>
   `radial-gradient(62% 68% at 50% 44%, ${s.felt![0]} 0%, ${s.felt![1]} 56%, ${s.felt![2]} 100%)`;
 
 /** The table itself, painted first in the play area so everything sits on it. */
-export function tableSurfaceCss(s: TableStyle): string {
+/** `tallH` is the tall canvas's height when the table is stood on end, 0 otherwise. */
+export function tableSurfaceCss(s: TableStyle, tallH = 0): string {
   if (!s.felt) return 'display:none';
-  return `position:absolute;left:${OVAL.x}px;top:${OVAL.y}px;width:${OVAL.w}px;height:${OVAL.h}px;box-sizing:border-box;`
-    + `border-radius:${OVAL.h / 2}px;pointer-events:none;z-index:0;background:${feltGradient(s)};border:${RAIL}px solid ${s.rail};`
+  const o = tallH ? ovalTall(tallH) : OVAL;
+  return `position:absolute;left:${o.x}px;top:${o.y}px;width:${o.w}px;height:${o.h}px;box-sizing:border-box;`
+    + `border-radius:${Math.min(o.w, o.h) / 2}px;pointer-events:none;z-index:0;background:${feltGradient(s)};border:${RAIL}px solid ${s.rail};`
     + `box-shadow:0 0 0 1px rgba(${s.line},0.38),0 0 0 9px rgba(8,10,18,0.9),0 0 0 10px rgba(${s.line},0.2),`
     + `inset 0 0 0 1px rgba(${s.line},0.26),inset 0 0 130px rgba(0,0,0,0.55)`;
 }

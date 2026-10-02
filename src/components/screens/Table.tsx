@@ -12,23 +12,30 @@ export default function Table({ v }: { v: any }) {
   return (
     <>
       {/*
-         A phone held upright: the table is a landscape drawing and cannot be
-         read at that width, so it is covered and asks to be turned (see
-         `rotateOn`). The game underneath carries on — the seat is not given up.
+         The upright table's two corner controls (see `topBarOn`): the way out
+         on the left, and the sit-up / sit-down toggle beside the menu button
+         TableDrawer floats in the right corner.
       */}
-      {v.rotateOn ? (
-        <div className="tb-rotate" role="dialog" aria-label="Turn your phone sideways">
-          <svg className="tb-rotate-phone" width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
-            <rect x="21" y="8" width="22" height="48" rx="5" style={{ fill: "none", stroke: "currentColor", strokeWidth: 2.5 }} />
-            <path d="M29 49h6" style={{ fill: "none", stroke: "currentColor", strokeWidth: 2.5, strokeLinecap: "round" }} />
-          </svg>
-          <div className="tb-rotate-title">{"Turn your phone sideways"}</div>
-          <div className="tb-rotate-note">{"The table plays in landscape. Your seat is kept, and the hand carries on while you turn."}</div>
-          {v.rotateCanLock ? (
-            <button className="tb-rotate-btn" onClick={v.rotateLock}>{"Rotate for me"}</button>
+      {v.topBarOn ? (
+        <>
+          <button className="tb-top tb-top--leave" onClick={v.topLeave}>
+            <svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true">
+              <path d="M8 4H4.5v12H8M12 6.5l3.5 3.5-3.5 3.5M15.5 10H8" style={{ fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" }} />
+            </svg>
+            {interp(v.topLeaveLabel)}
+          </button>
+          {v.topSitOn ? (
+            <button className={"tb-top tb-top--sit" + (v.topSitOut ? " tb-top--on" : "")} onClick={v.sitUp} aria-pressed={!!v.topSitOut} aria-label={v.sitUpLabel} title={v.sitUpLabel}>
+              {/* A chair. Struck through while the seat is sitting out. */}
+              <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M6 3v8.5h8.5M6 11.5V17M14.5 11.5V17" style={{ fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" }} />
+                {v.topSitOut ? (
+                  <path d="M3.5 16.5l13-13" style={{ fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" }} />
+                ) : null}
+              </svg>
+            </button>
           ) : null}
-          <button className="tb-rotate-link" onClick={v.goLobby}>{"Back to the lobby"}</button>
-        </div>
+        </>
       ) : null}
       {"\r\n    "}
       <div style={css(v.tableShell)}>
@@ -411,11 +418,11 @@ export default function Table({ v }: { v: any }) {
                   {"\r\n              "}
                   <div style={css(r?.wrap)}>
                     {"\r\n                "}
-                    <svg width="180" height="54" viewBox="0 0 180 54" style={{ display: "block", overflow: "visible" }}>
+                    <svg width={r?.w} height={r?.h} viewBox={`0 0 ${r?.w} ${r?.h}`} style={{ display: "block", overflow: "visible" }}>
                       {"\r\n                  "}
-                      <path d="M90 -3 H171 A12 12 0 0 1 183 9 V45 A12 12 0 0 1 171 57 H9 A12 12 0 0 1 -3 45 V9 A12 12 0 0 1 9 -3 Z" style={css(r?.track)} />
+                      <path d={r?.path} style={css(r?.track)} />
                       {"\r\n                  "}
-                      <path d="M90 -3 H171 A12 12 0 0 1 183 9 V45 A12 12 0 0 1 171 57 H9 A12 12 0 0 1 -3 45 V9 A12 12 0 0 1 9 -3 Z" style={css(r?.sweep)} />
+                      <path d={r?.path} style={css(r?.sweep)} />
                       {"\r\n                "}
                     </svg>
                     {"\r\n              "}
@@ -679,9 +686,9 @@ export default function Table({ v }: { v: any }) {
               {"\r\n            "}
               <div style={css(v.betBlockStyle)}>
                 {"\r\n              "}
-                <div className="fader" draggable="false" onPointerDown={v.betDown} onPointerMove={v.betMove} onPointerUp={v.betUp} onPointerCancel={v.betUp} style={{ position: "relative", height: "18px", display: "flex", alignItems: "center", touchAction: "none", cursor: "ew-resize" }}>
+                <div className="fader" draggable="false" onPointerDown={v.betDown} onPointerMove={v.betMove} onPointerUp={v.betUp} onPointerCancel={v.betUp} style={css(v.betFaderStyle)}>
                   {"\r\n                "}
-                  <div style={{ position: "absolute", left: "0", right: "0", height: "6px", borderRadius: "3px", background: "rgba(0,0,0,.45)" }} />
+                  <div style={css(v.betTrackStyle)} />
                   {"\r\n                "}
                   <div style={css(v.betFill)} />
                   {"\r\n                "}
@@ -696,13 +703,13 @@ export default function Table({ v }: { v: any }) {
                 {"\r\n              "}
                 <div style={css(v.betScaleStyle)}>
                   {"\r\n                "}
-                  <span style={{ whiteSpace: "nowrap", flex: "none" }}>
+                  <span style={css(v.betEndStyle)}>
                     {interp(v.betMinLabel)}
                   </span>
                   <span style={css(v.betReadoutStyle)}>
                     {interp(v.betBBLabel)}
                   </span>
-                  <span style={{ whiteSpace: "nowrap", flex: "none" }}>
+                  <span style={css(v.betEndStyle)}>
                     {interp(v.betMaxLabel)}
                   </span>
                   {"\r\n              "}
@@ -828,6 +835,8 @@ export default function Table({ v }: { v: any }) {
            the edge cleanly.
         */}
         {"\r\n      "}
+        {/* Behind the rail when it is a drawer (the upright table); inert otherwise. */}
+        <div style={css(v.railScrim)} onClick={v.toggleRail} aria-hidden="true" />
         <div style={css(v.railStyle)}>
           {"\r\n       "}
           <div style={css(v.railInner)}>

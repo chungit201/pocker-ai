@@ -427,6 +427,9 @@
   /* Turn ring. The offsets are the perimeters of the two plate sizes:
      2*(w-2r) + 2*(h-2r) + 2*pi*r at 178x60 and 136x52, both with r=13. */
   @keyframes ringWide { from { stroke-dashoffset: 0 } to { stroke-dashoffset: -471.4 } }
+  /* The same sweep for a plate of any size: the element says how long its own
+     ring is (the upright table's plate is narrower). */
+  @keyframes ringAny { from { stroke-dashoffset: 0 } to { stroke-dashoffset: var(--ring-len) } }
   @keyframes crownDrop { 0% { opacity: 0; transform: translateY(-26px) scale(.55) rotate(-10deg) } 55% { opacity: 1 } 100% { opacity: 1; transform: translateY(0) scale(1) rotate(0) } }
   @keyframes confettiPop { 0% { opacity: 0; transform: translate(0,6px) scale(.4) rotate(0deg) } 22% { opacity: var(--peak,.4) } 68% { opacity: var(--peak,.4) } 100% { opacity: 0; transform: translate(var(--dx,0px), -16px) scale(1) rotate(var(--dr,180deg)) } }
   @keyframes ringCompact { from { stroke-dashoffset: 0 } to { stroke-dashoffset: -353.7 } }
@@ -811,6 +814,21 @@ html, body { height: 100%; margin: 0 }
 .td-toggle:hover { background: rgba(139,92,246,0.28); border-color: rgba(196,181,253,0.7); }
 .td-toggle--open { opacity: 0; pointer-events: none; }
 
+/* The upright table's corner controls, cut from the same glass as the menu
+   button they share the top of the screen with: the way out on the left, the
+   sit-up / sit-down toggle one button in from the menu on the right. A step
+   under the menu button and well under its scrim, so the open drawer covers
+   them. */
+.tb-top { position: fixed; z-index: 69; top: 12px; height: 40px; box-sizing: border-box; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; gap: 7px; color: #e8ecf8; font-size: 13px; font-weight: 500;
+  background: rgba(18,16,44,0.72); border: 1px solid rgba(167,139,250,0.35);
+  box-shadow: 0 8px 24px -10px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  transition: background .18s ease, border-color .18s ease, color .18s ease; }
+.tb-top--leave { left: 12px; padding: 0 13px 0 10px; color: #fda4af; border-color: rgba(244,63,94,0.42); }
+.tb-top--sit { right: 60px; width: 40px; }
+.tb-top--on { color: #ffffff; background: rgba(139,92,246,0.55); border-color: rgba(196,181,253,0.8); }
+
 .td-scrim { position: fixed; inset: 0; z-index: 71; background: rgba(5,8,18,0.55); opacity: 0; pointer-events: none; transition: opacity .22s ease; }
 .td-scrim--open { opacity: 1; pointer-events: auto; }
 
@@ -894,21 +912,6 @@ html, body { height: 100%; margin: 0 }
   .lb-facts .gm-stat-sub { display: none; }
   .lb-actions > button { flex: 1 1 0; min-width: 0; padding-left: 10px !important; padding-right: 10px !important; text-align: center; white-space: nowrap; }
 }
-
-/* ── the table on a phone held upright: turn it ─────────────────────────────
-   Over everything on the screen, the drawer's button included — there is
-   nothing on the felt to reach until the phone is turned. */
-.tb-rotate { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 12px; padding: 32px 28px; text-align: center; color: #e8ecf8;
-  background: radial-gradient(70% 50% at 50% 42%, rgba(109,63,212,0.42), rgba(10,13,22,0) 100%), #0a0d16; }
-.tb-rotate-phone { color: #a78bfa; margin-bottom: 6px; animation: tbRotate 2.4s cubic-bezier(.6,0,.3,1) infinite; }
-@keyframes tbRotate { 0%, 18% { transform: rotate(0deg); } 52%, 82% { transform: rotate(-90deg); } 100% { transform: rotate(0deg); } }
-@media (prefers-reduced-motion: reduce) { .tb-rotate-phone { animation: none; transform: rotate(-90deg); } }
-.tb-rotate-title { font-size: 24px; font-weight: 500; letter-spacing: -.02em; }
-.tb-rotate-note { max-width: 30ch; font-size: 14px; line-height: 1.5; color: #94a3c4; }
-.tb-rotate-btn { margin-top: 10px; padding: 12px 22px; border-radius: 999px; font-size: 14px; font-weight: 500; color: #f6f3ff;
-  background: linear-gradient(180deg, #8b5cf6, #6d3fd4); border: 1px solid rgba(255,255,255,0.165); }
-.tb-rotate-link { margin-top: 4px; padding: 10px 14px; font-size: 13px; color: #94a3c4; text-decoration: underline; text-underline-offset: 3px; }
 
 .td-styles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px 6px; padding: 2px 6px 0; }
 

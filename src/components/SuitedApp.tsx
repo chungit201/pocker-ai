@@ -60,7 +60,7 @@ import {
    are equal (172px), never because coordinates sum to a constant; the `min()`
    on the corner cards holds them off the plate until the fixed 472px board
    frame's edge catches up, then yields, so the two never collide. */
-const CANVAS = { w: 1420, h: 750 };
+let CANVAS = { w: 1420, h: 750 };
 /* The floor was 0.55, and below it the canvas simply overflowed its box and was
    clipped — which on a phone cut the top seat and the hero's own plate off the
    screen. A table that is small is still a table; one with seats missing is
@@ -76,7 +76,7 @@ const SCALE_MIN = 0.3, SCALE_MAX = 1.35;
 const STAGE = { w: 1512, h: 850 };
 const STAGE_MIN = 0.62, STAGE_MAX = 1.6;
 
-const SEAT_ANCHORS = [
+let SEAT_ANCHORS = [
   // 0 · hero — bottom centre, cards face-up above the plate, bet at the felt lip
   { edge: 'c',
     plate: 'left:50%;bottom:48px;transform:translateX(-50%)',
@@ -112,16 +112,16 @@ const SEAT_ANCHORS = [
 // Board frame and pot, centred on the canvas. The frame is a fixed 472×168 with
 // the wordmark breaking its top edge (a real gap in the stroked path, never a
 // patch of felt-coloured background); the pot sits below it.
-const BOARD = { cx: 710, cy: 334, w: 472, h: 168, slot: { w: 66, h: 94, r: 7 }, gap: 14 };
+let BOARD = { cx: 710, cy: 334, w: 472, h: 168, slot: { w: 66, h: 94, r: 7 }, gap: 14 };
 const BOARD_PATH = 'M 168 0 H 20 A 20 20 0 0 0 0 20 V 148 A 20 20 0 0 0 20 168 H 452 A 20 20 0 0 0 472 148 V 20 A 20 20 0 0 0 452 0 H 304';
-const POT = { cx: 710, cy: 482 };
+let POT = { cx: 710, cy: 482 };
 
 /* The anchors above resolve to constant canvas coordinates (the canvas width is
    fixed, so the design's `min()` and edge insets never move), and the deal /
    collect / ship animations need real numbers rather than CSS strings. This is
    that table: the plate centre, the bet pill and the hole-card cluster for each
    seat, in play-area pixels. Keep it in step with SEAT_ANCHORS. */
-const SEAT_PX = [
+let SEAT_PX = [
   { plate: { x: 710, y: 675 }, bet: { x: 710, y: 727 }, cards: { x: 710, y: 587 } },
   { plate: { x: 172, y: 520 }, bet: { x: 172, y: 472 }, cards: { x: 250, y: 412 } },
   { plate: { x: 172, y: 210 }, bet: { x: 172, y: 258 }, cards: { x: 250, y: 318 } },
@@ -134,7 +134,7 @@ const SEAT_PX = [
    pieces, so these stay fixed. Plates are 180×54; the dealer/blind marker sits
    off the plate's edge; opponents' hole cards are small face-down backs, the
    hero's are large and face-up, and the board deals 66×94. */
-const PLATE = { w: 180, h: 54 };
+let PLATE = { w: 180, h: 54 };
 const HOLE = { w: 42, h: 60, r: 6 };   // an opponent's face-down hole card
 const HERO_CARD = { w: 66, h: 94, r: 7 };
 const CARD = { w: 66, h: 94, r: 7 };    // board card
@@ -143,7 +143,7 @@ const MARKER_GAP = 12;                  // dealer/blind badge, off the plate edg
 // Where each seat's hole-card pair lands, in canvas px: the pair's centre-x, its
 // top, and the card size + gap. Corner pairs sit 78px inboard of their plate —
 // the design's min() rule, constant at this fixed canvas width.
-const CARD_SLOT = [
+let CARD_SLOT = [
   { cx: 710, top: 540, cw: HERO_CARD.w, ch: HERO_CARD.h, gap: 8 },
   { cx: 250, top: 382, cw: HOLE.w, ch: HOLE.h, gap: 5 },
   { cx: 250, top: 288, cw: HOLE.w, ch: HOLE.h, gap: 5 },
@@ -151,6 +151,100 @@ const CARD_SLOT = [
   { cx: 1170, top: 288, cw: HOLE.w, ch: HOLE.h, gap: 5 },
   { cx: 1170, top: 382, cw: HOLE.w, ch: HOLE.h, gap: 5 },
 ];
+
+// Where each seat's dealer/blind badge sits, as an offset from its plate's
+// centre: off the outboard end of the plate, on the plate's own centre line.
+let MARKER = [
+  { dx: -(PLATE.w / 2 + MARKER_GAP), dy: 0 }, { dx: -(PLATE.w / 2 + MARKER_GAP), dy: 0 },
+  { dx: -(PLATE.w / 2 + MARKER_GAP), dy: 0 }, { dx: -(PLATE.w / 2 + MARKER_GAP), dy: 0 },
+  { dx: PLATE.w / 2 + MARKER_GAP, dy: 0 }, { dx: PLATE.w / 2 + MARKER_GAP, dy: 0 },
+];
+
+/* ── The same table, stood on end ────────────────────────────────────────────
+   A phone held upright is 390px wide. The landscape canvas fitted into that is
+   a quarter of its size — plates 49px across, cards the size of a fingernail —
+   which is why the felt used to refuse the orientation and ask to be turned.
+   This is the other answer: a second canvas, 680 wide, with the SAME furniture
+   at the same sizes, arranged for a tall box. It fits a phone at a little over
+   half scale, which is what the landscape canvas manages on a phone's side.
+
+   Hero at the foot, one seat at the head, two down each side on the rail. The
+   side seats' cards sit inboard of their plates, on the plate's own line, and
+   their bets go on toward the middle from there — below the upper pair, above
+   the lower — so nothing a seat owns crosses the board or the pot, and the
+   space above each plate is left for the winner's crown. Every figure below is
+   a literal position on this canvas, checked against the others once, exactly
+   as the wide table's are. */
+const WIDE = { CANVAS, SEAT_ANCHORS, BOARD, POT, SEAT_PX, CARD_SLOT, MARKER, PLATE };
+/* The tall canvas is as tall as the box it is drawn in. A phone's height varies
+   far more than its width — 660px of page in one browser, 840 in another — and
+   a fixed 680×900 would leave the difference as dead bands above and below the
+   table. So the width is fixed and the height follows the box, from 900 (the
+   design, where every gap below was checked) up to 1150. Stretching only ever
+   opens the gaps: the head seat stays at the top, the hero at the foot, and
+   the side seats, the board and the pot spread between them in proportion.
+   What belongs to a seat — its cards, its bet — keeps its fixed offset from
+   the plate, so a seat looks the same at every height. */
+const TALL_W = 680, TALL_H = 900, TALL_H_MAX = 1150;
+/* The one piece of furniture that is NOT the same size here: the nameplate is
+   148 wide rather than 180. On a canvas this narrow two full plates and the
+   board between them leave the side seats' cards nowhere to go but the middle
+   of the table; 32px off each plate moves them, and their bets, that much
+   closer to the rail. The height is unchanged — it is two lines of text. */
+const TALL_PLATE = { w: 148, h: 54 };
+const tallLayout = (H) => {
+  const k = (H - 83) / (TALL_H - 83);                 // 44 at the head, H-39 at the foot
+  const y = (v) => Math.round(44 + (v - 44) * k);
+  const hero = H - 39, up = y(215), low = y(640), board = y(385);
+  const at = (x, yy) => `left:${x}px;top:${yy}px;transform:translate(-50%,-50%)`;
+  const cardsAt = (x, top) => `left:${x}px;top:${top}px;transform:translateX(-50%)`;
+  // [plate x, plate y, cards x, cards top, bet x, bet y, edge]
+  const seats: [number, number, number, number, number, number, string][] = [
+    [340, hero, 340, hero - 129, 340, hero - 159, 'c'],
+    [80, low, 208, low - 30, 208, low - 54, 'l'],
+    [80, up, 208, up - 30, 208, up + 53, 'l'],
+    [340, 44, 340, 75, 340, 160, 'c'],
+    [600, up, 472, up - 30, 472, up + 53, 'r'],
+    [600, low, 472, low - 30, 472, low - 54, 'r'],
+  ];
+  return {
+    CANVAS: { w: TALL_W, h: H },
+    SEAT_ANCHORS: seats.map(([px, py, cx, ct, bx, by, edge]) => ({ edge, plate: at(px, py), cards: cardsAt(cx, ct), bet: at(bx, by) })),
+    BOARD: { ...WIDE.BOARD, cx: 340, cy: board },
+    POT: { cx: 340, cy: board + 139 },
+    SEAT_PX: seats.map(([px, py, cx, ct, bx, by], i) => ({
+      plate: { x: px, y: py }, bet: { x: bx, y: by },
+      cards: { x: cx, y: ct + (i === 0 ? HERO_CARD.h : HOLE.h) / 2 },
+    })),
+    CARD_SLOT: seats.map(([, , cx, ct], i) => (i === 0
+      ? { cx, top: ct, cw: HERO_CARD.w, ch: HERO_CARD.h, gap: 8 }
+      : { cx, top: ct, cw: HOLE.w, ch: HOLE.h, gap: 5 })),
+    /* A side plate is hard against the canvas edge here, so its badge cannot
+       hang off the outboard end: it rides the plate's inboard top corner. */
+    MARKER: [
+      { dx: -(TALL_PLATE.w / 2 + MARKER_GAP), dy: 0 }, { dx: 60, dy: -34 }, { dx: 60, dy: -34 },
+      { dx: -(TALL_PLATE.w / 2 + MARKER_GAP), dy: 0 }, { dx: -60, dy: -34 }, { dx: -60, dy: -34 },
+    ],
+    PLATE: TALL_PLATE,
+  };
+};
+/** The tall canvas's height for a felt box of this shape, in steps of ten so a
+ *  browser bar sliding by a pixel does not re-lay the table. */
+const tallHeight = (felt) => (felt && felt.w > 0 && felt.h > 0
+  ? Math.min(TALL_H_MAX, Math.max(TALL_H, Math.round((TALL_W * felt.h / felt.w) / 10) * 10))
+  : TALL_H);
+/* Which layout is live. Module state rather than a prop threaded through every
+   reader: one felt is ever on screen, and the tables above are read from event
+   handlers and animation code as well as from render. Set from the viewport in
+   `onResize` and again, with the measured felt, at the top of every render. */
+let TABLE_LAYOUT = 'wide';
+const setTableLayout = (tall, felt?) => {
+  const H = tall ? tallHeight(felt) : 0;
+  const key = tall ? `tall:${H}` : 'wide';
+  if (key === TABLE_LAYOUT) return;
+  TABLE_LAYOUT = key;
+  ({ CANVAS, SEAT_ANCHORS, BOARD, POT, SEAT_PX, CARD_SLOT, MARKER, PLATE } = (tall ? tallLayout(H) : WIDE) as typeof WIDE);
+};
 
 // Pot chips. Squared into columns by denomination and grown sideways, never
 // down: `CHIP` is the disc, `CHIP_RISE` how far each peeks above the one below,
@@ -164,6 +258,11 @@ const CHIP_GAP = 5;
 // both the dash and the distance the sweep drains.
 const RING_PATH = 'M90 -3 H171 A12 12 0 0 1 183 9 V45 A12 12 0 0 1 171 57 H9 A12 12 0 0 1 -3 45 V9 A12 12 0 0 1 9 -3 Z';
 const RING_LEN = 471.4;
+/* The same ring for a plate of any size — the upright table's is narrower. The
+   two constants above are this at 180×54, kept literal because the `ringWide`
+   keyframes in globals.css end on that exact length. */
+const ringPath = (p) => `M${p.w / 2} -3 H${p.w - 9} A12 12 0 0 1 ${p.w + 3} 9 V${p.h - 9} A12 12 0 0 1 ${p.w - 9} ${p.h + 3} H9 A12 12 0 0 1 -3 ${p.h - 9} V9 A12 12 0 0 1 9 -3 Z`;
+const ringLen = (p) => Math.round((2 * (p.w - 18) + 2 * (p.h - 18) + 2 * Math.PI * 12) * 10) / 10;
 
 // Pot chip denominations, largest first — the order `breakdown` walks: purple,
 // charcoal, red, gold, green, cream, slate, lavender (HANDOFF §Chips). The range
@@ -1018,9 +1117,9 @@ export default class SuitedApp extends React.Component<any, any> {
     compact: false,
     /* The two shapes a phone gives the table (see `onResize`). `mini` is a
        phone on its side: the felt takes the whole screen and the controls sit
-       over its bottom corners. `upright` is a phone held upright, where the
-       table cannot be drawn at a size anyone can read — the felt asks to be
-       turned instead. */
+       over its bottom corners. `upright` is a phone held upright — any
+       narrow, tall window — where the landscape table cannot be drawn at a
+       size anyone can read, so the felt is laid out on end instead (TALL). */
     mini: false,
     upright: false,
     scale: 1,
@@ -1520,11 +1619,13 @@ export default class SuitedApp extends React.Component<any, any> {
     const compact = w < 900;
     /* A phone, by the shape of its viewport rather than its user agent. On its
        side it is short — no laptop window anyone plays in is under 520px tall —
-       and the table is a landscape drawing, so that is the orientation it is
-       laid out for. Upright it is narrow, and only a touch device is asked to
-       turn: a desktop window dragged narrow just gets a smaller table. */
+       and gets the landscape table with its controls laid over the felt.
+       Upright it is narrow and tall, and gets the table stood on end (TALL) —
+       as does any window that shape; it is the box that matters, not what is
+       holding it. */
     const mini = h < 520 && w > h;
-    const upright = w < 700 && h > w && !!(window.matchMedia && window.matchMedia('(pointer: coarse)').matches);
+    const upright = w < 700 && h > w;
+    setTableLayout(upright, this.state.felt);
     if (compact !== this.state.compact || mini !== this.state.mini || upright !== this.state.upright) {
       this.setState({ compact, mini, upright });
     }
@@ -1532,7 +1633,7 @@ export default class SuitedApp extends React.Component<any, any> {
     // A short stacked window cannot hold a playable felt and an open rail at
     // once, so the rail starts closed there — once only, and never after the
     // player has touched the toggle, whose choice outranks the heuristic.
-    if ((mini || (compact && h < 640)) && this.state.railOpen && !this.railTouched && !this.railAutoClosed) {
+    if ((mini || upright || (compact && h < 640)) && this.state.railOpen && !this.railTouched && !this.railAutoClosed) {
       this.railAutoClosed = true;
       this.setState({ railOpen: false });
     }
@@ -2692,6 +2793,8 @@ export default class SuitedApp extends React.Component<any, any> {
 
   sliderFrom(e, el) {
     const box = el.getBoundingClientRect();
+    // Stood on end (the upright table's sizing panel) it runs bottom to top.
+    if (box.height > box.width) return clamp(1 - (e.clientY - box.top) / box.height, 0, 1);
     return clamp((e.clientX - box.left) / box.width, 0, 1);
   }
 
@@ -4378,12 +4481,17 @@ export default class SuitedApp extends React.Component<any, any> {
       const s = st.session ? tableById(st.session.tableId) : null;
       return s ? `${stakes(s)} USDC` : '';
     };
+    // Before anything reads a seat position: which canvas this render is on.
+    setTableLayout(!!st.upright, st.felt);
     const g = this.geo();
     const c = st.compact;
     // A phone on its side (see `onResize`). `tight` is where the table's own
     // controls take their small sizes: a narrow window, or that phone — whose
     // long edge can be past the 900px that `compact` stops at.
     const mini = st.mini;
+    // Held upright: the tall canvas (see TALL). Like `mini` it draws at about
+    // half size, so it takes the same larger type on the seats.
+    const tall = !!st.upright;
     const tight = c || mini;
     const scr = st.screen;
     const walletShort = st.wallet ? st.wallet.addr.slice(0, 4) + '\u2026' + st.wallet.addr.slice(-4) : 'Not connected';
@@ -4788,7 +4896,9 @@ export default class SuitedApp extends React.Component<any, any> {
              * Chrome Web Store would be absurd — and it would make the demo
              * unreachable, since no row would ever be DETECTED in a browser
              * with no extension, which is exactly the browser the demo is for. */
-            state: usable ? 'DETECTED' : w.open ? 'OPEN APP' : (w.install ? 'INSTALL' : 'NOT FOUND'),
+            // WalletConnect is never "detected" — it is the route to a wallet that
+            // is somewhere else, by QR code or by handing off to its app.
+            state: w.wc ? 'QR · APP' : usable ? 'DETECTED' : w.open ? 'OPEN APP' : (w.install ? 'INSTALL' : 'NOT FOUND'),
             pick: usable ? this.pickWallet(w.id, short) : w.open ? this.openInApp(w) : this.openInstall(w),
             rowStyle: `display:flex;align-items:center;gap:20px;width:100%;text-align:left;padding:22px ${usable ? '4px' : '18px'};border-top:1px solid rgba(232,236,248,0.14);border-bottom:1px solid rgba(232,236,248,0.14);margin-bottom:-1px;${usable ? 'background:rgba(232,236,248,0.05);' : ''}cursor:pointer`,
             // `position:relative` so the icon can sit over the letters.
@@ -6736,7 +6846,7 @@ export default class SuitedApp extends React.Component<any, any> {
        every frame until the table runs off the page. On a phone's side the
        padding goes and it becomes the positioning box for the action controls,
        which lie over the felt's bottom corners instead of under it. */
-    vals.feltCol = `flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;${mini ? 'position:relative;padding:0' : 'padding:14px 12px 0'}`;
+    vals.feltCol = `flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;${mini ? 'position:relative;padding:0' : tall ? 'padding:6px 6px 0' : 'padding:14px 12px 0'}`;
     // The container the play area is fitted into: felt green with a lit centre.
     // It holds the design's own aspect via nothing at all — the play area scales
     // to whatever box this is, so this just needs to be a bounded, clipped box.
@@ -6744,7 +6854,7 @@ export default class SuitedApp extends React.Component<any, any> {
     // `tableSurface`, the first thing painted inside the play area.
     const skin = tableStyle(st.tableStyle);
     vals.stageBox = `position:relative;flex:1;min-height:0;overflow:hidden;width:100%;${tableGroundCss(skin)}`;
-    vals.tableSurface = tableSurfaceCss(skin);
+    vals.tableSurface = tableSurfaceCss(skin, tall ? CANVAS.h : 0);
     // The fixed design canvas, centred and scaled as one unit.
     vals.playArea = `position:absolute;left:50%;top:50%;width:${CANVAS.w}px;height:${CANVAS.h}px;transform:translate(-50%,-50%) scale(${g.s.toFixed(4)});transform-origin:center;font-family:${UI}`;
 
@@ -6767,12 +6877,17 @@ export default class SuitedApp extends React.Component<any, any> {
     // An oval's rail curves down through this corner, so under one both lines
     // move up into the ground above it and the status stops 300px along, short
     // of where the rail arrives; the hand id already ellipsises.
-    const corner = skin.felt ? { x: 24, y: 8, max: '280px' } : { x: 40, y: 26, max: '60%' };
+    // Stood on end, the head seat's plate starts 250px along the same edge, so
+    // the status stops short of that instead.
+    // the head of the screen is the corner buttons' (Leave, sit, menu), so both
+    // lines drop under them.
+    const corner = tall ? { x: 16, y: 92, max: '230px' }
+      : skin.felt ? { x: 24, y: 8, max: '280px' } : { x: 40, y: 26, max: '60%' };
     vals.feltStatusStyle = `position:absolute;left:${corner.x}px;top:${corner.y}px;display:flex;align-items:center;gap:9px;font-size:13px;font-weight:500;letter-spacing:.01em;pointer-events:none;z-index:5;max-width:${corner.max}`;
-    vals.handIdSep = `opacity:.4;color:#94a3c4`;
+    vals.handIdSep = `${tall ? 'display:none;' : ''}opacity:.4;color:#94a3c4`;
     // MUTED at full strength: at 0.7 over the felt's darkest corner this read
     // 4.36:1, and a hand id is what you quote when disputing a hand.
-    vals.handIdOnFelt = `font-size:11px;letter-spacing:.12em;color:${MUTED};white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
+    vals.handIdOnFelt = `${tall ? 'display:none;' : ''}font-size:11px;letter-spacing:.12em;color:${MUTED};white-space:nowrap;overflow:hidden;text-overflow:ellipsis`;
     /* While the rail is closed the menu button floats in the screen's top-right
        corner (TableDrawer), 52px in from the edge. Where the canvas leaves less
        than that beside itself — a table as wide as its box, which is every
@@ -6780,7 +6895,7 @@ export default class SuitedApp extends React.Component<any, any> {
        inboard far enough to clear it, in canvas pixels. */
     const sideGap = Math.max(0, (st.felt.w - CANVAS.w * g.s) / 2);
     const menuClear = st.railOpen ? 0 : (mini ? 60 : 48);   // the felt's column is padded 12px off a phone
-    const streetX = Math.max(corner.x, (menuClear - sideGap) / g.s);
+    const streetX = tall ? corner.x : Math.max(corner.x, (menuClear - sideGap) / g.s);
     vals.streetStyle = `position:absolute;right:${streetX.toFixed(0)}px;top:${corner.y + 2}px;display:flex;align-items:center;gap:10px;font-size:12px;letter-spacing:.22em;color:#94a3c4;text-transform:uppercase;pointer-events:none;z-index:5`;
     vals.streetDotStyle = `width:6px;height:6px;border-radius:50%;background:${BRASS};${t && t.phase !== 'complete' && t.running !== false ? 'animation:suPulse 1.6s ease-in-out infinite' : 'opacity:.4'}`;
 
@@ -6900,7 +7015,7 @@ export default class SuitedApp extends React.Component<any, any> {
       const crown = crownOn && !st.fx.winHide && face.shown && crownIds.has(RANKS[pc.r] + pc.s);
       const lift = crown && !reduceMotion ? 14 : 0;
       const cw = BOARD.slot.w, ch = BOARD.slot.h, cr = BOARD.slot.r;
-      const destX = 517 + i * 80, destY = 287;
+      const destX = BOARD.cx - 193 + i * 80, destY = BOARD.cy - 47;   // five 66px slots, 14px apart, centred in the frame
       const x = arrived ? destX : deckX - cw / 2;
       const y = arrived ? destY : deckY - ch / 2;
       cards.push({
@@ -6994,9 +7109,11 @@ export default class SuitedApp extends React.Component<any, any> {
       return {
         id: `ring-${i}-${clock.startedAt}`,
         wrap: `position:absolute;${SEAT_ANCHORS[i].plate};width:${PLATE.w}px;height:${PLATE.h}px;z-index:23;pointer-events:none`,
-        path: RING_PATH,
+        // The plate's own box, for the svg that draws the ring around it.
+        w: PLATE.w, h: PLATE.h,
+        path: PLATE.w === 180 ? RING_PATH : ringPath(PLATE),
         track: `fill:none;stroke:rgba(232,236,248,0.28);stroke-width:2.5`,
-        sweep: `fill:none;stroke:${TURN};stroke-width:3;stroke-linecap:round;stroke-dasharray:${RING_LEN};animation:ringWide ${clock.duration}ms linear both;filter:drop-shadow(0 0 6px rgba(34,197,94,0.9))`,
+        sweep: `fill:none;stroke:${TURN};stroke-width:3;stroke-linecap:round;${PLATE.w === 180 ? `stroke-dasharray:${RING_LEN};animation:ringWide` : `stroke-dasharray:${ringLen(PLATE)};--ring-len:${-ringLen(PLATE)};animation:ringAny`} ${clock.duration}ms linear both;filter:drop-shadow(0 0 6px rgba(34,197,94,0.9))`,
       };
     }).filter(Boolean);
 
@@ -7069,9 +7186,9 @@ export default class SuitedApp extends React.Component<any, any> {
         // On a phone's side the canvas is drawn at about half size, so the two
         // lines a seat is read by are set larger to land near 8px and 10px
         // rather than 7 and 8. The plate itself does not grow: it has the room.
-        nameStyle: `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:${mini ? 15 : 13}px;color:${textCol}`,
+        nameStyle: `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:${mini || tall ? 15 : 13}px;color:${textCol}`,
         sub,
-        subStyle: `display:${sub ? 'block' : 'none'};${isStack ? `font-family:${SERIF};font-size:${mini ? 19 : 16}px;line-height:1;` : `font-size:${mini ? 14 : 12}px;letter-spacing:.06em;`}color:${textCol}`,
+        subStyle: `display:${sub ? 'block' : 'none'};${isStack ? `font-family:${SERIF};font-size:${mini || tall ? 19 : 16}px;line-height:1;` : `font-size:${mini || tall ? 14 : 12}px;letter-spacing:.06em;`}color:${textCol}`,
       };
     });
 
@@ -7085,12 +7202,11 @@ export default class SuitedApp extends React.Component<any, any> {
       return null;
     };
     const late = ['flop', 'turn', 'river', 'showdown'].indexOf(String(t && t.street)) >= 0;
-    const MK_DIR = [-1, -1, -1, -1, 1, 1];
     vals.seatMarkers = seats.map((s, i) => {
       const role = s.empty ? null : roleFor(i);
       if (!role) return null;
       const px = SEAT_PX[i].plate;
-      const mx = px.x + MK_DIR[i] * (PLATE.w / 2 + MARKER_GAP);
+      const mx = px.x + MARKER[i].dx, my = px.y + MARKER[i].dy;
       const isD = role === 'D';
       return {
         /* The dealer button is a real object: a pale disc with dark letters.
@@ -7101,7 +7217,7 @@ export default class SuitedApp extends React.Component<any, any> {
            wash over the felt (rgb 79,85,103), so light letters read at 6.29:1
            where dark ones manage 2.6. They were at 0.108 alpha — below even the
            contrast audit's floor for counting a node as text at all. */
-        style: `position:absolute;left:0;top:0;transform:translate(${mx.toFixed(1)}px,${px.y}px) translate(-50%,-50%);display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${isD ? PAPER_COOL : 'rgba(232,236,248,0.28)'};color:${isD ? FELT_DEEP : PAPER_COOL};font-size:9px;font-weight:700;letter-spacing:.02em;box-shadow:0 3px 8px rgba(0,0,0,0.5);opacity:${(calm && late && !isD) ? 0.4 : 1};transition:opacity .3s linear;z-index:24`,
+        style: `position:absolute;left:0;top:0;transform:translate(${mx.toFixed(1)}px,${my}px) translate(-50%,-50%);display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:${isD ? PAPER_COOL : 'rgba(232,236,248,0.28)'};color:${isD ? FELT_DEEP : PAPER_COOL};font-size:9px;font-weight:700;letter-spacing:.02em;box-shadow:0 3px 8px rgba(0,0,0,0.5);opacity:${(calm && late && !isD) ? 0.4 : 1};transition:opacity .3s linear;z-index:24`,
         label: role,
       };
     }).filter(Boolean);
@@ -7128,7 +7244,7 @@ export default class SuitedApp extends React.Component<any, any> {
       const px = SEAT_PX[i].plate;
       return { style: `position:absolute;left:0;top:0;transform:translate(${px.x}px,${(px.y - PLATE.h / 2 - 20).toFixed(0)}px) translate(-50%,-100%);z-index:48;pointer-events:none;opacity:${st.fx.winHide ? 0 : 1};transition:opacity 240ms ease` };
     });
-    vals.calloutStyle = `position:absolute;left:${BOARD.cx}px;top:430px;transform:translate(-50%,-50%) scale(${shown ? 1 : 0.9});opacity:${shown ? 1 : 0};transition:transform 520ms cubic-bezier(.2,.95,.28,1),opacity 300ms linear;pointer-events:none;z-index:80`;
+    vals.calloutStyle = `position:absolute;left:${BOARD.cx}px;top:${BOARD.cy + 96}px;transform:translate(-50%,-50%) scale(${shown ? 1 : 0.9});opacity:${shown ? 1 : 0};transition:transform 520ms cubic-bezier(.2,.95,.28,1),opacity 300ms linear;pointer-events:none;z-index:80`;
     // Semi-transparent with a backdrop blur, so the felt and cards behind it
     // soften and darken a few px rather than being covered by a solid slab —
     // the result reads as glass laid over the win, not a card taped on top.
@@ -7183,8 +7299,10 @@ export default class SuitedApp extends React.Component<any, any> {
     // curve — 20px in from each edge clears it at both furniture scales.
     // On a phone's side the bottom corners belong to the action controls, so
     // the speaker goes to the top-left, under the status line.
+    // Held upright the right corner is the sizing panel's, so it sits on the left.
     vals.volWrap = mini
       ? `position:absolute;left:10px;top:34px;z-index:46;display:flex;flex-direction:column-reverse;align-items:center;gap:8px`
+      : tall ? `position:absolute;left:10px;bottom:10px;z-index:46;display:flex;flex-direction:column;align-items:center;gap:8px`
       : `position:absolute;right:20px;bottom:20px;z-index:46;display:flex;flex-direction:column;align-items:center;gap:8px`;
     vals.sndBtnStyle = `display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;touch-action:none;cursor:ns-resize;background:${st.muted ? 'rgba(232,236,248,0.1)' : INK};color:${st.muted ? 'rgba(232,236,248,0.086)' : BG};border:1px solid ${st.muted ? 'rgba(232,236,248,0.041)' : 'transparent'};box-shadow:${vdrag ? '0 0 0 5px rgba(232,236,248,0.198)' : 'none'};transition:background .2s ease,color .2s ease,box-shadow .2s ease`;
     // The speaker's ink runs x=2..19 in a 24 box when live, x=2..21 when muted;
@@ -7252,9 +7370,9 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.actionBar = mini
       ? 'position:absolute;left:0;right:0;bottom:0;z-index:45;box-sizing:border-box;display:flex;align-items:flex-end;'
         + 'padding:0 max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));pointer-events:none'
-      : `width:100%;box-sizing:border-box;display:flex;flex-wrap:${c ? 'wrap' : 'nowrap'};`
-      + `align-items:center;gap:${c ? 10 : 14}px;margin:${c ? 8 : 10}px 0 14px;`
-      + `padding:${c ? '12px 14px' : '14px 20px'};`
+      : `${tall ? 'position:relative;' : ''}width:100%;box-sizing:border-box;display:flex;flex-wrap:${c ? 'wrap' : 'nowrap'};`
+      + `align-items:center;gap:${c ? 10 : 14}px;margin:${tall ? '6px 0 max(8px, env(safe-area-inset-bottom))' : `${c ? 8 : 10}px 0 14px`};`
+      + `padding:${tall ? '8px' : c ? '12px 14px' : '14px 20px'};`
       + 'background:#0d1220;border:1px solid rgba(232,236,248,.09);border-radius:14px;'
       + 'box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 18px 40px -28px rgba(0,0,0,1);'
       + `${c ? '' : 'min-height:78px'}`;
@@ -7442,11 +7560,22 @@ export default class SuitedApp extends React.Component<any, any> {
        ten controls exactly as it did before they existed. On a phone's side
        they are the two corner clusters: the decisions keep to the right, and
        the sizing, which only means anything on your turn, shows only then. */
+    /* Held upright the bar is the three decisions and nothing else, each a
+       third of its width — a thumb's target, not a pill sized to its label.
+       The sizing leaves the bar altogether: it is a small panel standing on
+       the bar's right end, over the felt's lower corner beside the hero, and
+       only while there is a raise to size. Its slider runs up the panel's
+       side; the amount it would raise to is on the raise button itself. */
     vals.decisionGroup = mini
       ? 'order:2;display:flex;align-items:flex-end;gap:6px;pointer-events:auto'
+      : tall ? 'flex:1 0 100%;display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:8px'
       : 'display:contents';
     vals.sizingGroup = mini
       ? `order:1;display:flex;flex-wrap:wrap;align-items:center;gap:5px 4px;box-sizing:border-box;width:min(292px, 38vw);padding:6px 8px;border-radius:12px;background:rgba(10,13,22,0.78);border:1px solid rgba(232,236,248,.09);pointer-events:auto;visibility:${myTurn ? 'visible' : 'hidden'}`
+      : tall ? 'position:absolute;right:0;bottom:calc(100% + 8px);z-index:47;box-sizing:border-box;display:grid;'
+        + 'grid-template-columns:78px 30px;grid-template-rows:repeat(4, auto);gap:5px 6px;padding:7px;border-radius:12px;'
+        + 'background:rgba(10,13,22,0.9);border:1px solid rgba(232,236,248,.14);box-shadow:0 14px 30px -12px rgba(0,0,0,.9);'
+        + `visibility:${myTurn && legal && legal.canRaise ? 'visible' : 'hidden'}`
       : 'display:contents';
     // The slider takes the slack — it grows to eat the space that used to sit
     // empty on the right — but shrinks first when the row is tight, down to a
@@ -7458,13 +7587,18 @@ export default class SuitedApp extends React.Component<any, any> {
        with a browser's bars showing that leaves about 75px; the row was the
        17 that did not fit. Nothing is lost with it — the raise button carries
        the size, and Min and All-in are the two ends. */
-    vals.betScaleStyle = `display:${mini ? 'none' : 'flex'};align-items:center;justify-content:space-between;gap:6px;font-size:9.5px;letter-spacing:.14em;color:#94a3c4;font-variant-numeric:tabular-nums;overflow:hidden`;
-    vals.betReadoutStyle = `color:#ffffff;white-space:nowrap;overflow:hidden;font-family:${SERIF};font-size:19px;letter-spacing:0;line-height:1`;
+    vals.betScaleStyle = tall
+      ? 'grid-column:1;grid-row:1;display:flex;align-items:center;justify-content:center;min-height:26px;border-radius:7px;background:rgba(232,236,248,0.08);overflow:hidden'
+      : `display:${mini ? 'none' : 'flex'};align-items:center;justify-content:space-between;gap:6px;font-size:9.5px;letter-spacing:.14em;color:#94a3c4;font-variant-numeric:tabular-nums;overflow:hidden`;
+    // The scale's two ends. In the upright panel the slider's own ends say it.
+    vals.betEndStyle = tall ? 'display:none' : 'white-space:nowrap;flex:none';
+    vals.betReadoutStyle = `color:#ffffff;white-space:nowrap;overflow:hidden;font-family:${SERIF};font-size:${tall ? 17 : 19}px;letter-spacing:0;line-height:1`;
     vals.betBlockStyle = `display:flex;flex-direction:column;gap:4px;${mini ? 'flex:1 0 100%;margin:0 6px' : `flex:1 1 auto;min-width:${c ? 90 : 96}px;margin:0 ${c ? 8 : 18}px`};opacity:${myTurn ? 1 : 0.32};pointer-events:${myTurn ? 'auto' : 'none'};transition:opacity 260ms linear`;
+    if (tall) vals.betBlockStyle = 'display:contents';
     vals.specControls = `display:${spectating && t ? 'flex' : 'none'};flex:1;flex-wrap:wrap;align-items:center;gap:12px;justify-content:${c && !mini ? 'flex-start' : 'flex-end'}${mini ? ';pointer-events:auto' : ''}`;
 
     // The rail's own toggle disappears with it, so a floating tab reopens it.
-    vals.railShowTab = `position:absolute;right:0;top:${c && !mini ? '20%' : '50%'};transform:translateY(-50%);display:${!st.railOpen ? 'flex' : 'none'};flex-direction:column;align-items:center;gap:8px;padding:14px 7px;border:1px solid rgba(232,236,248,0.176);border-right:0;border-radius:12px 0 0 12px;background:rgba(139,92,246,0.7);z-index:30`;
+    vals.railShowTab = `position:absolute;right:0;top:${tall ? '44%' : c && !mini ? '20%' : '50%'};transform:translateY(-50%);display:${!st.railOpen ? 'flex' : 'none'};flex-direction:column;align-items:center;gap:8px;padding:14px 7px;border:1px solid rgba(232,236,248,0.176);border-right:0;border-radius:12px 0 0 12px;background:rgba(139,92,246,0.7);z-index:30`;
     /* One pill, in two sizes. The action area had three separate button
        vocabularies in one row — a filled ink slab, a bordered pill at a
        different size, and a third set for bank/top-up/leave — which is what
@@ -7707,7 +7841,8 @@ export default class SuitedApp extends React.Component<any, any> {
       : raiseWNow;
     vals.raiseStyle = `${actPill('ink')};display:inline-flex;align-items:center;justify-content:center;`
       + `min-width:${raiseW}px;font-variant-numeric:tabular-nums;`
-      + `opacity:${myTurn ? 1 : 0.32};pointer-events:${myTurn ? 'auto' : 'none'};transition:opacity 260ms linear`;
+      + `opacity:${myTurn ? 1 : 0.32};pointer-events:${myTurn ? 'auto' : 'none'};transition:opacity 260ms linear`
+      + (tall ? ';min-width:0' : '');
     /* Money on the buttons carries its unit, once. The slider's own readout
        below says MIN / BB / MAX without repeating it. */
     // No "usdc" on the action buttons: the felt and the slider readout carry
@@ -7756,7 +7891,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.hotkeysTitle = st.hotkeys
       ? 'Action hotkeys are on · f / c / r / a · click to turn off'
       : 'Action hotkeys are off · click to turn on';
-    vals.hotkeysStyle = `display:${spectating || mini ? 'none' : 'flex'};align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;flex:0 0 auto;background:${st.hotkeys ? INK : 'rgba(232,236,248,0.1)'};color:${st.hotkeys ? BG : 'rgba(232,236,248,0.086)'};border:1px solid ${st.hotkeys ? 'transparent' : 'rgba(232,236,248,0.041)'};transition:background .2s ease,color .2s ease`;
+    vals.hotkeysStyle = `display:${spectating || mini || tall ? 'none' : 'flex'};align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;flex:0 0 auto;background:${st.hotkeys ? INK : 'rgba(232,236,248,0.1)'};color:${st.hotkeys ? BG : 'rgba(232,236,248,0.086)'};border:1px solid ${st.hotkeys ? 'transparent' : 'rgba(232,236,248,0.041)'};transition:background .2s ease,color .2s ease`;
     vals.hotkeysStrike = `opacity:${st.hotkeys ? 0 : 1};transition:opacity .2s ease`;
     vals.toggleHotkeys = () => {
       const next = !st.hotkeys;
@@ -7795,8 +7930,18 @@ export default class SuitedApp extends React.Component<any, any> {
        It never once turned the ease off since it was written. */
     const betEase = st.drag === 'bet' ? '0s' : '.08s linear';
     // Monochrome slider, matching the raise button — ink track and thumb.
-    vals.betFill = `position:absolute;left:0;height:6px;border-radius:3px;width:${bp}%;background:linear-gradient(90deg,#6d3fd4,#a78bfa);box-shadow:0 0 14px -2px rgba(139,92,246,.85);transition:width ${betEase}`;
-    vals.betThumb = `position:absolute;top:50%;left:${bp}%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;background:#ffffff;box-shadow:0 0 14px -3px rgba(232,236,248,0.096);pointer-events:none;transition:left ${betEase}`;
+    vals.betFaderStyle = tall
+      ? 'grid-column:2;grid-row:1 / -1;position:relative;touch-action:none;cursor:ns-resize;margin:9px 0'
+      : 'position:relative;height:18px;display:flex;align-items:center;touch-action:none;cursor:ew-resize';
+    vals.betTrackStyle = tall
+      ? 'position:absolute;top:0;bottom:0;left:50%;width:6px;margin-left:-3px;border-radius:3px;background:rgba(232,236,248,.16)'
+      : 'position:absolute;left:0;right:0;height:6px;border-radius:3px;background:rgba(0,0,0,.45)';
+    vals.betFill = tall
+      ? `position:absolute;bottom:0;left:50%;width:6px;margin-left:-3px;border-radius:3px;height:${bp}%;background:linear-gradient(0deg,#6d3fd4,#a78bfa);box-shadow:0 0 14px -2px rgba(139,92,246,.85);transition:height ${betEase}`
+      : `position:absolute;left:0;height:6px;border-radius:3px;width:${bp}%;background:linear-gradient(90deg,#6d3fd4,#a78bfa);box-shadow:0 0 14px -2px rgba(139,92,246,.85);transition:width ${betEase}`;
+    vals.betThumb = tall
+      ? `position:absolute;left:50%;bottom:${bp}%;transform:translate(-50%,50%);width:20px;height:20px;border-radius:50%;background:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,.5);pointer-events:none;transition:bottom ${betEase}`
+      : `position:absolute;top:50%;left:${bp}%;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;background:#ffffff;box-shadow:0 0 14px -3px rgba(232,236,248,0.096);pointer-events:none;transition:left ${betEase}`;
     /* The scale under the track. `betTo` is an amount; big blinds is how a
        player actually thinks about a raise, so the middle figure converts. */
     vals.betMinLabel = `MIN ${this.amt(minTo)}`;
@@ -7817,7 +7962,7 @@ export default class SuitedApp extends React.Component<any, any> {
     const sizeBase = `${actPill('', 'minor')};display:flex;flex-direction:column;align-items:center;`
       // On a phone's side the six share their cluster's one row equally, so
       // they can never wrap into a second and cover the seat above.
-      + `justify-content:center;line-height:1.05;gap:1px;${mini ? 'min-width:0;flex:1 1 0;padding:7px 2px' : `min-width:${tight ? 34 : 42}px;flex:0 0 auto`};`
+      + `justify-content:center;line-height:1.05;gap:1px;${mini ? 'min-width:0;flex:1 1 0;padding:7px 2px' : tall ? 'min-width:0;padding:7px 4px;flex-direction:row;gap:4px;grid-column:1' : `min-width:${tight ? 34 : 42}px;flex:0 0 auto`};`
       + `${outOfTurnDim}`;
     /* A preset whose sizing is past your stack is not that sizing: the clamp
        turns it into the shove, and the row gave no sign that several buttons now
@@ -7833,12 +7978,18 @@ export default class SuitedApp extends React.Component<any, any> {
        strikes (`minTo` is itself clamped to `maxTo`), nor does all-in, which
        *is* `maxTo`, nor ⅓ pot into a pot too small to raise a third of. */
     const struck = `;text-decoration:line-through;opacity:${myTurn ? 0.42 : 0.32};pointer-events:none`;
-    vals.sizeStyle = sizeBase;
+    /* The upright panel holds three of the six, top to bottom from the most
+       to the least: all-in, the last slot (full pot, or the biggest open), and
+       min. Everything between them is what the slider beside them is for —
+       and a fourth button would stand the panel on the seat above it. */
+    const panelRow = (n) => (tall ? `;grid-row:${n}` : '');
+    const panelSkip = tall ? ';display:none' : '';
+    vals.sizeStyle = sizeBase + panelRow(4);
     /* All-in is the one preset that is really a decision, so it wears a
        crimson a step darker than fold rather than the steel of the sizings
        it sits beside. Built from the same base so it keeps their geometry. */
     vals.sizeAllInStyle = sizeBase.replace(/background:linear-gradient\([^)]*\)/, 'background:linear-gradient(180deg,#6d1829,#430e1b)')
-      .replace(/border:1px solid rgba\(148,163,196,\.4\)/, 'border:1px solid rgba(244,63,94,.42)');
+      .replace(/border:1px solid rgba\(148,163,196,\.4\)/, 'border:1px solid rgba(244,63,94,.42)') + panelRow(2);
     vals.sizeSubStyle = `font-size:${tight ? 8 : 8.5}px;letter-spacing:.04em;color:${MUTED}`;
 
     vals.sizeMin = () => legal && this.setState({ betTo: minTo });
@@ -7909,7 +8060,8 @@ export default class SuitedApp extends React.Component<any, any> {
       vals['size' + slot + 'Label'] = p.label;
       vals['size' + slot + 'Sub'] = p.sub;
       // `legal &&` guards `raw()`: out of turn there is no band to be past.
-      vals['size' + slot + 'Style'] = sizeBase + (legal && p.raw() > maxTo ? struck : '');
+      vals['size' + slot + 'Style'] = sizeBase + (legal && p.raw() > maxTo ? struck : '')
+        + (slot === 'D' ? panelRow(3) : panelSkip);
       vals['size' + slot] = () => { if (legal) this.setState({ betTo: p.to() }); };
     });
     /* The standing top-up button is gone; busting still has a way back in.
@@ -7963,6 +8115,18 @@ export default class SuitedApp extends React.Component<any, any> {
       );
       this.toast(`Seat closed \u00b7 ${fmt(amount)} USDC back in your wallet`, 'ok');
     };
+    /* Held upright the rail is shut, and its two seat controls with it — so
+       they get corners of their own. Top-left is the way out: leaving the seat
+       for someone who holds one, the lobby for a spectator or a tournament
+       seat (which cannot be left, only walked away from). Beside the menu,
+       one toggle that is "sit up" while dealt in and "sit down" while not. */
+    vals.topBarOn = tall && !!t;
+    const topWalks = spectating || isTournamentTable;
+    vals.topLeaveLabel = topWalks ? 'Lobby' : 'Leave';
+    vals.topLeave = topWalks ? this.go('lobby') : vals.leaveTable;
+    vals.topSitOn = !spectating && !isTournamentTable;
+    vals.topSitOut = !!st.sittingOut;
+
     // Not currently wired to any template control (no display binding
     // exists for it) — guarded anyway so a tournament table can never reach
     // a voluntary sit-out through it if one is added later.
@@ -7988,40 +8152,37 @@ export default class SuitedApp extends React.Component<any, any> {
     /* On a phone's side it is neither: there is no width to give up beside the
        felt and no height under it, so the rail slides over the table's right
        edge as a panel and takes nothing from the layout. */
+    /* Held upright it is the menu's twin: a drawer from the right edge over
+       a scrim, the full height of the screen. Stacked under the felt, as a
+       narrow window has it, the log took a third of a phone's height from a
+       table that needs all of it — and the menu already taught the gesture.
+       Fixed, so it takes nothing from the layout; it stays in the tree shut,
+       like every other form of the rail, so its toggle is never lost. */
     const railW = 'min(320px, 62vw)';
-    vals.railStyle = mini
+    vals.railScrim = `position:fixed;inset:0;z-index:71;background:rgba(5,8,18,0.55);opacity:${tall && st.railOpen ? 1 : 0};pointer-events:${tall && st.railOpen ? 'auto' : 'none'};transition:opacity .22s ease`;
+    vals.railStyle = tall
+      ? `position:fixed;z-index:72;top:0;right:0;bottom:0;width:min(330px, 88vw);display:flex;flex-direction:column;overflow:hidden;`
+        + 'background:linear-gradient(180deg, rgba(26,20,60,0.98), rgba(12,17,34,0.98));border-left:1px solid rgba(167,139,250,0.3);'
+        + 'box-shadow:-24px 0 60px -20px rgba(0,0,0,0.8), inset 1px 0 0 rgba(255,255,255,0.04);'
+        + `transform:translateX(${st.railOpen ? '0' : '105%'});transition:transform .26s cubic-bezier(.2,.8,.2,1)`
+      : mini
       // It stops 58px short of the bottom: that strip is the three decisions,
       // and a log that covered them would hide the buttons on your own turn.
       ? `position:absolute;right:0;top:0;bottom:58px;z-index:60;border-radius:0 0 0 14px;width:${st.railOpen ? railW : '0px'};display:flex;flex-direction:column;overflow:hidden;border-left:${st.railOpen ? '1px solid rgba(232,236,248,0.14)' : '0'};background:rgba(13,18,32,0.97);box-shadow:${st.railOpen ? '-18px 0 40px -18px rgba(0,0,0,0.8)' : 'none'};transition:width .3s ease`
       : c
       ? `flex:none;width:100%;overflow:hidden;max-height:${st.railOpen ? 'min(320px, 34vh)' : '0px'};border-top:${st.railOpen ? '1px solid rgba(232,236,248,0.14)' : '0'};background:transparent;transition:max-height .3s ease`
       : `flex:0 0 ${st.railOpen ? '320px' : '0px'};width:${st.railOpen ? '320px' : '0px'};display:flex;flex-direction:column;min-height:0;overflow:hidden;border-left:${st.railOpen ? '1px solid rgba(232,236,248,0.14)' : '0'};background:transparent;transition:flex-basis .3s ease,width .3s ease`;
-    vals.railInner = mini
+    vals.railInner = tall
+      ? 'width:100%;flex:1;display:flex;flex-direction:column;min-height:0'
+      : mini
       ? `width:${railW};flex:none;display:flex;flex-direction:column;min-height:0;height:100%`
       : c
       ? `display:flex;flex-direction:column;min-height:0;max-height:min(320px, 34vh)`
       : `width:320px;flex:none;display:flex;flex-direction:column;min-height:0;height:100%`;
     // The body cedes room to the tab strip and chat input, so the input is
     // never the part the viewport cap clips away.
-    vals.railBody = `flex:1;overflow-y:auto;min-height:0;max-height:${c && !mini ? 'calc(min(320px, 34vh) - 60px)' : 'none'}`;
+    vals.railBody = `flex:1;overflow-y:auto;min-height:0;max-height:${c && !mini && !tall ? 'calc(min(320px, 34vh) - 60px)' : 'none'}`;
 
-    /* A phone held upright. The table is a landscape drawing — at 390px wide it
-       would be a quarter of its design size, with a seat's name three pixels
-       tall — so the felt is covered and asks to be turned. Where the browser
-       can do the turning itself (Android: fullscreen, then an orientation
-       lock), the button offers it; elsewhere there is no such API and the
-       button is not shown. Best-effort either way: a refusal just leaves the
-       prompt up, which is still true. */
-    vals.rotateOn = !!st.upright;
-    vals.rotateCanLock = typeof screen !== 'undefined' && !!(screen.orientation && (screen.orientation as any).lock)
-      && typeof document !== 'undefined' && !!document.documentElement.requestFullscreen;
-    vals.rotateLock = () => {
-      const lock = () => (screen.orientation as any).lock('landscape');
-      Promise.resolve()
-        .then(() => document.documentElement.requestFullscreen())
-        .then(lock)
-        .catch(() => {});
-    };
     vals.railToggleLabel = st.railOpen ? 'Hide' : 'Show';
     vals.railOpen = !!st.railOpen;
     vals.toggleRail = () => { this.railTouched = true; this.setState((s) => ({ railOpen: !s.railOpen }), this.onResize); };

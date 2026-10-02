@@ -66,7 +66,7 @@ export function detectProviders() {
      where a detected wallet announced nothing, and the connect screen falls
      back to the two letters in `short`. Either way nothing is fetched from a
      third party. */
-  const rows: { id: string; label: string; short: string; icon: string | null; detected: boolean; install?: string | null; open?: string | null }[] = [];
+  const rows: { id: string; label: string; short: string; icon: string | null; detected: boolean; install?: string | null; open?: string | null; wc?: boolean }[] = [];
 
   let solana: { name: string; icon: string; ready: boolean }[] = [];
   try { solana = bridge.solana?.wallets() ?? []; } catch { /* providers not mounted */ }
@@ -75,8 +75,14 @@ export function detectProviders() {
       id: `solana:${w.name}`,
       label: w.name,
       short: w.name.slice(0, 2).toLowerCase(),
-      icon: w.icon || null,
+      // WalletConnect wears the same mark on both chains (public/wallets/),
+      // not the one its Solana adapter happens to ship.
+      icon: w.name === 'WalletConnect' ? '/wallets/walletconnect.png' : (w.icon || null),
       detected: true,
+      /* Not a wallet in this browser but the way to one elsewhere: it is
+         always "there", so the connect screen says what it does rather than
+         that it was detected. */
+      wc: w.name === 'WalletConnect',
     });
   }
 
@@ -97,6 +103,7 @@ export function detectProviders() {
       short: w.name.slice(0, 2).toLowerCase(),
       icon: w.icon,
       detected: true,
+      wc: w.id === 'walletConnect',
     });
   }
 
