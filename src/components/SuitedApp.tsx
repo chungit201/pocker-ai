@@ -172,15 +172,21 @@ const RING_LEN = 471.4;
 // something to show. A given pot only ever draws the three or four denominations
 // that make it up, so the pile reads as varied, not busy.
 const DENOMS = [
-  { v: 500, fill: '#9466cc', edge: 'rgba(232,236,248,0.05)' },
-  { v: 100, fill: '#7d4cf0', edge: 'rgba(232,236,248,0.05)' },
-  { v: 25, fill: '#e5484d', edge: 'rgba(232,236,248,0.05)' },
-  { v: 5, fill: '#7d4cf0', edge: 'rgba(232,236,248,0.28)' },
-  { v: 1, fill: '#1b2440', edge: 'rgba(232,236,248,0.048)' },
-  { v: 0.25, fill: '#b497f7', edge: 'rgba(232,236,248,0.28)' },
-  { v: 0.05, fill: '#66a7cc', edge: 'rgba(232,236,248,0.048)' },
-  { v: 0.01, fill: '#ae7cd3', edge: 'rgba(232,236,248,0.28)' },
+  { v: 500, chip: 'purple' },
+  { v: 100, chip: 'charcoal' },
+  { v: 25, chip: 'red' },
+  { v: 5, chip: 'gold' },
+  { v: 1, chip: 'green' },
+  { v: 0.25, chip: 'cream' },
+  { v: 0.05, chip: 'slate' },
+  { v: 0.01, chip: 'lavender' },
 ];
+/* A chip is a picture, not a flat disc: the ceramic set from
+   tools/gen-chips.mjs, one drawing recoloured into the eight denominations so
+   the pile reads as one set. Root-relative, for the same reason the card backs
+   are — the felt's route is two segments deep. The disc underneath is round so
+   its shadow is the chip's. */
+const chipFace = (d) => `border-radius:50%;background:center/contain no-repeat url(/chips/suits/${d.chip}.webp)`;
 
 const DENOM = {
   1: { bg: '#222c47', fg: '#1a1030' },
@@ -6708,7 +6714,7 @@ export default class SuitedApp extends React.Component<any, any> {
       const x = Math.cos(ang) * rr;
       const y = Math.sin(ang) * rr * 0.52 - i * 0.35;   // squashed to an oval, a little stack rise
       return {
-        style: `position:absolute;left:50%;top:50%;margin:${-CHIP / 2}px 0 0 ${-CHIP / 2}px;transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px);width:${CHIP}px;height:${CHIP}px;border-radius:50%;background:${d.fill};box-shadow:inset 0 0 0 3px ${d.edge}, 0 1px 2px rgba(0,0,0,0.425);z-index:${i}`,
+        style: `position:absolute;left:50%;top:50%;margin:${-CHIP / 2}px 0 0 ${-CHIP / 2}px;transform:translate(${x.toFixed(1)}px,${y.toFixed(1)}px);width:${CHIP}px;height:${CHIP}px;${chipFace(d)};box-shadow:0 1px 2px rgba(0,0,0,0.5);z-index:${i}`,
       };
     });
     const pileW = potFlat.length ? Math.ceil(pileR * 2 + CHIP) : 0;
@@ -6734,7 +6740,7 @@ export default class SuitedApp extends React.Component<any, any> {
         const lag = i * 26;
         const d = it.denom || DENOMS[DENOMS.length - 1];
         shipChips.push({
-          style: `position:absolute;left:0;top:0;width:${CHIP}px;height:${CHIP}px;transform:translate(${(at.x - CHIP / 2 + (i % 5) * 5 - 10).toFixed(1)}px,${(at.y - CHIP / 2 + (i % 3) * 4 - 4).toFixed(1)}px);border-radius:50%;background:${d.fill};box-shadow:inset 0 0 0 3px ${d.edge}, 0 2px 5px rgba(0,0,0,0.525);z-index:30;opacity:${fly.go ? 0 : 1};transition:transform ${dur}ms cubic-bezier(.22,.7,.3,1) ${lag}ms,opacity ${Math.round(dur * 0.6)}ms ease ${lag + Math.round(dur * 0.42)}ms`,
+          style: `position:absolute;left:0;top:0;width:${CHIP}px;height:${CHIP}px;transform:translate(${(at.x - CHIP / 2 + (i % 5) * 5 - 10).toFixed(1)}px,${(at.y - CHIP / 2 + (i % 3) * 4 - 4).toFixed(1)}px);${chipFace(d)};box-shadow:0 2px 5px rgba(0,0,0,0.525);z-index:30;opacity:${fly.go ? 0 : 1};transition:transform ${dur}ms cubic-bezier(.22,.7,.3,1) ${lag}ms,opacity ${Math.round(dur * 0.6)}ms ease ${lag + Math.round(dur * 0.42)}ms`,
         });
       });
     }
