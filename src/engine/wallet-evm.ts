@@ -43,41 +43,41 @@ export const FN = {
 
 /** Contract custom errors → words a player can act on. */
 export const ERRORS = {
-  '0x5bbe8622': 'that is below the minimum deposit',
-  '0xd93c0665': 'deposits are paused right now — withdrawals still work',
-  '0xf4d678b8': 'your on-chain balance is smaller than that',
-  '0xa4c91367': 'that authorization expired — request a fresh one',
-  '0x639089d9': 'that authorization was already used',
-  '0x043ffb3f': 'the authorization did not verify — request a fresh one',
-  '0x1d5bd2f3': 'the rake pool cannot cover that claim right now',
-  '0x53679ed5': 'that claim is over the per-transaction ceiling',
-  '0xfebe5043': 'the vault cannot cover that right now — contact support',
-  '0xabca3517': 'this wallet has never deposited',
-  '0x2c5211c6': 'that amount is not valid',
-  '0x08a4003b': 'no exit is pending for this wallet',
-  '0x53d8d5b9': 'the exit delay has not passed yet',
+  '0x5bbe8622': 'That is below the minimum deposit',
+  '0xd93c0665': 'Deposits are paused right now, withdrawals still work',
+  '0xf4d678b8': 'Your on-chain balance is smaller than that',
+  '0xa4c91367': 'That authorization expired, request a fresh one',
+  '0x639089d9': 'That authorization was already used',
+  '0x043ffb3f': 'The authorization did not verify, request a fresh one',
+  '0x1d5bd2f3': 'The rake pool cannot cover that claim right now',
+  '0x53679ed5': 'That claim is over the per-transaction ceiling',
+  '0xfebe5043': 'The vault cannot cover that right now, contact support',
+  '0xabca3517': 'This wallet has never deposited',
+  '0x2c5211c6': 'That amount is not valid',
+  '0x08a4003b': 'No exit is pending for this wallet',
+  '0x53d8d5b9': 'The exit delay has not passed yet',
   // JackpotDistributor.claim (AuthExpired 0xa4c91367 shares the message above).
-  '0x7cdf17ad': 'jackpot claims are paused right now',
-  '0xc2ffbec2': 'this jackpot has already been claimed',
-  '0x71c8b818': 'that prize is over the per-claim ceiling',
-  '0x5cd5d233': 'the claim did not verify — reopen the app for a fresh voucher',
-  '0x2c0861a9': 'the jackpot pool is still being funded — try again shortly',
+  '0x7cdf17ad': 'Jackpot claims are paused right now',
+  '0xc2ffbec2': 'This jackpot has already been claimed',
+  '0x71c8b818': 'That prize is over the per-claim ceiling',
+  '0x5cd5d233': 'The claim did not verify, reopen the app for a fresh voucher',
+  '0x2c0861a9': 'The jackpot pool is still being funded, try again shortly',
   // Ownable2Step. Only ever seen on the admin rake sweep, which is onlyOwner —
   // a player never calls an owner function, so this cannot surface on the felt.
-  '0x118cdaa7': 'this wallet is not the contract owner',
+  '0x118cdaa7': 'This wallet is not the contract owner',
   // RakeRouter.
-  '0xf512b278': 'the router refused: this wallet is neither its keeper nor its admin',
-  '0x5cce0a5c': "the vault's rake destination is not the router — sweeps are off until it is",
-  '0xc1aebd41': "that is over the router's remaining ceiling for today",
-  '0x7bfa4b9f': 'the router refused: this wallet is not its admin',
+  '0xf512b278': 'The router refused: this wallet is neither its keeper nor its admin',
+  '0x5cce0a5c': "The vault's rake destination is not the router, sweeps are off until it is",
+  '0xc1aebd41': "That is over the router's remaining ceiling for today",
+  '0x7bfa4b9f': 'The router refused: this wallet is not its admin',
   // SuitedStaking. (IsPaused 0x1309a563 is its own, distinct from the vault's.)
-  '0x389f7e11': 'that is below the minimum stake',
-  '0xc201b252': 'that lock has not ended yet',
-  '0x70d645e3': 'that position is not yours',
-  '0x21a9b143': 'that lock length does not exist',
-  '0x8431a15a': 'this wallet already holds the maximum number of positions',
-  '0xff7ae6ab': 'a lock can only be extended, never shortened',
-  '0x1309a563': 'new locks are paused right now — withdrawing still works',
+  '0x389f7e11': 'That is below the minimum stake',
+  '0xc201b252': 'That lock has not ended yet',
+  '0x70d645e3': 'That position is not yours',
+  '0x21a9b143': 'That lock length does not exist',
+  '0x8431a15a': 'This wallet already holds the maximum number of positions',
+  '0xff7ae6ab': 'A lock can only be extended, never shortened',
+  '0x1309a563': 'New locks are paused right now, withdrawing still works',
 };
 
 /* ── tiny ABI encoding for our fixed shapes ──────────────────────────────── */
@@ -152,7 +152,7 @@ export function detectEvmProviders() {
       provider: d.provider,
     }));
   if (!rows.length && typeof window !== 'undefined' && window.ethereum && !incompatibleInjected(window.ethereum)) {
-    rows.push({ id: 'injected', name: 'browser wallet', icon: null, detected: true, provider: window.ethereum });
+    rows.push({ id: 'injected', name: 'Browser wallet', icon: null, detected: true, provider: window.ethereum });
   }
   return rows;
 }
@@ -618,8 +618,8 @@ export function explainEvmError(err) {
   for (const [selector, message] of Object.entries(ERRORS)) {
     if (raw.includes(strip0x(selector))) return message;
   }
-  if (/user rejected|denied/i.test(raw)) return 'the wallet rejected the request';
-  if (/insufficient funds/i.test(raw)) return 'not enough ETH for gas — visit the faucet';
+  if (/user rejected|denied/i.test(raw)) return 'The wallet rejected the request';
+  if (/insufficient funds/i.test(raw)) return 'Not enough ETH for gas, visit the faucet';
   return null;
 }
 

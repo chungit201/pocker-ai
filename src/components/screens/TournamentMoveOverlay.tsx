@@ -31,7 +31,7 @@ export default function TournamentMoveOverlay({ v }: { v: any }) {
           </div>
           {"\r\n        "}
           <button className="pill-flat" onClick={v.tMoveOverlayGo} style={{ width: "100%", padding: "13px", borderRadius: "5px", border: "none", background: "linear-gradient(180deg,#222c47,#0d1220)", color: "#e8ecf8", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12),0 2px 4px rgba(0,0,0,0.35)", fontSize: "13px", fontWeight: "500", cursor: "pointer" }}>
-            {"go now"}
+            {"Go now"}
           </button>
           {"\r\n      "}
         </div>

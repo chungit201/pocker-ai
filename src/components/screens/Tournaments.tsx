@@ -19,11 +19,8 @@ export default function Tournaments({ v }: { v: any }) {
         {"\r\n\r\n      "}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "clamp(12px,21px,18px)", alignItems: "stretch" }}>
           {"\r\n        "}
-          <div style={{ flex: "1 1 520px", minWidth: "0", position: "relative", borderRadius: "12px", overflow: "hidden", background: "#0a0d16", border: "1px solid rgba(232,236,248,0.08)", display: "flex", flexDirection: "column" }}>
+          <div className="gm-panel" style={{ flex: "1 1 520px", minWidth: "0", position: "relative", borderRadius: "12px", overflow: "hidden", background: "#0a0d16", border: "1px solid rgba(232,236,248,0.08)", display: "flex", flexDirection: "column" }}>
             {"\r\n          "}
-            <div aria-hidden="true" style={css(v.heroTexStyle)} />
-            {"\r\n          "}
-            <div style={{ position: "absolute", inset: "0", pointerEvents: "none", background: "radial-gradient(70% 90% at 8% 20%, rgba(148,163,196,0.05), rgba(0,0,0,0.225) 100%)" }} />
             {"\r\n          "}
             <div style={{ position: "relative", padding: "clamp(22px,42px,34px)", display: "flex", flexDirection: "column", gap: "14px", flex: "1" }}>
               {"\r\n            "}
@@ -107,7 +104,7 @@ export default function Tournaments({ v }: { v: any }) {
                   {interp(v.featActionLabel)}
                 </button>
                 {"\r\n              "}
-                <button className="pill scpa scp6" onClick={v.featOpen} style={css(v.featOpenStyle)}>{"the full structure"}</button>
+                <button className="pill scpa scp6" onClick={v.featOpen} style={css(v.featOpenStyle)}>{"The full structure"}</button>
                 {"\r\n              "}
                 <span style={{ fontSize: "12px", color: "#94a3c4", flex: "1 1 200px", minWidth: "0", lineHeight: "1.45" }}>
                   {interp(v.featNote)}
@@ -354,7 +351,7 @@ export default function Tournaments({ v }: { v: any }) {
           </div>
           {"\r\n        "}
           <span style={{ fontSize: "11.5px", color: "#94a3c4", paddingTop: "4px" }}>
-            {"Buy-ins move from your bankroll into escrow on registration — refundable until registration closes."}
+            {"Buy-ins move from your bankroll into escrow on registration, refundable until registration closes."}
           </span>
           {"\r\n      "}
         </div>

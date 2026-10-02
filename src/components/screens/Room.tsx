@@ -28,7 +28,7 @@ export default function Room({ v }: { v: any }) {
               <div style={{ padding: "16px", borderRadius: "8px", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(10,13,22,0.1)", marginBottom: "20px", fontSize: "13px", color: "#e8ecf8", lineHeight: "1.9" }}>
                 {"\r\n            "}
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#94a3c4" }}>{"stakes"}</span>
+                  <span style={{ color: "#94a3c4" }}>{"Stakes"}</span>
                   <span>
                     {interp(v.roomStakesLabel)}
                   </span>
@@ -42,7 +42,7 @@ export default function Room({ v }: { v: any }) {
                 </div>
                 {"\r\n            "}
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "#94a3c4" }}>{"seats"}</span>
+                  <span style={{ color: "#94a3c4" }}>{"Seats"}</span>
                   <span>
                     {interp(v.roomSeatedLabel)}
                   </span>
@@ -64,7 +64,7 @@ export default function Room({ v }: { v: any }) {
           </div>
           {"\r\n        "}
           <button onClick={v.roomBackToLobby} style={{ marginTop: "14px", fontSize: "12px", color: "#94a3c4", background: "transparent" }}>
-            {"back to the lobby"}
+            {"Back to the lobby"}
           </button>
           {"\r\n      "}
         </div>

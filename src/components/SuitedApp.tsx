@@ -231,7 +231,15 @@ const SPARK = '\u2581\u2582\u2583\u2584\u2585\u2586\u2587\u2588';
 /* Live rooms, once /api/lobby answers. Until then the generated set below is
    what the offline demo renders — it is never mixed with real data. */
 let LIVE_ROOMS = null;
-const ROOMS_ALL = () => LIVE_ROOMS || ROOMS;
+/* True from the moment a gateway is known until /api/lobby has answered (or
+   failed). In that window the demo set still gives the ladder its shape, but
+   with nobody seated: its invented counts used to headline the lobby for half a
+   second ("91 players seated") and then vanish when the real list landed, which
+   flipped the hero to another layout and jolted everything under it. */
+let ROOMS_PENDING = false;
+let ROOMS_IDLE = null;
+const ROOMS_ALL = () => LIVE_ROOMS
+  || (ROOMS_PENDING ? (ROOMS_IDLE ||= ROOMS.map((r) => ({ ...r, seated: 0, open: true }))) : ROOMS);
 
 const ROOMS = STAKES.flatMap((s, si) => Array.from({ length: 4 }, (_, i) => {
   let x = (si * 7919 + i * 104729 + 17) >>> 0;
@@ -275,7 +283,7 @@ const PRIV_TABLES = new Map();
 const rememberPrivTable = (info) => {
   PRIV_TABLES.set(info.tableId, {
     id: info.tableId,
-    name: info.name || 'private room',
+    name: info.name || 'Private room',
     sb: info.sb / 1e6, bb: info.bb / 1e6,
     min: info.minBuyIn / 1e6, max: info.maxBuyIn / 1e6,
     tag: 'private', tagBg: '#e8ecf8', tagFg: '#7d4cf0',
@@ -301,7 +309,7 @@ const BOTS = [
   { id: 'b5', name: 'donkbet', style: 'maniac', bb: 49 },
 ];
 const seatsFor = (tbl, heroStack) => [
-  { id: 'hero', name: 'you', kind: 'hero', stack: heroStack },
+  { id: 'hero', name: 'You', kind: 'hero', stack: heroStack },
   ...BOTS.map((b) => ({ id: b.id, name: b.name, kind: 'bot', style: b.style, stack: Math.round(tbl.bb * b.bb * 100) / 100 })),
 ];
 
@@ -313,37 +321,37 @@ const seatsFor = (tbl, heroStack) => [
 // Avatar registry: 8 free defaults + 23 earned. id === av-<id>.svg === achievement
 // code. Mirrors apps/web/avatars/achievements.json \u2014 keep the two in sync.
 const AV = [
-  { id: 'index-as', tier: 'default', name: 'ace of spades',    def: true },
-  { id: 'index-ah', tier: 'default', name: 'ace of hearts',    def: true },
-  { id: 'index-kd', tier: 'default', name: 'king of diamonds', def: true },
-  { id: 'index-qc', tier: 'default', name: 'queen of clubs',   def: true },
-  { id: 'face-grin',    tier: 'default', name: 'grin',      def: true },
-  { id: 'face-deadpan', tier: 'default', name: 'deadpan',   def: true },
+  { id: 'index-as', tier: 'default', name: 'Ace of spades',    def: true },
+  { id: 'index-ah', tier: 'default', name: 'Ace of hearts',    def: true },
+  { id: 'index-kd', tier: 'default', name: 'King of diamonds', def: true },
+  { id: 'index-qc', tier: 'default', name: 'Queen of clubs',   def: true },
+  { id: 'face-grin',    tier: 'default', name: 'Grin',      def: true },
+  { id: 'face-deadpan', tier: 'default', name: 'Deadpan',   def: true },
   { id: 'face-wide',    tier: 'default', name: 'wide-eyed', def: true },
-  { id: 'face-busted',  tier: 'default', name: 'busted',    def: true },
-  { id: 'chip-1',   tier: 'common',   name: 'first blood', condition: 'win your first pot' },
-  { id: 'chip-100', tier: 'common',   name: 'century',     condition: 'win 100 pots' },
-  { id: 'chip-5',   tier: 'common',   name: 'heater',      condition: 'win five pots in a row' },
-  { id: 'button',   tier: 'uncommon', name: 'on the button', condition: 'play 10,000 hands' },
-  { id: 'lvl-10',   tier: 'uncommon', name: 'reg',        condition: 'reach level 10' },
-  { id: 'lvl-20',   tier: 'uncommon', name: 'river rat',  condition: 'reach level 20' },
-  { id: 'lvl-30',   tier: 'rare',     name: 'whale',      condition: 'reach level 30' },
-  { id: 'lvl-40',   tier: 'mythic',   name: 'legend',     condition: 'reach level 40' },
-  { id: 'day-one',  tier: 'mythic',   name: 'day one',    condition: 'one of the first 77 accounts' },
-  { id: 'boat',     tier: 'uncommon', name: 'boat',       condition: 'make 25 full houses' },
-  { id: 'quads',    tier: 'rare',     name: 'quads',      condition: 'make four of a kind' },
-  { id: 'straight-flush', tier: 'rare', name: 'straight flush', condition: 'make a straight flush' },
-  { id: 'wheel',    tier: 'rare',     name: 'the wheel',  condition: 'make a five-high straight' },
-  { id: 'royal',    tier: 'mythic',   name: 'royal',      condition: 'make a royal flush' },
-  { id: 'jackpot',  tier: 'mythic',   name: 'jackpot',    condition: 'win a daily jackpot draw' },
-  { id: 'chip-25',      tier: 'common',   name: 'regular',      condition: 'play 25 sessions' },
-  { id: 'seven-deuce',  tier: 'uncommon', name: 'seven-deuce',  condition: 'win a showdown holding 7-2 offsuit' },
-  { id: 'all-in',       tier: 'uncommon', name: 'all in',       condition: 'win an all-in pot of 200bb+' },
-  { id: 'suited',       tier: 'uncommon', name: 'suited',       condition: 'make 50 flushes from suited holes' },
-  { id: 'cooler',       tier: 'uncommon', name: 'cooler',       condition: 'take 25 bad beats' },
-  { id: 'five-bills',   tier: 'rare',     name: 'five bills',   condition: 'win 25 pots over $500', light: true },
-  { id: 'verified',     tier: 'rare',     name: 'verified',     condition: 're-deal and check 100 hands yourself' },
-  { id: 'the-nuts',     tier: 'mythic',   name: 'the nuts',     condition: 'win 25 showdowns holding the nuts' },
+  { id: 'face-busted',  tier: 'default', name: 'Busted',    def: true },
+  { id: 'chip-1',   tier: 'common',   name: 'First blood', condition: 'Win your first pot' },
+  { id: 'chip-100', tier: 'common',   name: 'Century',     condition: 'Win 100 pots' },
+  { id: 'chip-5',   tier: 'common',   name: 'Heater',      condition: 'Win five pots in a row' },
+  { id: 'button',   tier: 'uncommon', name: 'On the button', condition: 'Play 10,000 hands' },
+  { id: 'lvl-10',   tier: 'uncommon', name: 'Reg',        condition: 'Reach level 10' },
+  { id: 'lvl-20',   tier: 'uncommon', name: 'River rat',  condition: 'Reach level 20' },
+  { id: 'lvl-30',   tier: 'rare',     name: 'Whale',      condition: 'Reach level 30' },
+  { id: 'lvl-40',   tier: 'mythic',   name: 'Legend',     condition: 'Reach level 40' },
+  { id: 'day-one',  tier: 'mythic',   name: 'Day one',    condition: 'One of the first 77 accounts' },
+  { id: 'boat',     tier: 'uncommon', name: 'Boat',       condition: 'Make 25 full houses' },
+  { id: 'quads',    tier: 'rare',     name: 'Quads',      condition: 'Make four of a kind' },
+  { id: 'straight-flush', tier: 'rare', name: 'Straight flush', condition: 'Make a straight flush' },
+  { id: 'wheel',    tier: 'rare',     name: 'The wheel',  condition: 'Make a five-high straight' },
+  { id: 'royal',    tier: 'mythic',   name: 'Royal',      condition: 'Make a royal flush' },
+  { id: 'jackpot',  tier: 'mythic',   name: 'Jackpot',    condition: 'Win a daily jackpot draw' },
+  { id: 'chip-25',      tier: 'common',   name: 'Regular',      condition: 'Play 25 sessions' },
+  { id: 'seven-deuce',  tier: 'uncommon', name: 'seven-deuce',  condition: 'Win a showdown holding 7-2 offsuit' },
+  { id: 'all-in',       tier: 'uncommon', name: 'All in',       condition: 'Win an all-in pot of 200bb+' },
+  { id: 'suited',       tier: 'uncommon', name: 'Suited',       condition: 'Make 50 flushes from suited holes' },
+  { id: 'cooler',       tier: 'uncommon', name: 'Cooler',       condition: 'Take 25 bad beats' },
+  { id: 'five-bills',   tier: 'rare',     name: 'Five bills',   condition: 'Win 25 pots over $500', light: true },
+  { id: 'verified',     tier: 'rare',     name: 'Verified',     condition: 'Re-deal and check 100 hands yourself' },
+  { id: 'the-nuts',     tier: 'mythic',   name: 'The nuts',     condition: 'Win 25 showdowns holding the nuts' },
 ];
 const avById = new Map(AV.map((a) => [a.id, a]));
 const DEFAULT_AVATARS = AV.filter((a) => a.def).map((a) => a.id);
@@ -364,6 +372,39 @@ const avName = (id) => avEntry(id).name;
 // so the aura sits behind and the ring frames it, instead of covering it. The
 // .av wrapper itself carries the size.
 const avInner = (id) => `position:relative;width:100%;height:100%;border-radius:50%;background:center/cover no-repeat url(${avSrc(id)})`;
+/* Seat portraits (tools/gen-avatars.mjs) for a player who has not equipped an
+   avatar — bots, and anyone who never chose — so the felt shows faces rather
+   than a column of initials. Picked by a hash of the seat's id (or name), so a
+   given player keeps the same face from hand to hand and table to table. */
+const PORTRAIT_COUNT = 16;
+const portraitHash = (key) => {
+  let h = 0;
+  for (const ch of String(key || '')) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+  return h % PORTRAIT_COUNT;
+};
+const portraitInner = (n) => `position:relative;width:100%;height:100%;border-radius:50%;background:center/cover no-repeat url(/avatars/portraits/p-${String(n + 1).padStart(2, '0')}.webp)`;
+/* The eight free defaults are letters on a disc (A♠, ^_^) — and `index-as` is
+   what every account holds until it picks something, so on the felt they would
+   put the initials straight back. A seat wearing one of those gets a portrait;
+   an earned avatar is a trophy and stays. */
+const wearsPortrait = (id) => !id || !!avEntry(id).def;
+/* One portrait per seat, no twins at a table: six hashes into sixteen faces
+   collide two times in three, so a taken face steps to the next free one. Seat
+   0 (the viewer) claims first and the rest follow in key order, which keeps the
+   assignment independent of seat rotation and of who sat down when. */
+const seatPortraits = (keys) => {
+  const out = keys.map(() => null);
+  const taken = new Set();
+  const order = keys.map((k, i) => i).filter((i) => keys[i] != null)
+    .sort((a, b) => (a === 0 ? -1 : b === 0 ? 1 : String(keys[a]) < String(keys[b]) ? -1 : 1));
+  for (const i of order) {
+    let n = portraitHash(keys[i]);
+    while (taken.has(n) && taken.size < PORTRAIT_COUNT) n = (n + 1) % PORTRAIT_COUNT;
+    taken.add(n);
+    out[i] = n;
+  }
+  return out;
+};
 // Curated easiest→hardest order for the 23 earnable avatars. Live rarity % is
 // noisy with sparse data — a hand-ordered list reads as a difficulty ladder,
 // and the % stays only in the hover. Ids off the list sort last (defensive).
@@ -393,7 +434,7 @@ const AV_GROUPS = [
 // level 50 ~ $307k, level 75 ~ $780k, level 100 ~ $1.4m.
 const XP_A = 56, XP_P = 2.2;
 const xpThreshold = (L) => Math.round(XP_A * Math.pow(L, XP_P));
-const XP_TITLES: [number, string][] = [[50, 'mythic'], [40, 'legend'], [30, 'whale'], [25, 'crusher'], [20, 'river rat'], [15, 'shark'], [10, 'reg'], [5, 'grinder'], [0, 'fish']];
+const XP_TITLES: [number, string][] = [[50, 'Mythic'], [40, 'Legend'], [30, 'Whale'], [25, 'Crusher'], [20, 'River rat'], [15, 'Shark'], [10, 'Reg'], [5, 'Grinder'], [0, 'Fish']];
 const xpFor = (w) => {
   const v = Math.max(0, w);
   const level = Math.max(1, Math.floor(Math.pow(v / XP_A, 1 / XP_P)));
@@ -401,24 +442,24 @@ const xpFor = (w) => {
   return {
     level, prev, next,
     pct: Math.round(((v - prev) / Math.max(1, next - prev)) * 100),
-    title: (XP_TITLES.find((t) => level >= t[0]) || [0, 'fish'])[1],
+    title: (XP_TITLES.find((t) => level >= t[0]) || [0, 'Fish'])[1],
   };
 };
 
 const BANNED = ['fuck', 'shit', 'cunt', 'bitch', 'bastard', 'dick', 'cock', 'pussy', 'slut', 'whore', 'nigg', 'fagg', 'retard', 'rape', 'nazi', 'hitler', 'kike', 'spic', 'chink', 'tranny', 'wank', 'twat', 'arse', 'anal', 'porn', 'sex', 'admin', 'moderator', 'suited', 'riverfun', 'support'];
 function checkNick(raw) {
   const n = String(raw || '').trim();
-  if (n.length < 3) return { ok: false, msg: 'at least 3 characters' };
+  if (n.length < 3) return { ok: false, msg: 'At least 3 characters' };
   if (n.length > 16) return { ok: false, msg: '16 characters max' };
-  if (!/^[a-zA-Z0-9._-]+$/.test(n)) return { ok: false, msg: 'letters, numbers, . _ - only' };
+  if (!/^[a-zA-Z0-9._-]+$/.test(n)) return { ok: false, msg: 'Letters, numbers, . _ - only' };
   const flat = n.toLowerCase().replace(/[^a-z]/g, '').replace(/1/g, 'i').replace(/0/g, 'o').replace(/3/g, 'e').replace(/\$/g, 's');
-  if (BANNED.some((b) => flat.includes(b))) return { ok: false, msg: 'pick something else' };
-  return { ok: true, msg: 'saved \u00b7 ' + n, value: n };
+  if (BANNED.some((b) => flat.includes(b))) return { ok: false, msg: 'Pick something else' };
+  return { ok: true, msg: 'Saved \u00b7 ' + n, value: n };
 }
 
 const SUITG = { s: '\u2660', h: '\u2665', d: '\u2666', c: '\u2663' };
 const RANKS = '23456789TJQKA';
-const fmt = (n) => (n == null ? '—' : (Math.abs(n % 1) > 0.001 ? n.toFixed(2) : Math.round(n).toLocaleString('en-US')));
+const fmt = (n) => (n == null ? 'N/A' : (Math.abs(n % 1) > 0.001 ? n.toFixed(2) : Math.round(n).toLocaleString('en-US')));
 /* The same figure counted in big blinds. Two decimal places at MOST — a stack
    is "97.5 bb", never "97.49999999999999" and never "97.50" — so trailing zeros
    go and a round number reads round. `toLocaleString` does both jobs in one
@@ -426,7 +467,7 @@ const fmt = (n) => (n == null ? '—' : (Math.abs(n % 1) > 0.001 ? n.toFixed(2) 
    Below a hundredth of a blind it would print "0", which reads as nothing at
    all where something was actually bet, so that floor is shown as "<0.01". */
 const fmtBB = (n) => {
-  if (n == null) return '\u2014';
+  if (n == null) return 'N/A';
   const r = Math.round(n * 100) / 100;
   if (r === 0 && n > 0) return '<0.01';
   return r.toLocaleString('en-US', { maximumFractionDigits: 2 });
@@ -447,7 +488,7 @@ const mergeHistory = (incoming, existing) => {
 
 const fmtCountdown = (ms) => {
   if (ms == null) return '';
-  if (ms <= 0) return 'drawing…';
+  if (ms <= 0) return 'Drawing…';
   const s = Math.floor(ms / 1000);
   const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
   const p = (x) => String(x).padStart(2, '0');
@@ -503,7 +544,7 @@ const fmtShort = (ms) => {
 };
 /* Once an event is past registering, the state IS the status line. */
 const T_STATE_LABEL = {
-  locked: 'starting…', running: 'in progress', final_table: 'final table',
+  locked: 'starting…', running: 'In progress', final_table: 'Final table',
   complete: 'finished', cancelled: 'cancelled',
 };
 /* The one clock both the list rows and the detail screen read, so a row and the
@@ -523,14 +564,14 @@ const tCountdown = (state, openAt, startAt, now) => {
   if (state === 'scheduled' && openAt != null) {
     const ms = openAt - t;
     return ms <= 0
-      ? { label: 'registration opening…', clock: false, urgent: true }
-      : { label: `registration opens in ${fmtShort(ms)}`, clock: true, urgent: ms <= 60_000 };
+      ? { label: 'Registration opening…', clock: false, urgent: true }
+      : { label: `Registration opens in ${fmtShort(ms)}`, clock: true, urgent: ms <= 60_000 };
   }
   if (state === 'registering' && startAt != null) {
     const ms = startAt - t;
     return ms <= 0
-      ? { label: 'starting…', clock: false, urgent: true }
-      : { label: `starts in ${fmtShort(ms)}`, clock: true, urgent: ms <= 120_000 };
+      ? { label: 'Starting…', clock: false, urgent: true }
+      : { label: `Starts in ${fmtShort(ms)}`, clock: true, urgent: ms <= 120_000 };
   }
   return { label: T_STATE_LABEL[state] || '', clock: false, urgent: false };
 };
@@ -831,10 +872,9 @@ export default class SuitedApp extends React.Component<any, any> {
   declare _resuming: any;
   declare _seatConfirmedAt: any;
   declare _sessionDead: any;
+  declare _srvSittingOut: any;
   declare _stakingPainted: any;
   declare _tDue: any;
-  declare _tex: any;
-  declare _texStyle: any;
   declare _tickFor: any;
   declare _tw: any;
   declare _twCtx: any;
@@ -1217,55 +1257,6 @@ export default class SuitedApp extends React.Component<any, any> {
     if (el) this.paintStaking();
   };
 
-  /* The brass guilloché behind a hero panel. Generated rather than drawn: the
-     brief allows no images, and a banknote pattern is a few hundred bytes of
-     sine waves. Kept identical to `guilloche()` in engine/staking-render.js so
-     the lobby, hands and tournaments heroes read as the same object as the
-     staking one. (The leaderboard has no hero — it keeps its own cream tiles.)
-     Computed once — it depends on nothing.
-
-     It ships as a background-image on a whole-value `style` hole, NOT as an
-     inline `<path d="{{ … }}">`. The template streams as raw HTML before holes
-     resolve, so the SVG parser reaches a literal `d="{{ heroTex }}"` and
-     rejects it ("Expected moveto path command") before the runtime ever fills
-     it in — the same class of hole the avatar disc avoids by carrying its
-     image in `style` rather than `src`. An unresolved `style` is discarded
-     harmlessly; an unresolved `d` is a parse error that leaves the hero bare. */
-  heroTexStyle() {
-    if (this._texStyle) return this._texStyle;
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1120 280" preserveAspectRatio="xMidYMid slice">'
-      + `<path d="${this.guilloche()}" fill="none" stroke="#a78bfa" stroke-width=".55" opacity=".14"/></svg>`;
-    this._texStyle = 'position:absolute;inset:0;pointer-events:none;'
-      + `background:center/cover no-repeat url("data:image/svg+xml,${encodeURIComponent(svg)}")`;
-    return this._texStyle;
-  }
-
-  guilloche() {
-    if (this._tex) return this._tex;
-    const W = 1120, cx = W * 0.8, cy = 140, R = 132, paths = [];
-    for (let k = 0; k < 6; k++) {
-      const rr = R * (0.55 + k * 0.08), amp = R * 0.15, lobes = 11 + k * 2, phase = k * 0.5;
-      let p = '';
-      for (let i = 0; i <= 200; i++) {
-        const th = (i / 200) * Math.PI * 2;
-        const r = rr + amp * Math.cos(lobes * th + phase);
-        p += `${i ? 'L' : 'M'}${(cx + r * Math.cos(th)).toFixed(1)} ${(cy + r * Math.sin(th) * 0.86).toFixed(1)}`;
-      }
-      paths.push(`${p}Z`);
-    }
-    for (let j = 0; j < 15; j++) {
-      const y0 = 10 + j * 19;
-      let p = '';
-      for (let i = 0; i <= 90; i++) {
-        const x = (i / 90) * W;
-        p += `${i ? 'L' : 'M'}${x.toFixed(1)} ${(y0 + 8 * Math.sin(x / 61 + j * 0.55) + 4 * Math.sin(x / 24 + j)).toFixed(1)}`;
-      }
-      paths.push(p);
-    }
-    this._tex = paths.join(' ');
-    return this._tex;
-  }
-
   syncCard() {
     const want = !!(this.cardEl && this.ctaEl);
     if (want === !!this.cardOn) return;
@@ -1481,6 +1472,7 @@ export default class SuitedApp extends React.Component<any, any> {
     // deals, holds the clocks and owns every balance. Without one, the original
     // local demo runs exactly as before. Nothing below this line knows which.
     this.server = serverUrl();
+    ROOMS_PENDING = !!this.server && !LIVE_ROOMS;
     this.wallet = this.server
       ? R.wallet.createServerWallet({ endpoint: this.server })
       : R.wallet.createMockWallet({ balance: this.state.balance, avatar: this.state.avatar, wagered: this.state.wagered, nick: this.state.nick });
@@ -1567,7 +1559,7 @@ export default class SuitedApp extends React.Component<any, any> {
           // so the .catch never fires and the client floods the gateway with
           // /api/auth/dev + /api/me until the tab is closed. One attempt only —
           // a still-absent token is a dead end, so surface it and stop.
-          if (!this.wallet.token()) { this.toast('could not start a guest session', 'bad'); return; }
+          if (!this.wallet.token()) { this.toast('Could not start a guest session', 'bad'); return; }
           this.openTable(tableId, opts);
         })
         .catch((e) => this.toast(String((e && e.message) || e), 'bad'));
@@ -1578,6 +1570,7 @@ export default class SuitedApp extends React.Component<any, any> {
     // whether the player still holds a seat — the gateway's first projection
     // answers that. `_resuming` is the note to reconcile `seated` to it once.
     this._resuming = !!(opts && opts.resume);
+    this._srvSittingOut = null;
     if (this.adapter) { this.unsub && this.unsub(); this.adapter.destroy(); this.adapter = null; }
     this.clearTimers();
     clearInterval(this.tickTimer);
@@ -1618,7 +1611,7 @@ export default class SuitedApp extends React.Component<any, any> {
             // the felt for the lobby rather than sitting on a table that no longer
             // exists. The host's own client lands here too, right after its close.
             if (code === 'room_closed') {
-              this.toast(msg || 'this private room has closed', 'ok');
+              this.toast(msg || 'This private room has closed', 'ok');
               if (this.adapter) { this.unsub && this.unsub(); this.adapter.destroy(); this.adapter = null; }
               this.closeTable();
               return;
@@ -1634,12 +1627,12 @@ export default class SuitedApp extends React.Component<any, any> {
                is the only notice that ever arrives — and without acting on it
                `session` outlives a table that provably does not exist. */
             if (code === 'no_table') {
-              this.toast(msg || 'that table has closed', 'warn');
+              this.toast(msg || 'That table has closed', 'warn');
               this.closeTable();
               return;
             }
             if (code === 'session_expired') {
-              this.toast(msg || 'your session expired \u2014 sign in again', 'warn');
+              this.toast(msg || 'Your session expired, sign in again', 'warn');
               return;
             }
             this.toast(msg, 'bad');
@@ -1696,7 +1689,7 @@ export default class SuitedApp extends React.Component<any, any> {
    */
   quickSit = (stakeId) => {
     const at = ROOMS_ALL().filter((r) => r.stake === stakeId && r.open);
-    if (!at.length) return this.toast('no open seat at that stake', 'bad');
+    if (!at.length) return this.toast('No open seat at that stake', 'bad');
     const target = at.slice().sort((a, b) => b.seated - a.seated)[0];
     this.sitAt(target.id);
   };
@@ -1711,7 +1704,7 @@ export default class SuitedApp extends React.Component<any, any> {
       // deposit" \u2014 re-read it on the way in rather than showing the figure
       // from connect time.
       if (this.wallet && this.wallet.refreshWallet) this.wallet.refreshWallet();
-      this.toast(`${tbl.name} needs ${fmt(tbl.min)} usdg \u2014 top up your bankroll`, 'bad');
+      this.toast(`${tbl.name} needs ${fmt(tbl.min)} USDG, top up your bankroll`, 'bad');
       return;
     }
     if (this.wallet && this.wallet.refreshWallet) this.wallet.refreshWallet();
@@ -1839,11 +1832,11 @@ export default class SuitedApp extends React.Component<any, any> {
             fx: {
               ...s.fx,
               callout: top ? {
-                text: top.name || 'takes it down',
+                text: top.name || 'Takes it down',
                 // In big blinds the figure carries its own unit, so the trailing
                 // "usdg"/"chips" would read "12.5 bb usdg". The blind comes off
                 // this event's own projection, like the log's — see `pushLog`.
-                amount: `${top.split ? 'split \u00b7 ' : ''}${this.amt(top.amount, t.bb)}${this.state.amountUnit === 'bb' ? '' : ` ${isChipTable ? 'chips' : 'usdg'}`} to ${name(top.seat)}`,
+                amount: `${top.split ? 'Split \u00b7 ' : ''}${this.amt(top.amount, t.bb)}${this.state.amountUnit === 'bb' ? '' : ` ${isChipTable ? 'chips' : 'USDG'}`} to ${name(top.seat)}`,
                 win: !!heroWin, big,
               } : null,
             },
@@ -1900,7 +1893,7 @@ export default class SuitedApp extends React.Component<any, any> {
         if (away) {
           // the only cue allowed to cross screens — and only for a real turn
           if (this.sound) this.sound.play('alert');
-          this.toast('your turn at ' + tableById((this.state.session || {}).tableId).name, 'warn');
+          this.toast('Your turn at ' + tableById((this.state.session || {}).tableId).name, 'warn');
         } else snd('turnStart');
         const legal = this.adapter.getLegal();
         this.setState({ betTo: legal ? legal.minRaiseTo : 0 });
@@ -1910,12 +1903,12 @@ export default class SuitedApp extends React.Component<any, any> {
         if (this.state.preAction) this.later(() => this.applyPreAction(legal), 260);
       }
       if (e.t === 'turn' || e.t === 'timebank') this._tickFor = null;   // the tail restarts it, keyed on the new clock
-      if (e.t === 'timebank') this.pushLog(`you engage the time bank \u00b7 ${e.seconds}s`, 'acc');
+      if (e.t === 'timebank') this.pushLog(`You engage the time bank \u00b7 ${e.seconds}s`, 'acc');
       if (e.t === 'connection') {
         this.pushLog(
           e.status === 'online' ? 'reconnected'
-            : e.status === 'expired' ? 'session expired \u2014 sign in again to retake your seat'
-            : 'connection lost \u2014 holding your seat',
+            : e.status === 'expired' ? 'Session expired, sign in again to retake your seat'
+            : 'Connection lost, holding your seat',
           'acc',
         );
       }
@@ -1946,6 +1939,27 @@ export default class SuitedApp extends React.Component<any, any> {
       } else if (this.state.seated && Date.now() - (this._seatConfirmedAt || 0) > SEAT_LOST_MS) {
         seatPatch.seated = false;
       }
+      /* Sitting out, the same way — but on the server's *edges*, not its level.
+         The resume reconcile above runs once; after it the pill only ever heard
+         the player's own clicks, so a seat the gateway sat out by itself (the
+         turn clock ran dry on someone away from the keyboard) kept reading
+         "Sit up", and the click re-sent `situp` for the state it was already
+         in. Comparing every frame would fight the window where a click is the
+         intent and the projection is still the old truth; a *change* in the
+         projection is the server deciding something, and that is always news.
+         A bust is left alone: it sits the seat out too, but the rebuy modal
+         owns that state and clears it with its own sit-in. */
+      const heroSeat = t.heroIdx != null ? (t.seats || [])[0] : null;
+      const srvOut = heroSeat ? !!heroSeat.sittingOut : null;
+      if (srvOut != null && this._srvSittingOut != null && srvOut !== this._srvSittingOut
+        && srvOut !== this.state.sittingOut && (!srvOut || (heroSeat.stack || 0) > 0)) {
+        seatPatch.sittingOut = srvOut;
+        if (srvOut) {
+          seatPatch.preAction = null;
+          this.toast('You were sat out · sit down to be dealt back in', 'warn');
+        }
+      }
+      this._srvSittingOut = srvOut;
     }
 
     /* Merge, do not replace. Two sources fill `history` and they carry
@@ -2012,7 +2026,7 @@ export default class SuitedApp extends React.Component<any, any> {
   // the browser tab is the other place a player might be looking
   syncTitle(t) {
     const mine = t && t.toAct === 0 && this.state.seated;
-    const want = mine && (this.state.screen !== 'table' || document.hidden) ? '(!) your turn \u2014 suited' : 'suited \u2014 onchain hold\u2019em';
+    const want = mine && (this.state.screen !== 'table' || document.hidden) ? '(!) Your turn \u00b7 Suited' : 'Suited \u00b7 onchain hold\u2019em';
     if (document.title !== want) document.title = want;
   }
 
@@ -2140,7 +2154,7 @@ export default class SuitedApp extends React.Component<any, any> {
           () => { this.onResize(); this.syncTitle(this.state.table); },
         );
       })
-      .catch(() => { this.toast('that room has closed', 'bad'); this.go('lobby', true)(); });
+      .catch(() => { this.toast('That room has closed', 'bad'); this.go('lobby', true)(); });
   };
 
   /* A room response comes back isHost when the authenticated requester created it.
@@ -2236,7 +2250,7 @@ export default class SuitedApp extends React.Component<any, any> {
     if (this._sessionDead) return;
     this._sessionDead = true;
     this.wallet && this.wallet.disconnect && this.wallet.disconnect();
-    this.toast('your session expired \u2014 sign in again', 'warn');
+    this.toast('Your session expired, sign in again', 'warn');
     if (this.state.screen !== 'table') {
       this.setState({ screen: 'connect', connectStep: 0 }, () => this.onResize());
     }
@@ -2244,7 +2258,7 @@ export default class SuitedApp extends React.Component<any, any> {
 
   joinRoom = () => {
     const slug = this.state.roomSlug, pin = this.state.roomPin;
-    if (!/^\d{4}$/.test(pin)) { this.setState({ roomMsg: 'enter the four-digit pin', roomBad: true }); this.sfx('error'); return; }
+    if (!/^\d{4}$/.test(pin)) { this.setState({ roomMsg: 'Enter the four-digit pin', roomBad: true }); this.sfx('error'); return; }
     this.setState({ roomBusy: true, roomMsg: '', roomBad: false });
     this.ensureIdentity()
       .then(() => fetch(`${this.server}/api/rooms/${encodeURIComponent(slug)}/join`, {
@@ -2262,7 +2276,7 @@ export default class SuitedApp extends React.Component<any, any> {
         // dead end. A real error with a token in hand is a wrong pin: show it.
         if (!this.hasToken()) {
           this.setState({ roomBusy: false, screen: 'connect', connectStep: 0 });
-          this.toast('connect a wallet to join the room', 'ok');
+          this.toast('Connect a wallet to join the room', 'ok');
           return;
         }
         this.setState({ roomBusy: false, roomMsg: String((e && e.message) || e), roomBad: true }); this.sfx('error');
@@ -2285,11 +2299,11 @@ export default class SuitedApp extends React.Component<any, any> {
     // message; the server stays the source of truth via its {error,code}. The
     // link is server-generated now, so there is nothing to validate for it here.
     const sb = toMicro(s.crSb), bb = toMicro(s.crBb), min = toMicro(s.crMin), max = toMicro(s.crMax);
-    if (!(sb > 0 && bb > 0 && sb <= bb)) { this.setState({ crMsg: 'small blind must be positive and no larger than the big blind', crBad: true }); this.sfx('error'); return; }
-    if (!(min > 0 && max >= min)) { this.setState({ crMsg: 'the maximum buy-in must be at least the minimum', crBad: true }); this.sfx('error'); return; }
+    if (!(sb > 0 && bb > 0 && sb <= bb)) { this.setState({ crMsg: 'Small blind must be positive and no larger than the big blind', crBad: true }); this.sfx('error'); return; }
+    if (!(min > 0 && max >= min)) { this.setState({ crMsg: 'The maximum buy-in must be at least the minimum', crBad: true }); this.sfx('error'); return; }
     const seats = Number(s.crSeats);
-    if (!(seats >= 2 && seats <= 6)) { this.setState({ crMsg: 'a table holds two to six seats', crBad: true }); this.sfx('error'); return; }
-    if (!/^\d{4}$/.test(s.crPin)) { this.setState({ crMsg: 'pin must be four digits', crBad: true }); this.sfx('error'); return; }
+    if (!(seats >= 2 && seats <= 6)) { this.setState({ crMsg: 'A table holds two to six seats', crBad: true }); this.sfx('error'); return; }
+    if (!/^\d{4}$/.test(s.crPin)) { this.setState({ crMsg: 'Pin must be four digits', crBad: true }); this.sfx('error'); return; }
     this.setState({ crBusy: true, crMsg: '', crBad: false });
     this.ensureIdentity()
       .then(() => fetch(`${this.server}/api/rooms`, {
@@ -2311,7 +2325,7 @@ export default class SuitedApp extends React.Component<any, any> {
       .catch((e) => {
         if (!this.hasToken()) {
           this.setState({ crBusy: false, createRoomOn: false, screen: 'connect', connectStep: 0 });
-          this.toast('connect a wallet to open a room', 'ok');
+          this.toast('Connect a wallet to open a room', 'ok');
           return;
         }
         this.setState({ crBusy: false, crMsg: String((e && e.message) || e), crBad: true }); this.sfx('error');
@@ -2767,7 +2781,7 @@ export default class SuitedApp extends React.Component<any, any> {
       }
       if (screen === 'profile' && this.server && !this.state.wallet) {
         this.setState({ screen: 'connect', connectStep: 0 });
-        this.toast('connect a wallet to create a profile', 'ok');
+        this.toast('Connect a wallet to create a profile', 'ok');
       }
       // The table is not a shop window: without a wallet there is nothing to
       // sit down with. This closes the NAV route only. `/table/<id>` still
@@ -2777,7 +2791,7 @@ export default class SuitedApp extends React.Component<any, any> {
       // product decision, not an oversight in this branch.
       if (screen === 'table' && this.server && !this.state.wallet) {
         this.setState({ screen: 'connect', connectStep: 0 });
-        this.toast('connect a wallet to sit at a table', 'ok');
+        this.toast('Connect a wallet to sit at a table', 'ok');
       }
       if (screen === 'landing') this.loadStats();
       // The lobby's biggest-pots panel reads the same /api/jackpot payload the
@@ -2961,7 +2975,7 @@ export default class SuitedApp extends React.Component<any, any> {
       };
     };
     return {
-      chainTabs: [tab('evm', 'ethereum'), tab('solana', 'solana')],
+      chainTabs: [tab('evm', 'Ethereum'), tab('solana', 'Solana')],
       chainTabsStyle: 'display:flex;align-items:center;gap:10px;flex-wrap:wrap',
       /* A line above the list, shown when nothing on this chain is installed.
          The list itself is never empty now — every catalogue wallet gets an
@@ -2969,8 +2983,8 @@ export default class SuitedApp extends React.Component<any, any> {
          apologising for an empty panel. */
       chainEmpty: !this.walletRowsForChain().some((w) => w.detected),
       chainEmptyNote: resolved === 'solana'
-        ? 'no solana wallet in this browser yet. pick one below to install it — this list fills itself once it is ready.'
-        : 'no ethereum wallet in this browser yet. pick one below to install it — this list fills itself once it is ready.',
+        ? 'No Solana wallet in this browser yet. Pick one below to install it, this list fills itself once it is ready.'
+        : 'No Ethereum wallet in this browser yet. Pick one below to install it, this list fills itself once it is ready.',
       chainEmptyStyle: `padding:22px 18px;font-size:14px;line-height:1.55;color:${MUTED};`
         + 'border-top:1px solid rgba(232,236,248,0.14);border-bottom:1px solid rgba(232,236,248,0.14)',
     };
@@ -3004,7 +3018,7 @@ export default class SuitedApp extends React.Component<any, any> {
       // The funding step doubles as sign-up, and its name prompt needs to
       // know whether this account already claimed one.
       this.loadMe();
-      this.toast('wallet connected \u00b7 ' + name, 'ok');
+      this.toast('Wallet connected \u00b7 ' + name, 'ok');
       this.checkJackpotWin();
     }).catch((err) => {
       // Dismissing a wallet popup is the most common wallet interaction there
@@ -3026,11 +3040,11 @@ export default class SuitedApp extends React.Component<any, any> {
   openInstall = (row) => () => {
     this.sfx('ui');
     if (!row.install) {
-      this.toast(`${row.label.split(' · ')[0]} installs from the chrome web store — this browser cannot use it`, 'bad');
+      this.toast(`${row.label} installs from the Chrome Web Store, this browser cannot use it`, 'bad');
       return;
     }
     window.open(row.install, '_blank', 'noopener,noreferrer');
-    this.toast(`opening the chrome web store · ${row.label.split(' · ')[0]}`, 'ok');
+    this.toast(`Opening the Chrome Web Store · ${row.label}`, 'ok');
   };
 
   /* ── funding ────────────────────────────────────────────────────────────
@@ -3070,9 +3084,11 @@ export default class SuitedApp extends React.Component<any, any> {
           // history worth charting it stays flat rather than inventing a curve.
           spark: '\u2581'.repeat(12),
         }));
+        ROOMS_PENDING = false;
         this.setState({ roomsAt: Date.now(), playersOnline: body.playersOnline ?? 0 });
       })
-      .catch(() => {});
+      // No gateway answer: fall back to the demo set, as before.
+      .catch(() => { if (ROOMS_PENDING) { ROOMS_PENDING = false; this.setState({ roomsAt: Date.now() }); } });
   };
 
   /**
@@ -3091,7 +3107,7 @@ export default class SuitedApp extends React.Component<any, any> {
     if (this.state.fundBusy) return;
     const amount = Number(this.state.fundDraft);
     if (!(amount > 0)) {
-      this.setState({ fundNote: 'enter an amount first', fundBad: true });
+      this.setState({ fundNote: 'Enter an amount first', fundBad: true });
       return;
     }
     if (!this.wallet || !this.wallet[dir]) {
@@ -3105,10 +3121,10 @@ export default class SuitedApp extends React.Component<any, any> {
         // seconds and a link nobody can reach is not a receipt.
         this.setState({
           fundBusy: false, fundDraft: '', fundBad: false,
-          fundNote: `${dir === 'deposit' ? 'deposited' : 'withdrew'} ${fmt(amount)} usdg`,
+          fundNote: `${dir === 'deposit' ? 'Deposited' : 'Withdrew'} ${fmt(amount)} USDG`,
           fundTx: (r && r.explorer) || null,
         });
-        this.toast(`${dir === 'deposit' ? 'deposited' : 'withdrew'} ${fmt(amount)} usdg`, 'ok');
+        this.toast(`${dir === 'deposit' ? 'Deposited' : 'Withdrew'} ${fmt(amount)} usdg`, 'ok');
         this.sfx('chips');
       })
       .catch((e) => {
@@ -3144,7 +3160,7 @@ export default class SuitedApp extends React.Component<any, any> {
       .then((b) => {
         this.setState({ nick: b.name, snMsg: '', snBad: false });
         this.loadMe();
-        this.toast(`you play as ${b.name}`, 'ok');
+        this.toast(`You play as ${b.name}`, 'ok');
         this.sfx('seat');
       })
       .catch((e) => {
@@ -3261,14 +3277,14 @@ export default class SuitedApp extends React.Component<any, any> {
     if (!token || this.state.rbBusy) return;
     // Rakeback now redeems as one signed transaction straight to the wallet
     // (prepare -> sign -> submit), handled by the wallet like a withdrawal.
-    if (!this.wallet.redeemRakeback) { this.toast('rakeback redemption is not available here', 'bad'); return; }
+    if (!this.wallet.redeemRakeback) { this.toast('Rakeback redemption is not available here', 'bad'); return; }
     this.setState({ rbBusy: true, rbTx: null });
     this.wallet.redeemRakeback()
       .then((r) => {
         this.setState({ rbBusy: false, rbTx: (r && r.explorer) || null });
         this.wallet.refresh && this.wallet.refresh();
         this.loadRakeback();
-        this.toast(`redeemed ${fmt(r.redeemed / 1e6)} usdg rakeback`, 'ok');
+        this.toast(`redeemed ${fmt(r.redeemed / 1e6)} USDG rakeback`, 'ok');
         this.sfx('chips');
       })
       .catch((e) => { this.setState({ rbBusy: false, rbTx: null }); this.toast(String((e && e.message) || e), 'bad'); });
@@ -3349,7 +3365,7 @@ export default class SuitedApp extends React.Component<any, any> {
       const ch = await authed(`/api/tournaments/${id}/register/challenge`, {});
       const signature = await this.wallet.signMessage(ch.message);
       await authed(`/api/tournaments/${id}/register`, { nonce: ch.nonce, signature });
-      this.toast('registered for the tournament', 'ok');
+      this.toast('Registered for the tournament', 'ok');
       this.sfx('chips');
       this.loadTournaments();   // refresh the list
       // Registering is the moment this client acquires a pending event, so it
@@ -3382,7 +3398,7 @@ export default class SuitedApp extends React.Component<any, any> {
       const ch = await authed(`/api/tournaments/${id}/unregister/challenge`, {});
       const signature = await this.wallet.signMessage(ch.message);
       await authed(`/api/tournaments/${id}/unregister`, { nonce: ch.nonce, signature });
-      this.toast('withdrew from the tournament', 'ok');
+      this.toast('Withdrew from the tournament', 'ok');
       // Part 4 Task 3: withdrawing from the event this client is tracking ends
       // the session — stop the poll/ticker and drop the state machine.
       if (this.state.tSession && this.state.tSession.tournamentId === id) this.endTournamentSession();
@@ -3625,7 +3641,7 @@ export default class SuitedApp extends React.Component<any, any> {
         if (d.state === 'cancelled') {
           if (this.adapter) { this.unsub && this.unsub(); this.adapter.destroy(); this.adapter = null; }
           this.endTournamentSession();
-          this.toast('tournament cancelled — your buy-in was refunded', 'warn');
+          this.toast('Tournament cancelled, your buy-in was refunded', 'warn');
           this.go('tournaments', true)(); // silent — re-arms the ticker + re-reads the list, which a bare setState skips
           return;
         }
@@ -3997,7 +4013,7 @@ export default class SuitedApp extends React.Component<any, any> {
         this.wallet.stake(staking, stakeToken,
           amountBase === undefined ? wholeUnits(this.state.stkDraft) : amountBase,
           tier === undefined ? this.state.stkTier : tier, onStep)),
-      relock: (id, tier) => this.stakingAct('lock extended', (onStep) => this.wallet.relock(staking, id, tier, onStep)),
+      relock: (id, tier) => this.stakingAct('Lock extended', (onStep) => this.wallet.relock(staking, id, tier, onStep)),
       withdraw: (id) => this.stakingAct('withdrawn', (onStep) => this.wallet.unstake(staking, id, onStep)),
       claim: () => this.stakingAct('claimed', (onStep) => this.wallet.claimStakingRewards(staking, onStep)),
     };
@@ -4051,7 +4067,7 @@ export default class SuitedApp extends React.Component<any, any> {
     fetch(`${this.server}/api/jackpot/draw?day=${encodeURIComponent(week)}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((rec) => set({ out: this.R.drawVerify.verifyDraw(rec, this.state.wallet ? this.state.wallet.addr : null) }))
-      .catch((err) => set({ err: (err && err.message) || 'network error' }));
+      .catch((err) => set({ err: (err && err.message) || 'Network error' }));
   };
 
   // A winner may never open the jackpot tab — a holder who won without playing
@@ -4066,7 +4082,7 @@ export default class SuitedApp extends React.Component<any, any> {
         if (this._jkWinTold) return;
         this._jkWinTold = true;
         const amount = fmt(Number(v.amount) / 1e6);
-        this.toast(`you won the jackpot \u00b7 ${amount} \u2014 claim it on the leaderboard\u2019s jackpot tab`, 'good');
+        this.toast(`You won the jackpot \u00b7 ${amount}, claim it on the leaderboard\u2019s jackpot tab`, 'good');
       })
       .catch(() => {});
   };
@@ -4080,15 +4096,15 @@ export default class SuitedApp extends React.Component<any, any> {
     this.wallet.claimJackpot()
       .then((r) => {
         this.setState({
-          jkClaiming: false, jkVoucher: null, jkClaimMsg: 'claimed — paid to your wallet',
+          jkClaiming: false, jkVoucher: null, jkClaimMsg: 'Claimed, paid to your wallet',
           jkClaimTx: (r && r.explorer) || null,
         });
-        this.toast('jackpot claimed', 'good');
+        this.toast('Jackpot claimed', 'good');
         this.loadJackpot();
       })
       .catch((err) => {
-        this.setState({ jkClaiming: false, jkClaimMsg: (err && err.message) || 'claim failed', jkClaimTx: null });
-        this.toast((err && err.message) || 'claim failed', 'bad');
+        this.setState({ jkClaiming: false, jkClaimMsg: (err && err.message) || 'Claim failed', jkClaimTx: null });
+        this.toast((err && err.message) || 'Claim failed', 'bad');
       });
   };
 
@@ -4106,14 +4122,14 @@ export default class SuitedApp extends React.Component<any, any> {
     const amount = Number(this.state.depositDraft);
     const min = this.state.chain && this.state.chain.minDeposit ? this.state.chain.minDeposit / 1e6 : 1;
     if (!Number.isFinite(amount) || amount < min) {
-      this.toast(`minimum deposit is ${fmt(min)} usdg`, 'bad');
+      this.toast(`Minimum deposit is ${fmt(min)} usdg`, 'bad');
       return;
     }
     this.setState({ depositing: true });
     this.wallet.deposit(amount)
       .then(({ balance }) => {
         this.setState({ depositing: false, depositDraft: '', screen: 'lobby' }, this.onResize);
-        this.toast(`deposited ${fmt(amount)} usdg · bankroll ${fmt(balance)}`, 'ok');
+        this.toast(`deposited ${fmt(amount)} USDG · bankroll ${fmt(balance)}`, 'ok');
         this.sfx('seat');
       })
       .catch((e) => {
@@ -4125,7 +4141,7 @@ export default class SuitedApp extends React.Component<any, any> {
   doFaucet = () => {
     if (!this.wallet || !this.wallet.faucet) return;
     this.wallet.faucet()
-      .then((b) => this.toast(`test usdg added · bankroll ${fmt(b)}`, 'ok'))
+      .then((b) => this.toast(`Test USDG added · bankroll ${fmt(b)}`, 'ok'))
       .catch((e) => this.toast(String((e && e.message) || e), 'bad'));
   };
 
@@ -4141,7 +4157,7 @@ export default class SuitedApp extends React.Component<any, any> {
     const amount = this.state.buyIn == null
       ? clamp(this.state.balance, 0, tbl.max)
       : clamp(snapMoney(this.state.buyIn), tbl.min, ceil);
-    if (amount < tbl.min) { this.toast(`${tbl.name} needs ${fmt(tbl.min)} usdg to sit`, 'bad'); return; }
+    if (amount < tbl.min) { this.toast(`${tbl.name} needs ${fmt(tbl.min)} USDG to sit`, 'bad'); return; }
     if (!this.adapter || !this.state.session || this.state.session.tableId !== tbl.id) {
       this.openTable(tbl.id, { buyIn: amount });
     }
@@ -4161,7 +4177,7 @@ export default class SuitedApp extends React.Component<any, any> {
     // server's own `heroIdx`, that we are actually spectating.
     this._seatConfirmedAt = Date.now();
     this.setState({ seated: true, screen: 'table' }, this.onResize);
-    this.toast(`seated at ${tbl.name} \u00b7 ${fmt(amount)} usdg`, 'ok');
+    this.toast(`Seated at ${tbl.name} \u00b7 ${fmt(amount)} usdg`, 'ok');
     this.sfx('seat');
   };
 
@@ -4179,12 +4195,12 @@ export default class SuitedApp extends React.Component<any, any> {
     const stakesLabel = () => {
       if (isTournamentTable) return t && t.bb ? `${fmt(t.sb)}/${fmt(t.bb)}` : '';
       const s = st.session ? tableById(st.session.tableId) : null;
-      return s ? `${stakes(s)} usdg` : '';
+      return s ? `${stakes(s)} USDG` : '';
     };
     const g = this.geo();
     const c = st.compact;
     const scr = st.screen;
-    const walletShort = st.wallet ? st.wallet.addr.slice(0, 4) + '\u2026' + st.wallet.addr.slice(-4) : 'not connected';
+    const walletShort = st.wallet ? st.wallet.addr.slice(0, 4) + '\u2026' + st.wallet.addr.slice(-4) : 'Not connected';
 
     // Fund & sit. With one bankroll behind every table there is nothing to pick
     // a buy-in with: you bring the table maximum, or everything you have if
@@ -4218,7 +4234,7 @@ export default class SuitedApp extends React.Component<any, any> {
     const lbAhead = (lb && lb.ahead) || null;
     const lbMin = (lb && lb.minHands) || 30;
     const lbStakeName = st.lbStake ? ((STAKES.find((x) => x.id === st.lbStake) || {}).name || st.lbStake) : null;
-    const lbPeriodName = st.lbPeriod === '7d' ? 'this week' : st.lbPeriod === 'all' ? 'all time' : 'today';
+    const lbPeriodName = st.lbPeriod === '7d' ? 'This week' : st.lbPeriod === 'all' ? 'All time' : 'Today';
     const lbCtx = `${lbPeriodName}${lbStakeName ? ' · ' + lbStakeName : ''}`;
 
     /* Jackpot + Records views. Both read one /api/jackpot payload (st.jk):
@@ -4248,11 +4264,11 @@ export default class SuitedApp extends React.Component<any, any> {
       let verifyLine = '';
       let verifyTail = '';
       let blockUrl = '';
-      if (v && v.busy) verifyLine = 're-running this draw in your browser\u2026';
-      else if (v && v.err) verifyLine = 'could not load this draw \u2014 ' + v.err;
-      else if (out && !out.verifiable) verifyLine = (out.ok ? '\u2713 the seed and the randomness check out \u2014 ' : '\u2717 ') + (out.reason || '');
+      if (v && v.busy) verifyLine = 'Re-running this draw in your browser\u2026';
+      else if (v && v.err) verifyLine = 'Could not load this draw, ' + v.err;
+      else if (out && !out.verifiable) verifyLine = (out.ok ? '\u2713 The seed and the randomness check out, ' : '\u2717 ') + (out.reason || '');
       else if (out && out.ok) {
-        verifyLine = `\u2713 commitment \u00b7 \u2713 randomness \u00b7 \u2713 all ${out.entries} entries recomputed \u00b7 \u2713 winner \u2014 drawn on Ethereum block`;
+        verifyLine = `\u2713 Commitment \u00b7 \u2713 randomness \u00b7 \u2713 all ${out.entries} entries recomputed \u00b7 \u2713 winner, drawn on Ethereum block`;
         blockUrl = `https://etherscan.io/block/${out.block.number}`;
         verifyTail = '(check its hash, and that it is the first block after 00:00 UTC)'
           + (out.you ? ` \u00b7 you were in it: entry ${out.you.rank}, a ${jkPct(out.you.odds)} chance` : '');
@@ -4265,7 +4281,7 @@ export default class SuitedApp extends React.Component<any, any> {
       const badge = paid ? 'PAID' : w.released ? 'RELEASED' : w.expired ? 'EXPIRED' : 'UNCLAIMED';
       const badgeTone = paid ? '#22d3ee' : w.released || w.expired ? '#94a3c4' : '#a78bfa';
       return {
-      name: w.name || 'player',
+      name: w.name || 'Player',
       sigil: (w.name || '?').slice(0, 2).toLowerCase(),
       when: fmtDay(w.at),
       // The draw's own day key (YYYY-MM-DD), short. `at` is when it was drawn,
@@ -4289,14 +4305,14 @@ export default class SuitedApp extends React.Component<any, any> {
       // prize returns to the pool (held until every voucher has lapsed); then
       // that it has.
       claimNote: w.claimTx ? ''
-        : w.released ? 'unclaimed \u00b7 back in the pool'
-        : w.expired ? 'unclaimed \u00b7 returns to the pool ' + fmtWhen(w.releasedAt)
-        : w.claimBy ? 'claim by ' + fmtWhen(w.claimBy) : '',
+        : w.released ? 'Unclaimed \u00b7 back in the pool'
+        : w.expired ? 'Unclaimed \u00b7 returns to the pool ' + fmtWhen(w.releasedAt)
+        : w.claimBy ? 'Claim by ' + fmtWhen(w.claimBy) : '',
       claimNoteStyle: !w.claimTx && (w.expired || w.claimBy) ? 'font-size:11px;color:#94a3c4;white-space:nowrap' : 'display:none',
       // Re-run the draw here, from what was published. Only for draws made
       // under the pinned-block rule, which keep their whole field.
       verify: this.verifyJackpotDraw(w.week),
-      verifyLabel: v && v.busy ? 'checking\u2026' : out ? (out.ok ? 'verified \u2713' : out.verifiable ? 'failed \u2717' : 'partly \u2713') : 'verify',
+      verifyLabel: v && v.busy ? 'Checking\u2026' : out ? (out.ok ? 'Verified \u2713' : out.verifiable ? 'Failed \u2717' : 'Partly \u2713') : 'Verify',
       verifyStyle: w.verifiable && w.week
         ? 'background:none;border:0;border-bottom:1px dotted rgba(232,236,248,0.3);padding:0;font:inherit;font-size:11px;color:'
           + (out && !out.ok ? '#f0a8b4' : '#94a3c4') + ';cursor:pointer;white-space:nowrap'
@@ -4328,22 +4344,22 @@ export default class SuitedApp extends React.Component<any, any> {
       avInner: p.winnerAvatar ? avInner(p.winnerAvatar) : '',
     }));
 
-    let lbPos = '—', lbPosSub = '', lbGap = '—', lbGapSub = '';
+    let lbPos = 'N/A', lbPosSub = '', lbGap = 'N/A', lbGapSub = '';
     if (!lb) { /* still loading — leave the dashes */ }
-    else if (!st.wallet) { lbPosSub = 'connect to see your rank'; }
-    else if (!lbMine) { lbPos = 'unranked'; lbPosSub = `play ${lbMin} hands to join`; }
+    else if (!st.wallet) { lbPosSub = 'Connect to see your rank'; }
+    else if (!lbMine) { lbPos = 'Unranked'; lbPosSub = `Play ${lbMin} hands to join`; }
     else if (!lbMine.rank) {
       const left = Math.max(1, lbMin - (lbMine.hands || 0));
-      lbPos = 'unranked';
+      lbPos = 'Unranked';
       lbPosSub = `${left} more hand${left === 1 ? '' : 's'} to qualify`;
-      lbGapSub = 'reach the minimum first';
+      lbGapSub = 'Reach the minimum first';
     } else {
       lbPos = '#' + lbMine.rank;
       lbPosSub = lbCtx;
-      if (lbMine.rank === 1 || !lbAhead) { lbGap = 'leader'; lbGapSub = 'you hold the top spot'; }
+      if (lbMine.rank === 1 || !lbAhead) { lbGap = 'Leader'; lbGapSub = 'You hold the top spot'; }
       else {
         lbGap = '+' + fmt(Math.max(0, (lbAhead.net - lbMine.net) / 1e6));
-        lbGapSub = `net to pass ${lbAhead.name}`;
+        lbGapSub = `Net to pass ${lbAhead.name}`;
       }
     }
 
@@ -4356,7 +4372,15 @@ export default class SuitedApp extends React.Component<any, any> {
     // that scope once blanked every screen.
     const CA = (this.R && this.R.token && this.R.token.TOKEN_CA) || '';
 
-    const tab = (on) => `padding:6px 0 5px;border-bottom:1.5px solid ${on ? BRASS : 'transparent'};color:${on ? FELT_INK : MUTED};white-space:nowrap`;
+    /* Game-menu tabs: every tab is a pill with the same padding and a border
+       (transparent when idle), so the row never shifts as you navigate; the
+       active one lights up violet like a selected tab in a game lobby. The
+       idle hover lives in globals.css (.su-tab). */
+    const tab = (on) => `padding:7px 14px;border-radius:10px;border:1px solid ${on ? 'rgba(167,139,250,0.55)' : 'transparent'};`
+      + `display:inline-flex;align-items:center;gap:7px;color:${on ? '#ffffff' : '#aab4cf'};font-weight:${on ? 600 : 400};white-space:nowrap;`
+      + `background:${on ? 'linear-gradient(180deg,rgba(139,92,246,0.4),rgba(109,63,212,0.18))' : 'transparent'};`
+      + `box-shadow:${on ? '0 0 20px -4px rgba(139,92,246,0.8),inset 0 1px 0 rgba(255,255,255,0.16)' : 'none'};`
+      + 'transition:background .18s ease,color .18s ease,box-shadow .18s ease';
     const pill = (on) => `padding:5px 12px;border-radius:999px;font-size:11px;${on ? `background:${ACC};color:${ON_FILL}` : `border:1px solid ${DIM};color:#5b6684`}`;
 
     const vals: any = {
@@ -4376,7 +4400,9 @@ export default class SuitedApp extends React.Component<any, any> {
       // One word decides whether the landing page mentions the token at all —
       // `TOKEN_CA` in engine/token.js, the same value the docs page reads.
       caOn: !!CA, ca: CA, caBuyHref: `https://fomo.family/tokens/robinhood/${CA}`,
-      chromeOn: scr !== 'landing',
+      // No nav bar on the felt: the table gets the full height, and TableDrawer
+      // carries the same links behind one button.
+      chromeOn: scr !== 'landing' && scr !== 'table',
       backRef: this.backRef, frontRef: this.frontRef,
       cardRef: this.cardRef, ctaRef: this.ctaRef, sealedRef: this.sealedRef, verifiedRef: this.verifiedRef,
       docsNavRef: this.docsNavRef, docsScrollRef: this.docsScrollRef, docsBodyRef: this.docsBodyRef,
@@ -4384,8 +4410,6 @@ export default class SuitedApp extends React.Component<any, any> {
       commitBack: this.demoCommit.back, commitFront: this.demoCommit.front, commitStrip: this.demoCommit.strip,
       isLanding: scr === 'landing', isConnect: scr === 'connect', isLobby: scr === 'lobby',
       isSeat: scr === 'seat', isTable: scr === 'table', isHistory: scr === 'history', isProfile: scr === 'profile', isSettings: scr === 'settings', isLeader: scr === 'leaderboard', isRoom: scr === 'room', isTournaments: scr === 'tournaments', isTournamentDetail: scr === 'tournamentDetail', isTournamentResult: scr === 'tournamentResult', isDocs: scr === 'docs', isStaking: scr === 'staking',
-      // One guilloché for every hero on the site — see `heroTexStyle()`.
-      heroTexStyle: this.heroTexStyle(),
       /* "take a seat" means take a seat. Sending a player who is already
          connected and already holding a balance to the funding page asks them
          to solve a problem they do not have — so the connect flow is only on
@@ -4423,6 +4447,8 @@ export default class SuitedApp extends React.Component<any, any> {
       hasTable: (!!st.session && !!st.seated) || scr === 'table',
       tabTable: tab(scr === 'table'),
       tabLobby: tab(scr === 'lobby'),
+      // The header's live chip: people connected right now, off /api/lobby.
+      navOnline: `${Number(st.playersOnline || 0).toLocaleString()} online`,
       tabLeader: tab(scr === 'leaderboard'),
       // The site menu reads as active on the screens it owns, and while it is
       // open — so the row never looks like nothing is selected.
@@ -4446,7 +4472,7 @@ export default class SuitedApp extends React.Component<any, any> {
       headerTier: avTier(st.avatar || DEFAULT_AVATAR),
       headerNameStyle: `max-width:${c ? 96 : 168}px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:${UI};font-size:13px;color:${FELT_INK}`,
       headerCaretStyle: `position:absolute;right:-2px;bottom:-2px;display:flex;align-items:center;justify-content:center;width:13px;height:13px;border-radius:50%;background:${BG};box-shadow:0 0 0 1.5px #b497f7;transform:rotate(${st.walletMenu ? 180 : 0}deg);transition:transform .18s ease`,
-      copyNote: st.copied ? 'copied' : 'copy',
+      copyNote: st.copied ? 'Copied' : 'Copy',
       copyNoteStyle: `font-size:10px;letter-spacing:.16em;color:${st.copied ? ACC2 : 'rgba(232,236,248,0.28)'}`,
 
       /* ── disconnect ──────────────────────────────────────────────────
@@ -4473,9 +4499,9 @@ export default class SuitedApp extends React.Component<any, any> {
           this.later(() => this.setState({ copied: false }), 1600);
         };
         if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(addr).then(done).catch(() => this.toast('could not copy the address', 'bad'));
+          navigator.clipboard.writeText(addr).then(done).catch(() => this.toast('Could not copy the address', 'bad'));
         } else {
-          this.toast('clipboard unavailable in this browser', 'warn');
+          this.toast('Clipboard unavailable in this browser', 'warn');
         }
       },
       // `name` is what the session carries — `label` is the wallet module's own
@@ -4508,12 +4534,12 @@ export default class SuitedApp extends React.Component<any, any> {
           this.sfx('ui');
           this.go('landing')();
         };
-        if (!w || !w.revokeAllSessions) { this.toast('wallet disconnected', 'ok'); letGo(); return; }
+        if (!w || !w.revokeAllSessions) { this.toast('Wallet disconnected', 'ok'); letGo(); return; }
         // A failed revoke still disconnects THIS browser — and says plainly
         // that the other devices may not have been reached.
         w.revokeAllSessions()
-          .then(() => this.toast('disconnected on every device', 'ok'))
-          .catch(() => this.toast('disconnected here — other devices may still be signed in', 'bad'))
+          .then(() => this.toast('Disconnected on every device', 'ok'))
+          .catch(() => this.toast('Disconnected here, other devices may still be signed in', 'bad'))
           .finally(letGo);
       },
       walletName: st.wallet ? st.wallet.name : '',
@@ -4525,7 +4551,7 @@ export default class SuitedApp extends React.Component<any, any> {
       inPlayLabel: fmt(((st.table || { seats: [{}] }).seats[0] || {}).stack || 0),
       inPlayUnit: isTournamentTable ? 'CHIPS' : 'USDG', // a tournament "stack" is chips, not money
 
-      leaveNote: `cash out ${fmt(((st.table || { seats: [{}] }).seats[0] || {}).stack || 0)} after this hand`,
+      leaveNote: `Cash out ${fmt(((st.table || { seats: [{}] }).seats[0] || {}).stack || 0)} after this hand`,
       volDown: this.volDown, volMove: this.volMove, volUp: this.volUp,
       unusedChips: this.R ? [].map((s) => ({
         art: this.R.ascii.CHIP_ART(s.label).join('\n'), style: `position:absolute;left:${s.left}%;top:${s.top}%;font-size:${13 * s.scale}px;line-height:1.05;color:rgba(232,236,248,0.187);transform:rotate(${s.rot}deg);--dx:${s.drift}px;animation:drift ${s.dur}s linear ${s.delay}s infinite`,
@@ -4578,7 +4604,7 @@ export default class SuitedApp extends React.Component<any, any> {
           };
         }),
       approveStyle: `display:${st.approving ? 'flex' : 'none'};flex-direction:column;gap:12px`,
-      approveLabel: st.approving ? `approve in ${st.approving}` : '',
+      approveLabel: st.approving ? `Approve in ${st.approving}` : '',
       backToWallet: () => { this.wallet && this.wallet.disconnect(); this.setState({ connectStep: 0 }); },
       /* \u2500\u2500 fund & sit \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500
          One bankroll funds every table, so there is no per-table buy-in to
@@ -4589,8 +4615,8 @@ export default class SuitedApp extends React.Component<any, any> {
       // wallet, waiting to be deposited — without it, a funded player staring
       // at a zero bankroll reasonably concludes the site is broken.
       walletAvailLabel: st.walletBalance == null
-        ? 'held by the table program'
-        : `${fmt(st.walletBalance)} usdg in your wallet, ready to deposit`,
+        ? 'Held by the table program'
+        : `${fmt(st.walletBalance)} USDG in your wallet, ready to deposit`,
       /* ── sign-up name ──────────────────────────────────────────────
          Seats show real identities now, so the funding step asks for a
          name once. Skippable — until chosen, every surface shows the
@@ -4602,9 +4628,9 @@ export default class SuitedApp extends React.Component<any, any> {
       snInput: (e) => this.setState({ snDraft: e.target.value, snMsg: '' }),
       snKey: (e) => { if (e.key === 'Enter') this.saveSignupNick(); },
       snSave: () => this.saveSignupNick(),
-      snMsg: st.snMsg || `until you pick one, tables show you as ${walletShort}`,
+      snMsg: st.snMsg || `Until you pick one, tables show you as ${walletShort}`,
       snMsgStyle: `font-size:10px;color:${st.snBad ? RED : INK_MUT};margin-top:7px;line-height:1.5`,
-      toLobbyLabel: st.balance > 0 ? 'choose a table \u2192' : 'browse tables \u2192',
+      toLobbyLabel: st.balance > 0 ? 'Choose a table \u2192' : 'Browse tables \u2192',
       toLobbyStyle: `width:100%;padding:13px;border-radius:999px;background:${CTA};color:${CTA_INK};font-size:14px;font-weight:500`,
       depositOn: !this.server || !!(st.chain && st.chain.enabled),
       faucetOn: !!this.server && !(st.chain && st.chain.enabled),
@@ -4616,17 +4642,17 @@ export default class SuitedApp extends React.Component<any, any> {
       dep100: () => this.setState({ depositDraft: '100' }),
       doDeposit: this.doDeposit,
       doFaucet: this.doFaucet,
-      depositBtnLabel: st.depositing ? 'confirm in your wallet\u2026' : 'deposit',
+      depositBtnLabel: st.depositing ? 'Confirm in your wallet\u2026' : 'Deposit',
       depositBtnStyle: `width:100%;padding:11px;border-radius:999px;background:${st.depositing ? 'rgba(232,236,248,0.28)' : CTA};color:${CTA_INK};font-size:13px;font-weight:500`,
-      depositNote: `minimum ${fmt(depMin)} usdg \u00b7 goes to the table program, not to us`,
-      seatLabel: 'first open seat',
-      sitAmountLabel: sitAmount > 0 ? fmt(sitAmount) : '\u2014',
+      depositNote: `Minimum ${fmt(depMin)} USDG \u00b7 goes to the table program, not to us`,
+      seatLabel: 'First open seat',
+      sitAmountLabel: sitAmount > 0 ? fmt(sitAmount) : 'N/A',
       sitBbLabel: sitTable.bb > 0 ? `${Math.round(sitAmount / sitTable.bb)} big blinds` : '',
       sitMinLabel: fmt(sitTable.min),
       sitMaxLabel: fmt(Math.min(sitTable.max, st.balance || sitTable.max)),
-      sitLeftLabel: `${fmt(Math.max(0, st.balance - sitAmount))} usdg`,
+      sitLeftLabel: `${fmt(Math.max(0, st.balance - sitAmount))} USDG`,
       tableRangeLabel: `${fmt(sitTable.min)} \u2013 ${fmt(sitTable.max)} usdg`,
-      sitBtnLabel: canSit ? `take your seat \u00b7 ${fmt(sitAmount)}` : `deposit at least ${fmt(sitTable.min)} to play`,
+      sitBtnLabel: canSit ? `Take your seat \u00b7 ${fmt(sitAmount)}` : `Deposit at least ${fmt(sitTable.min)} to play`,
       /* The one filled action on this screen, painted like every other one.
          It used to be `background:PAPER; color:FELT` — correct when PAPER was a
          cream plate and FELT the dark ink on it, and invisible ever since the
@@ -4675,8 +4701,8 @@ export default class SuitedApp extends React.Component<any, any> {
       // timelocked exit was a normal way to withdraw. It is a safety valve for
       // a server that has stopped answering, and taking it ends your session.
       fundNote: st.fundNote || (st.seated
-        ? 'leave your table before moving funds'
-        : 'withdrawals settle straight away'),
+        ? 'Leave your table before moving funds'
+        : 'Withdrawals settle straight away'),
       fundNoteStyle: `font-size:10px;color:${st.fundNote && st.fundBad ? '#f33f5d' : '#94a3c4'};margin-top:9px;line-height:1.5`,
       // The deposit or withdrawal just made, on the explorer. Present only when
       // there is a transaction AND the deployment names an explorer — a faucet
@@ -4694,20 +4720,20 @@ export default class SuitedApp extends React.Component<any, any> {
       // whatever the balance happens to say next ("minimum 5 usdg to claim"),
       // which is not what the link is a receipt for.
       rbNote: st.rbTx
-        ? 'redeemed to your wallet'
+        ? 'Redeemed to your wallet'
         : !rb
-        ? 'play a hand to start earning'
+        ? 'Play a hand to start earning'
         // The server's own words when it has paused claiming, rather than a
         // greyed-out button with no explanation — the balance is still theirs
         // and still growing, which is the part worth saying.
         : rb.pausedReason
           ? rb.pausedReason
           : rb.canClaim
-            ? 'ready to claim'
-            : `minimum ${fmt(rb.minClaim / 1e6)} usdg to claim`,
+            ? 'Ready to claim'
+            : `Minimum ${fmt(rb.minClaim / 1e6)} USDG to claim`,
       rbTxUrl: st.rbTx || '',
       rbTxStyle: st.rbTx ? RECEIPT_LINK : 'display:none',
-      rbBtnLabel: st.rbBusy ? 'claiming…' : 'claim',
+      rbBtnLabel: st.rbBusy ? 'Claiming…' : 'Claim',
       rbClaim: this.claimRakeback,
       rbBtnStyle: `padding:10px 22px;border-radius:5px;font-size:13px;font-weight:500;${rb && rb.canClaim && !st.rbBusy ? 'background:linear-gradient(180deg,#8b5cf6,#6d3fd4);border:1px solid rgba(255,255,255,0.165);box-shadow:inset 0 1px 0 rgba(255,255,255,0.27),0 0 22px -8px rgba(232,236,248,0.09),0 1px 3px rgba(0,0,0,0.35)' : 'background:rgba(232,236,248,0.12)'};color:${rb && rb.canClaim && !st.rbBusy ? FELT : 'rgba(232,236,248,0.4)'};cursor:${rb && rb.canClaim && !st.rbBusy ? 'pointer' : 'not-allowed'}`,
 
@@ -4720,22 +4746,22 @@ export default class SuitedApp extends React.Component<any, any> {
       statTablesSub: sstat
         ? `${sstat.seated} seated across ${sstat.liveTables} live ${sstat.liveTables === 1 ? 'table' : 'tables'}`
         : 'Chips in front of players',
-      statCustody: sstat && sstat.custodied != null ? fmt(sstat.custodied / 1e6) : '—',
-      statCustodySub: sstat && sstat.chain ? 'held by the table program' : 'not connected to a chain',
-      statRake: sstat ? fmt(sstat.rake / 1e6) : '—',
+      statCustody: sstat && sstat.custodied != null ? fmt(sstat.custodied / 1e6) : 'N/A',
+      statCustodySub: sstat && sstat.chain ? 'Held by the table program' : 'Not connected to a chain',
+      statRake: sstat ? fmt(sstat.rake / 1e6) : 'N/A',
       statJackpot: sstat ? fmt((sstat.jackpot || 0) / 1e6) : 'N/A',
       statJackpotSub: sstat ? 'Rolls daily at 00:00 UTC' : 'Daily prize pool',
 
       /* ── leaderboard ─────────────────────────────────────────────── */
       lbBlurb: st.lbView === 'jackpot'
-        ? 'the daily prize pool, its winners, and who is in the draw'
+        ? 'The daily prize pool, its winners, and who is in the draw'
         : st.lbView === 'records'
-          ? 'the biggest pots ever dealt'
+          ? 'The biggest pots ever dealt'
           : st.lbPeriod === '7d'
-            ? `ranked by net this week \u00b7 resets sunday 00:00 utc \u00b7 ${jkEntryShort(jk)}`
+            ? `Ranked by net this week \u00b7 resets Sunday 00:00 UTC \u00b7 ${jkEntryShort(jk)}`
             : st.lbPeriod === 'all'
-              ? `every hand ever dealt, ranked by net \u00b7 ${jkEntryShort(jk)}`
-              : `ranked by net today \u00b7 resets daily 00:00 utc \u00b7 ${jkEntryShort(jk)}`,
+              ? `Every hand ever dealt, ranked by net \u00b7 ${jkEntryShort(jk)}`
+              : `Ranked by net today \u00b7 resets daily 00:00 UTC \u00b7 ${jkEntryShort(jk)}`,
       // view switch: rankings / jackpot / records \u2014 all inside this one tab
       lbShowRankings: this.setLbView('rankings'),
       lbShowJackpot: this.setLbView('jackpot'),
@@ -4750,7 +4776,7 @@ export default class SuitedApp extends React.Component<any, any> {
       lbViewJackpot: st.lbView === 'jackpot',
       lbViewRecords: st.lbView === 'records',
       // jackpot view
-      jkPool: jk ? fmt((jk.pool || 0) / 1e6) : '\u2014',
+      jkPool: jk ? fmt((jk.pool || 0) / 1e6) : 'N/A',
       jkEntrants: jk ? String(jk.entrants || 0) : '0',
       // Claim banner \u2014 only when THIS wallet has a live, unclaimed jackpot voucher.
       jkHasClaim: !!st.jkVoucher,
@@ -4758,7 +4784,7 @@ export default class SuitedApp extends React.Component<any, any> {
       // against renderVals' return only — so the handler must be exported here.
       doClaimJackpot: this.doClaimJackpot,
       jkClaimAmount: st.jkVoucher ? fmt(Number(st.jkVoucher.amount) / 1e6) : '',
-      jkClaimLabel: st.jkClaiming ? 'claiming\u2026' : 'claim to wallet',
+      jkClaimLabel: st.jkClaiming ? 'Claiming\u2026' : 'Claim to wallet',
       jkClaimMsg: st.jkClaimMsg || '',
       jkClaimBannerStyle: st.jkVoucher
         ? 'margin:0 0 14px;padding:16px 18px;border-radius:12px;background:linear-gradient(180deg,#222c47,#0d1220);border:1px solid rgba(255,255,255,0.08);box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 2px 6px rgba(0,0,0,0.438);color:#e8ecf8;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap'
@@ -4806,14 +4832,14 @@ export default class SuitedApp extends React.Component<any, any> {
       lbAllStyle: lbTab(st.lbPeriod === 'all'),
       lbStakeVal: st.lbStake || '',
       setLbStake: this.setLbStake,
-      lbStakeSelStyle: `padding:8px 14px;border-radius:5px;font-size:12px;border:1px solid rgba(255,255,255,0.15);background:linear-gradient(180deg,#8b5cf6,#3d2673);box-shadow:inset 0 1px 0 rgba(255,255,255,0.27),0 1px 3px rgba(0,0,0,0.35);color:${ON_FILL};font-family:${UI};cursor:pointer`,
+      lbStakeSelStyle: '',
       lbTileStyle: `background:linear-gradient(180deg,#8b5cf6,#3d2673);border-radius:12px;border:1px solid rgba(232,236,248,0.154);box-shadow:inset 0 1px 0 rgba(255,255,255,0.27),0 2px 5px rgba(0,0,0,0.375);padding:16px 18px;display:flex;flex-direction:column;gap:6px;min-width:0`,
       lbTileLabel: 'font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#94a3c4',
       lbTileSub: 'font-size:11px;color:#94a3c4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap',
       lbPos, lbPosSub,
       lbPosStyle: `font-family:${SERIF};font-size:30px;line-height:1;color:#e8ecf8`,
       lbGap, lbGapSub,
-      lbGapStyle: `font-family:${SERIF};font-size:30px;line-height:1;color:${lbGap === 'leader' ? '#62c6da' : '#e8ecf8'}`,
+      lbGapStyle: `font-family:${SERIF};font-size:30px;line-height:1;color:${lbGap === 'Leader' ? '#62c6da' : '#e8ecf8'}`,
       lbJackpot: lb ? fmt((lb.jackpot || 0) / 1e6) : '0',
       lbJackStyle: `font-family:${SERIF};font-size:30px;line-height:1;color:#a78bfa`,
       lbHeadStyle: 'display:grid;grid-template-columns:44px 1fr 62px 68px 82px 92px;gap:10px;padding:12px 20px;font-size:10px;letter-spacing:.1em;color:#94a3c4;border-bottom:1px dashed rgba(232,236,248,0.198)',
@@ -4823,7 +4849,7 @@ export default class SuitedApp extends React.Component<any, any> {
           rank: String(r.rank).padStart(2, '0'),
           name: r.name,
           hands: r.hands.toLocaleString(),
-          bb100: r.hands > 0 ? (bb >= 0 ? '+' : '\u2212') + Math.abs(bb).toFixed(1) : '\u2014',
+          bb100: r.hands > 0 ? (bb >= 0 ? '+' : '\u2212') + Math.abs(bb).toFixed(1) : 'N/A',
           biggest: fmt((r.best || 0) / 1e6),
           net: (r.net >= 0 ? '+' : '\u2212') + fmt(Math.abs(r.net / 1e6)),
           sigil: (r.name || '?').slice(0, 2).toLowerCase(),
@@ -4842,19 +4868,19 @@ export default class SuitedApp extends React.Component<any, any> {
       }),
       lbEmpty: lbRows.length === 0,
       lbEmptyText: st.lbErr
-        ? 'could not load the board \u2014 try again in a moment'
+        ? 'Could not load the board, try again in a moment'
         : st.lbStake
-          ? `no one has ${lbMin}+ hands at ${lbStakeName} yet \u2014 be the first`
-          : `no one has ${lbMin}+ hands this period yet \u2014 be the first`,
+          ? `No one has ${lbMin}+ hands at ${lbStakeName} yet, be the first`
+          : `No one has ${lbMin}+ hands this period yet, be the first`,
       // Guarded on the session as well as the payload: the gateway only sends
       // `you` to an authenticated caller, but a fixture or a stale payload
       // must never pin a "you" row under a signed-out visitor.
       lbHasYou: !!lbYou && !!st.wallet,
-      lbYouRank: lbYou ? (lbYou.rank ? String(lbYou.rank).padStart(2, '0') : '\u2014') : '',
+      lbYouRank: lbYou ? (lbYou.rank ? String(lbYou.rank).padStart(2, '0') : 'N/A') : '',
       lbYouHands: lbYou ? lbYou.hands.toLocaleString() : '0',
       lbYouBb: lbYou && lbYou.hands > 0
         ? ((lbYou.netBb / lbYou.hands) * 100 >= 0 ? '+' : '\u2212') + Math.abs((lbYou.netBb / lbYou.hands) * 100).toFixed(1)
-        : '\u2014',
+        : 'N/A',
       lbYouBest: lbYou ? fmt((lbYou.best || 0) / 1e6) : '0',
       lbYouNet: lbYou ? (lbYou.net >= 0 ? '+' : '\u2212') + fmt(Math.abs(lbYou.net / 1e6)) : '',
       lbYouNumStyle: 'text-align:right;font-size:12px;color:#94a3c4;font-variant-numeric:tabular-nums',
@@ -4871,7 +4897,7 @@ export default class SuitedApp extends React.Component<any, any> {
          gateway's own ceiling on `limit`, so that is where it retires. */
       lbHasMore: !!lb && lbRows.length >= (st.lbLimit || 20)
         && (st.lbLimit || 20) < 100 && Number(lb.players || 0) > lbRows.length,
-      lbShowMoreLabel: 'show more',
+      lbShowMoreLabel: 'Show more',
       lbShowMore: this.showMoreLeaders,
 
       toasts: st.toasts.map((x) => ({
@@ -4907,11 +4933,11 @@ export default class SuitedApp extends React.Component<any, any> {
        that held-back amount, stated only when there is one. */
     const jkReserved = jk && jk.reserved ? Number(jk.reserved) / 1e6 : 0;
     vals.jkFacts = [
-      { k: 'DRAWN IN', v: (jk && jk.closesAt) ? fmtCountdown(jk.closesAt - st.now) : '—', tone: BRASS },
-      { k: 'IN THE DRAW', v: jk ? Number(jk.entrants || 0).toLocaleString() : '—', tone: PAPER_INK },
+      { k: 'DRAWN IN', v: (jk && jk.closesAt) ? fmtCountdown(jk.closesAt - st.now) : 'N/A', tone: BRASS },
+      { k: 'IN THE DRAW', v: jk ? Number(jk.entrants || 0).toLocaleString() : 'N/A', tone: PAPER_INK },
       jkReserved > 0
         ? { k: 'OWED TO WINNERS', v: '$' + fmt(jkReserved), tone: PAPER_INK }
-        : { k: 'FROM CREATOR FEES', v: jk ? '$' + fmt(Number(jk.fromCreator || 0) / 1e6) : '—', tone: PAPER_INK },
+        : { k: 'FROM CREATOR FEES', v: jk ? '$' + fmt(Number(jk.fromCreator || 0) / 1e6) : 'N/A', tone: PAPER_INK },
     ];
 
     /* The name this viewer plays under, resolved the way the gateway resolves
@@ -4931,11 +4957,11 @@ export default class SuitedApp extends React.Component<any, any> {
     const jkShort = jkYou && !jkIn ? Number(jkYou.shortBy || 0) / 1e6 : 0;
     vals.youInDraw = jkIn;
     vals.youOutOfDraw = !jkIn;
-    vals.youChance = jkIn ? `${jkYou.chance}%` : '—';
+    vals.youChance = jkIn ? `${jkYou.chance}%` : 'N/A';
     vals.youDrawRows = jkIn
       ? [
-        { k: 'your tickets', v: Number(jkYou.tickets).toLocaleString() },
-        { k: 'in the field', v: `${jkYou.rank} of ${jkYou.field}` },
+        { k: 'Your tickets', v: Number(jkYou.tickets).toLocaleString() },
+        { k: 'In the field', v: `${jkYou.rank} of ${jkYou.field}` },
       ]
       : [];
     vals.youOutTitle = !st.wallet ? 'Connect to see your tickets.' : 'You are not in today’s draw.';
@@ -4944,7 +4970,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.youOutLine = jkShort > 0
       ? `$${fmt(jkShort)} more wagered today puts you in. ${jkEntryLine(jk)}`
       : jkEntryLine(jk);
-    vals.youOutBtn = !st.wallet ? 'connect a wallet' : 'to the lobby';
+    vals.youOutBtn = !st.wallet ? 'Connect a wallet' : 'To the lobby';
     vals.youOutGo = !st.wallet ? this.go('connect') : this.go('lobby');
     vals.youOutBtnStyle = 'margin-top:auto;padding:12px 16px;border-radius:5px;border:1px solid rgba(232,236,248,0.28);'
       + 'background:linear-gradient(180deg,rgba(148,163,196,0.05),rgba(0,0,0,0.125));box-shadow:inset 0 1px 0 rgba(255,255,255,0.1);'
@@ -4990,7 +5016,7 @@ export default class SuitedApp extends React.Component<any, any> {
         avTier: r.avatar ? avTier(r.avatar) : '',
         avInner: r.avatar ? avInner(r.avatar) : '',
         hands: r.hands.toLocaleString(),
-        bb100: bb === null ? '—' : (bb >= 0 ? '+' : '−') + Math.abs(bb).toFixed(1),
+        bb100: bb === null ? 'N/A' : (bb >= 0 ? '+' : '−') + Math.abs(bb).toFixed(1),
         bbStyle: `flex:0 0 11%;min-width:62px;text-align:right;font-size:12.5px;font-variant-numeric:tabular-nums;color:${bb === null ? MUTED : bb >= 0 ? '#22d3ee' : '#f0a8b4'}`,
         biggest: '$' + fmt((r.best || 0) / 1e6),
         net: (r.net >= 0 ? '+' : '−') + '$' + fmt(Math.abs(r.net / 1e6)),
@@ -5009,10 +5035,10 @@ export default class SuitedApp extends React.Component<any, any> {
     /* The period chips. `week` is the DAILY board on the gateway (stats.ts
        defaults its window to one day) — a legacy key name, which is why the
        chip that selects it reads TODAY. */
-    vals.lbPeriods = [['week', 'TODAY'], ['7d', 'THIS WEEK'], ['all', 'ALL TIME']].map(([k, label]) => ({
+    vals.lbPeriods = [['week', 'Today'], ['7d', 'This week'], ['all', 'All time']].map(([k, label]) => ({
       label,
       on: st.lbPeriod === k,
-      ink: st.lbPeriod === k ? FELT_INK : MUTED,
+      ink: st.lbPeriod === k ? '#ffffff' : '#aab4cf',
       pick: this.setLbPeriod(k),
     }));
 
@@ -5021,7 +5047,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.lbPoolLine = lb ? `$${fmt((lb.pool || 0) / 1e6)} raked` : '';
     // What it would take to move up one place — the gateway sends the row
     // above the viewer for exactly this, even when they are off the top N.
-    vals.lbGapLine = lbGap && lbGap !== '—' && lbGapSub ? `${lbGap} ${lbGapSub}` : '';
+    vals.lbGapLine = lbGap && lbGap !== 'N/A' && lbGapSub ? `${lbGap} ${lbGapSub}` : '';
 
     /* The five biggest pots, and a medal on the first three.
        Five, not the ten the endpoint sends: this is a sidebar beside the
@@ -5109,32 +5135,31 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.lobbyEyebrow = seatedNow ? 'PLAYING RIGHT NOW' : 'THE ROOM IS QUIET';
     vals.lobbyBig = seatedNow
       ? String(seatedNow)
-      : (handsToday == null ? '—' : handsToday.toLocaleString());
+      : (handsToday == null ? 'N/A' : handsToday.toLocaleString());
     vals.lobbyBigUnit = seatedNow
       ? (seatedNow === 1 ? 'player seated' : 'players seated')
       : (handsToday === 1 ? 'hand today' : 'hands today');
-    /* Only said when there is something to say. A quiet room already says so
-       in the figure above it, and the span is hidden rather than emptied — an
-       empty flex child still costs the column its 16px gap. */
+    /* Always said, in one of two wordings of the same length, so the card
+       keeps one height whether the room is busy or quiet. Hiding the line in a
+       quiet room made the whole lobby jump whenever the count crossed zero,
+       which is exactly what happens while the page is loading. */
     vals.lobbyLine = seatedNow
       ? 'Tables spawn as people arrive, so there is always a seat at the stake you want.'
-      : '';
-    vals.lobbyLineStyle = seatedNow
-      ? 'font-size:clamp(14px,22px,16px);color:#e8ecf8;max-width:42ch;text-wrap:pretty'
-      : 'display:none';
+      : 'Sit down at any stake and a table opens for you, so you never wait for a seat.';
+    vals.lobbyLineStyle = 'font-size:clamp(14px,22px,16px);color:#e8ecf8;max-width:42ch;text-wrap:pretty';
     /* Facts that exist, straight off /api/stats, em dash when no gateway
        answered. The first one swaps so the hero never states the same figure
        twice: today's hands is the headline when the room is quiet, so the
        slot carries presence instead. */
     // Rounded to the dollar with a thousands separator: these tiles are small
     // and a bankroll's cents are noise beside a five-figure number.
-    const statMoney = (v) => (sstat && v != null ? '$' + Math.round(v / 1e6).toLocaleString('en-US') : '—');
+    const statMoney = (v) => (sstat && v != null ? '$' + Math.round(v / 1e6).toLocaleString('en-US') : 'N/A');
     vals.lobbyFacts = [
       seatedNow
-        ? { k: 'HANDS TODAY', v: handsToday == null ? '—' : handsToday.toLocaleString(), sub: 'across every stake', tone: PAPER_INK }
-        : { k: 'PLAYERS ONLINE', v: String(st.playersOnline), sub: 'connected right now', tone: PAPER_INK },
-      { k: 'IN PLAY', v: statMoney(sstat && sstat.inPlay), sub: 'chips on the felt', tone: PAPER_INK },
-      { k: 'HANDS DEALT', v: sstat ? Number(sstat.handsDealt).toLocaleString() : '—', sub: 'since the first deal', tone: PAPER_INK },
+        ? { k: 'HANDS TODAY', v: handsToday == null ? 'N/A' : handsToday.toLocaleString(), sub: 'Across every stake', tone: PAPER_INK }
+        : { k: 'PLAYERS ONLINE', v: String(st.playersOnline), sub: 'Connected right now', tone: PAPER_INK },
+      { k: 'IN PLAY', v: statMoney(sstat && sstat.inPlay), sub: 'Chips on the felt', tone: PAPER_INK },
+      { k: 'HANDS DEALT', v: sstat ? Number(sstat.handsDealt).toLocaleString() : 'N/A', sub: 'Since the first deal', tone: PAPER_INK },
     ];
 
     /* Today's jackpot, from the /api/jackpot payload this screen already
@@ -5142,10 +5167,10 @@ export default class SuitedApp extends React.Component<any, any> {
        the leaderboard; a second copy in the lobby repeated a page one click
        away. This does not: it is time-boxed, it moves while you watch, and it
        is the only thing on this screen that answers "why now". */
-    vals.lobbyJkPool = jk ? fmt(Number(jk.pool || 0) / 1e6) : '\u2014';
+    vals.lobbyJkPool = jk ? fmt(Number(jk.pool || 0) / 1e6) : 'N/A';
     vals.lobbyJkRows = [
-      { k: 'drawn in', v: (jk && jk.closesAt) ? fmtCountdown(jk.closesAt - st.now) : '\u2014', tone: BRASS },
-      { k: 'in the draw', v: jk ? Number(jk.entrants || 0).toLocaleString() : '\u2014', tone: FELT_INK },
+      { k: 'Drawn in', v: (jk && jk.closesAt) ? fmtCountdown(jk.closesAt - st.now) : 'N/A', tone: BRASS },
+      { k: 'In the draw', v: jk ? Number(jk.entrants || 0).toLocaleString() : 'N/A', tone: FELT_INK },
     ];
     /* The entry rule in the draw's own numbers. The same sentence runs on the
        leaderboard and in the rules, so the three can never disagree. */
@@ -5204,9 +5229,9 @@ export default class SuitedApp extends React.Component<any, any> {
         /* A stake with no chair free says so in place of the count. "full" is a
            fact about the stake, not a disabled button — the tile still selects,
            and the join above it is what refuses. */
-        players: mine ? 'your table' : (!free ? 'full' : (players ? `${players} seated` : 'nobody yet')),
+        players: mine ? 'Your table' : (!free ? 'Full' : (players ? `${players} seated` : 'Nobody yet')),
         playingStyle: `display:flex;align-items:center;gap:6px;font-size:13px;font-variant-numeric:tabular-nums;color:${players || mine ? FELT_INK : MUTED}`,
-        hint: ok || bank == null ? '' : `needs ${usd(s.min)} to sit`,
+        hint: ok || bank == null ? '' : `Needs ${usd(s.min)} to sit`,
         cls: `su-stake${ok ? ' su-stake--open' : ''}${on ? ' su-stake--on' : ''}${players ? ' su-stake--busy' : ''}`,
       };
     });
@@ -5217,7 +5242,7 @@ export default class SuitedApp extends React.Component<any, any> {
     const selMine = seatedStake === sel.id;
     const selOpen = openAt(sel.id);
     vals.joinStakeName = stakes(sel);
-    vals.joinStakeLabel = selMine ? 'back to your table' : (selOpen ? 'join' : 'every table full at');
+    vals.joinStakeLabel = selMine ? 'Back to your table' : (selOpen ? 'Join' : 'Every table full at');
     vals.joinStakeClass = `su-join${selMine || selOpen ? '' : ' su-join--shut'}`;
     /* `quickSit`, not `sitAt`. `sitAt` wants a TABLE id; handing it a bare stake
        id looks like it works, because `tableById` falls back to the stake config
@@ -5231,7 +5256,7 @@ export default class SuitedApp extends React.Component<any, any> {
        ladder is instead of inventing a bankroll. */
     vals.bankrollLine = bank == null
       ? `${STAKES.length} stakes \u00b7 ${usd(STAKES[0].min)} to ${usd(STAKES[STAKES.length - 1].max)}`
-      : `your bankroll ${fmt(bank)} \u00b7 ${STAKES.filter(affords).length} of ${STAKES.length} stakes open to you`;
+      : `Your bankroll ${fmt(bank)} \u00b7 ${STAKES.filter(affords).length} of ${STAKES.length} stakes open to you`;
 
     /* Quick join: the one button on this page that needs nothing decided
        first. It answers "where is the game I can sit in", and a game needs
@@ -5327,19 +5352,19 @@ export default class SuitedApp extends React.Component<any, any> {
        connecting brings them straight back here. */
     vals.lobbyConnectGo = () => this.setState({ connectReturn: 'lobby' }, () => this.go('connect')());
     vals.quickJoinGo = () => {
-      if (!qjPick) { this.toast('every table is full right now — try again in a moment', 'bad'); return; }
+      if (!qjPick) { this.toast('Every table is full right now, try again in a moment', 'bad'); return; }
       this.quickSit(qjPick.id);
     };
 
-    vals.tableName = sess ? sess.name : '\u2014';
+    vals.tableName = sess ? sess.name : 'N/A';
     vals.tableStakes = stakesLabel();
     vals.myTableStyle = `display:${st.seated && st.session ? 'block' : 'none'};padding:11px 20px;border-radius:5px;border:1px solid rgba(232,236,248,0.28);background:linear-gradient(180deg,rgba(148,163,196,0.05),rgba(0,0,0,0.125));box-shadow:inset 0 1px 0 rgba(255,255,255,0.1);color:${FELT_INK};font-size:13px`;
     /* Spectating is only reachable by standing up from a table you were
        playing, so the only thing this control means is "sit back down". It was
        rendered but never bound before. */
     vals.specNote = this.server
-      ? 'you stood up \u2014 your seat is open until someone takes it'
-      : 'a bot is holding seat 1 until you sit down';
+      ? 'You stood up, your seat is open until someone takes it'
+      : 'A bot is holding seat 1 until you sit down';
     vals.sitHere = () => (sess ? this.sitAt(sess.id) : this.go('lobby')());
     vals.buyTableLabel = (() => {
       const tb = tableById(st.pendingTable);
@@ -5365,38 +5390,38 @@ export default class SuitedApp extends React.Component<any, any> {
     const meFailed = !!st.meErr;
     /* Three states, three sentences: still loading, could not load, loaded and
        empty. They used to share one. */
-    const noRecord = (empty) => (meLoading ? '\u2026' : meFailed ? 'could not load your record' : empty);
-    const dash = (v, suffix?) => (v === null || v === undefined ? '\u2014' : `${v}${suffix || ''}`);
+    const noRecord = (empty) => (meLoading ? '\u2026' : meFailed ? 'Could not load your record' : empty);
+    const dash = (v, suffix?) => (v === null || v === undefined ? 'N/A' : `${v}${suffix || ''}`);
     const bigStyle = (colour?) => `font-family:'Inter Tight',system-ui,sans-serif;font-weight:600;letter-spacing:-.03em;font-size:28px;line-height:1${colour ? ';color:' + colour : ''}`;
     const noteStyle = 'font-size:10px;color:#94a3c4;margin-top:5px';
     const thin = ps && ps.bb100 === null ? `needs ${ps.minSample} hands` : '';
     vals.statTiles = [
       {
         label: 'BB / 100',
-        value: ps ? dash(ps.bb100 === null ? null : (ps.bb100 > 0 ? '+' + ps.bb100 : ps.bb100)) : '\u2014',
+        value: ps ? dash(ps.bb100 === null ? null : (ps.bb100 > 0 ? '+' + ps.bb100 : ps.bb100)) : 'N/A',
         valueStyle: bigStyle(ps && ps.bb100 > 0 ? '#7d4cf0' : ps && ps.bb100 < 0 ? '#f33f5d' : null),
-        note: thin || (ps ? `over ${ps.hands.toLocaleString()} hands` : noRecord('no hands yet')),
+        note: thin || (ps ? `Over ${ps.hands.toLocaleString()} hands` : noRecord('No hands yet')),
         noteStyle,
       },
       {
         label: 'VPIP / PFR',
-        value: ps && ps.vpip !== null ? `${Math.round(ps.vpip)} / ${Math.round(ps.pfr)}` : '\u2014',
+        value: ps && ps.vpip !== null ? `${Math.round(ps.vpip)} / ${Math.round(ps.pfr)}` : 'N/A',
         valueStyle: bigStyle(),
-        note: thin || 'played / raised preflop',
+        note: thin || 'Played / raised preflop',
         noteStyle,
       },
       {
         label: 'WTSD',
-        value: ps ? dash(ps.wtsd === null ? null : Math.round(ps.wtsd), '%') : '\u2014',
+        value: ps ? dash(ps.wtsd === null ? null : Math.round(ps.wtsd), '%') : 'N/A',
         valueStyle: bigStyle(),
-        note: thin || 'reached showdown',
+        note: thin || 'Reached showdown',
         noteStyle,
       },
       {
         label: 'BIGGEST POT',
-        value: ps && ps.best > 0 ? fmt(ps.best / 1e6) : '\u2014',
+        value: ps && ps.best > 0 ? fmt(ps.best / 1e6) : 'N/A',
         valueStyle: bigStyle(),
-        note: ps && ps.rank ? `rank #${ps.rank} all-time` : 'usdg',
+        note: ps && ps.rank ? `Rank #${ps.rank} all-time` : 'USDG',
         noteStyle,
       },
     ];
@@ -5408,11 +5433,11 @@ export default class SuitedApp extends React.Component<any, any> {
       cellStyle: `display:flex;flex-direction:column;gap:12px;min-width:0;padding:26px ${i === vals.statTiles.length - 1 ? '0' : 'clamp(16px,39px,40px)'} 0 ${i === 0 ? '0' : 'clamp(16px,39px,40px)'};${i === 0 ? '' : 'border-left:1px solid rgba(232,236,248,0.12);'}`,
     }));
     vals.resultsCardStyle = 'padding:22px;border-radius:26px;background:#1a2238';
-    vals.lifetimeNet = ps ? `${ps.net > 0 ? '+' : ''}${fmt(ps.net / 1e6)} usdg` : '\u2014';
+    vals.lifetimeNet = ps ? `${ps.net > 0 ? '+' : ''}${fmt(ps.net / 1e6)} usdg` : 'N/A';
     vals.lifetimeNetStyle = `font-family:'Inter Tight',system-ui,sans-serif;font-weight:600;letter-spacing:-.03em;font-size:24px;color:${ps && ps.net > 0 ? '#7d4cf0' : ps && ps.net < 0 ? '#f33f5d' : '#e8ecf8'}`;
     vals.resultsNote = ps
-      ? `${ps.hands.toLocaleString()} hands \u00b7 ${fmt(ps.volume / 1e6)} usdg wagered \u00b7 ${ps.handsThisWeek.toLocaleString()} today`
-      : noRecord('play a hand and this fills in');
+      ? `${ps.hands.toLocaleString()} hands \u00b7 ${fmt(ps.volume / 1e6)} USDG wagered \u00b7 ${ps.handsThisWeek.toLocaleString()} today`
+      : noRecord('Play a hand and this fills in');
 
     /* ── profile: xp from volume wagered, preset avatars ──────────────
        Lifetime volume comes from /api/rakeback, which is the same number the
@@ -5499,7 +5524,7 @@ export default class SuitedApp extends React.Component<any, any> {
         .then(this.authCheck)
         .then(async (res) => { const b = await res.json(); if (!res.ok) throw new Error(b.error); return b; })
         .then((b) => {
-          this.setState({ nick: b.name, nickMsg: `saved \u00b7 ${b.name}`, nickOk: true, nickEditing: false });
+          this.setState({ nick: b.name, nickMsg: `Saved \u00b7 ${b.name}`, nickOk: true, nickEditing: false });
           this.sfx('seat');
         })
         .catch((e) => {
@@ -5534,7 +5559,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.showcaseAch = showRow.map((a) => ({
       inner: avInner(a.id),
       tier: hasEarned ? avTier(a.id) : '',
-      title: hasEarned ? `${a.name} — only ${pctOf(a.id)}% of players have this` : `${a.name} — ${a.condition}`,
+      title: hasEarned ? `${a.name}, only ${pctOf(a.id)}% of players have this` : `${a.name}: ${a.condition}`,
       wrap: `width:34px;height:34px;flex:none` + (hasEarned ? '' : ';filter:grayscale(1) brightness(.6)'),
     }));
     vals.achMenuToggle = (e) => {
@@ -5555,7 +5580,7 @@ export default class SuitedApp extends React.Component<any, any> {
         inner: avInner(id),
         tier: unlocked ? avTier(id) : '',
         name: a.name,
-        title: unlocked ? `${a.name} — only ${pctOf(id)}% of players have this` : `${a.name} — ${a.condition}`,
+        title: unlocked ? `${a.name}, only ${pctOf(id)}% of players have this` : `${a.name}: ${a.condition}`,
         tell: unlocked ? `only ${pctOf(id)}% have this` : a.condition,
         wrap: `display:flex;flex-direction:column;align-items:center;gap:6px;width:92px;` + (unlocked ? '' : 'filter:grayscale(1);opacity:.5'),
       };
@@ -5572,7 +5597,7 @@ export default class SuitedApp extends React.Component<any, any> {
       return {
         inner: avInner(a.id),
         tier: avTier(a.id),
-        title: locked ? `${a.name} — ${a.condition || 'locked'}` : a.name,
+        title: locked ? `${a.name}: ${a.condition || 'locked'}` : a.name,
         pick: () => { if (locked) return; this.wallet ? this.wallet.setAvatar(a.id) : this.setState({ avatar: a.id }); },
         style: `position:relative;display:flex;align-items:center;justify-content:center;width:54px;height:54px;box-sizing:border-box;border:0;padding:0;background:none;border-radius:50%;`
           + (locked ? 'filter:grayscale(1) brightness(.5);cursor:not-allowed;' : 'cursor:pointer;')
@@ -5596,8 +5621,8 @@ export default class SuitedApp extends React.Component<any, any> {
 
     const inBb = st.amountUnit === 'bb';
     vals.unitNote = inBb
-      ? 'every figure on the felt is counted against the table’s big blind, to two decimal places at most — a stack, a pot, a bet, the buttons you act with.'
-      : 'money, the way it leaves your stack. the felt reads in usdg — pots, bets, stacks and the buttons you act with.';
+      ? 'Every figure on the felt is counted against the table’s big blind, to two decimal places at most, a stack, a pot, a bet, the buttons you act with.'
+      : 'Money, the way it leaves your stack. The felt reads in USDG, pots, bets, stacks and the buttons you act with.';
     vals.unitUsdStyle = setSegBtn(!inBb);
     vals.unitBbStyle = setSegBtn(inBb);
     /* A preference, not an account setting — same reasoning as `hotkeys`, and
@@ -5608,7 +5633,7 @@ export default class SuitedApp extends React.Component<any, any> {
       this.sfx('ui');
       this.setState({ amountUnit: u });
       try { localStorage.setItem('suited:amount-unit', u); } catch {}
-      this.toast(u === 'bb' ? 'amounts in big blinds' : 'amounts in usdg', 'ok');
+      this.toast(u === 'bb' ? 'Amounts in big blinds' : 'Amounts in USDG', 'ok');
     };
     vals.unitUsd = setUnit('usd');
     vals.unitBb = setUnit('bb');
@@ -5624,8 +5649,8 @@ export default class SuitedApp extends React.Component<any, any> {
     ];
 
     vals.hotkeysNote = st.hotkeys
-      ? 'f folds, c checks or calls, r raises, space takes the default action. the letter is underlined in the button itself.'
-      : 'the keyboard does nothing at the table — every action is a click.';
+      ? 'F folds, c checks or calls, r raises, space takes the default action. The letter is underlined in the button itself.'
+      : 'The keyboard does nothing at the table, every action is a click.';
     vals.hotkeysOnStyle = setSegBtn(st.hotkeys);
     vals.hotkeysOffStyle = setSegBtn(!st.hotkeys);
     const setHotkeys = (on) => () => {
@@ -5641,8 +5666,8 @@ export default class SuitedApp extends React.Component<any, any> {
        can be dragged while a hand is running — the thing you actually want to
        reach when the table is too loud. */
     vals.soundNote = st.muted
-      ? 'silent. the felt’s speaker sets the level — hold and drag it.'
-      : `cards, chips and your turn. the felt’s speaker sets the level — currently ${Math.round((st.volume || 0) * 100)}%.`;
+      ? 'Silent. The felt’s speaker sets the level, hold and drag it.'
+      : `Cards, chips and your turn. The felt’s speaker sets the level, currently ${Math.round((st.volume || 0) * 100)}%.`;
     vals.soundOnStyle = setSegBtn(!st.muted);
     vals.soundOffStyle = setSegBtn(st.muted);
     const setMuted = (m) => () => {
@@ -5669,25 +5694,25 @@ export default class SuitedApp extends React.Component<any, any> {
        the server could not compute is null, and null renders as an em dash
        with the reason beside it — "0 bb/100" would be a claim we cannot make. */
     const hp = st.me && st.me.stats;
-    const hDash = (v) => (v === null || v === undefined ? '—' : v);
+    const hDash = (v) => (v === null || v === undefined ? 'N/A' : v);
     const hNet = hp ? hp.net / 1e6 : null;
-    vals.sessNet = hNet == null ? '—' : (hNet >= 0 ? '+' : '−') + '$' + fmt(Math.abs(hNet));
+    vals.sessNet = hNet == null ? 'N/A' : (hNet >= 0 ? '+' : '−') + '$' + fmt(Math.abs(hNet));
     vals.sessNetTone = hNet == null ? MUTED : hNet >= 0 ? '#22d3ee' : '#f0a8b4';
     /* Signed out, loading and empty are three different things and the hero
        has to say which. Without the wallet check a signed-out visitor sat on
        "loading your record…" forever, because `loadMe` returns early with no
        token and never resolves into anything. */
     vals.sessNetSub = hp
-      ? `net across ${hp.hands.toLocaleString()} hands`
-      : (!st.wallet ? 'connect a wallet to see your record'
-        : st.me === null ? 'loading your record…' : 'no hands yet');
+      ? `Net across ${hp.hands.toLocaleString()} hands`
+      : (!st.wallet ? 'Connect a wallet to see your record'
+        : st.me === null ? 'Loading your record…' : 'No hands yet');
     const hThin = hp && hp.bb100 === null ? `needs ${hp.minSample} hands` : '';
     vals.sessFacts = [
-      { k: 'TODAY', v: hp ? hp.handsThisWeek.toLocaleString() : '—', sub: 'hands played', tone: PAPER_INK },
-      { k: 'BIGGEST POT', v: hp && hp.best > 0 ? '$' + fmt(hp.best / 1e6) : '—', sub: 'won in one hand', tone: PAPER_INK },
-      { k: 'BB/100', v: hp ? hDash(hp.bb100) : '—', sub: hThin || (hp ? `over ${hp.hands.toLocaleString()} hands` : 'win rate'), tone: PAPER_INK },
+      { k: 'TODAY', v: hp ? hp.handsThisWeek.toLocaleString() : 'N/A', sub: 'Hands played', tone: PAPER_INK },
+      { k: 'BIGGEST POT', v: hp && hp.best > 0 ? '$' + fmt(hp.best / 1e6) : 'N/A', sub: 'Won in one hand', tone: PAPER_INK },
+      { k: 'BB/100', v: hp ? hDash(hp.bb100) : 'N/A', sub: hThin || (hp ? `Over ${hp.hands.toLocaleString()} hands` : 'Win rate'), tone: PAPER_INK },
       // rank is null below the hand minimum and 0 when played-but-unranked.
-      { k: 'RANK', v: hp && hp.rank ? '#' + hp.rank : '—', sub: hp && hp.rank ? 'on the all-time board' : 'not yet ranked', tone: PAPER_INK },
+      { k: 'RANK', v: hp && hp.rank ? '#' + hp.rank : 'N/A', sub: hp && hp.rank ? 'On the all-time board' : 'Not yet ranked', tone: PAPER_INK },
     ];
 
     /* The proof rail. THREE checks, because engine/verify.js returns three —
@@ -5699,9 +5724,9 @@ export default class SuitedApp extends React.Component<any, any> {
     const vDone = Object.keys(st.verified || {}).filter((k) => st.verified[k] && st.verified[k].ok);
     const anyVerified = vDone.length > 0;
     vals.proofChecks = [
-      'the revealed seed hashes to the commitment',
-      'every board card came from that deck',
-      'every hand shown down matches it',
+      'The revealed seed hashes to the commitment',
+      'Every board card came from that deck',
+      'Every hand shown down matches it',
     ].map((l) => ({ label: l, mark: anyVerified ? '✓' : '·', tone: anyVerified ? '#22d3ee' : MUTED }));
 
     /* Verify everything on the page. Each hand goes through the same per-row
@@ -5710,8 +5735,8 @@ export default class SuitedApp extends React.Component<any, any> {
        Nothing is faked: a hand that fails stays failed and says so. */
     const allDone = rows.length > 0 && rows.every((h) => st.verified[h.handId] && st.verified[h.handId].ok);
     vals.verifyAllLabel = rows.length === 0
-      ? 'nothing to verify yet'
-      : allDone ? `all ${rows.length} hands verified` : `verify every hand on this page`;
+      ? 'Nothing to verify yet'
+      : allDone ? `All ${rows.length} hands verified` : `Verify every hand on this page`;
     vals.verifyAllStyle = `padding:12px 16px;border-radius:5px;border:1px solid rgba(232,236,248,0.28);background:linear-gradient(180deg,rgba(148,163,196,0.05),rgba(0,0,0,0.125));box-shadow:inset 0 1px 0 rgba(255,255,255,0.1);color:${rows.length && !allDone ? FELT_INK : MUTED};font-size:13.5px;${rows.length && !allDone ? '' : 'cursor:default;'}`;
     // Filled as `handRows` is built below; the button can only be clicked
     // after that, so iterating it here is safe — and explicit, rather than
@@ -5721,7 +5746,7 @@ export default class SuitedApp extends React.Component<any, any> {
       if (!rows.length || allDone) return;
       rowVerifiers.forEach((run) => run());
     };
-    vals.handsNote = 'only yours — a hand record is readable by the players who were dealt into it, and holds no addresses';
+    vals.handsNote = 'Only yours, a hand record is readable by the players who were dealt into it, and holds no addresses';
     /* A signed net, through the unit formatter. The blind is the one THAT hand
        was played at (`h.bb`), never the open table's — a hand from a $1/$2 game
        is 30 bb whatever the player moved on to. Passing 0 rather than undefined
@@ -5733,8 +5758,8 @@ export default class SuitedApp extends React.Component<any, any> {
       const v = st.verified[h.handId];
       const row = {
         id: '#' + String(h.handNo).padStart(4, '0'),
-        hole: (h.heroHole || []).map((x) => cardText(x)).join(' ') || '—',
-        board: (h.board || []).map((x) => cardText(x)).join(' ') || 'no showdown',
+        hole: (h.heroHole || []).map((x) => cardText(x)).join(' ') || 'N/A',
+        board: (h.board || []).map((x) => cardText(x)).join(' ') || 'No showdown',
         holeStyle: `letter-spacing:.06em;color:${INK}`,
         boardStyle: `letter-spacing:.06em;color:${MUT}`,
         net: sgnAmt(h.heroNet, h.bb || 0), netStyle: `font-weight:500;color:${h.heroNet > 0 ? '#7d4cf0' : h.heroNet < 0 ? '#f33f5d' : MUT}`,
@@ -5744,11 +5769,11 @@ export default class SuitedApp extends React.Component<any, any> {
         // The seed is not on a row until its proof has been fetched \u2014 the
         // socket does not carry it. `v.seed` is what verifying put there.
         commit: h.commit,
-        seed: (h.serverSeed || (v && v.seed) || 'revealed when you verify') + ' \u00b7 hand ' + h.handNo,
+        seed: (h.serverSeed || (v && v.seed) || 'Revealed when you verify') + ' \u00b7 hand ' + h.handNo,
         // Every player's contributed entropy, which is what stops the seed
         // being the house's alone. `\u2014` when a hand carried none.
-        clientSeeds: (h.clientSeeds || []).length ? (h.clientSeeds || []).join('  ') : '\u2014',
-        summary: (h.seats || []).filter((s) => s.handName).map((s) => `${s.seat === 0 ? 'you' : s.name} \u2014 ${s.handName}`).join('\n') || 'won before showdown',
+        clientSeeds: (h.clientSeeds || []).length ? (h.clientSeeds || []).join('  ') : 'N/A',
+        summary: (h.seats || []).filter((s) => s.handName).map((s) => `${s.seat === 0 ? 'You' : s.name}: ${s.handName}`).join('\n') || 'Won before showdown',
         verify: () => {
           // The real thing: re-derive the whole deck from the revealed seed and
           // check every card that was shown against it. The commitment alone
@@ -5791,18 +5816,18 @@ export default class SuitedApp extends React.Component<any, any> {
         // in words, then the recomputed deck fingerprint as evidence the shuffle
         // really was re-run in their browser. Before verifying, only the hint
         // shows; the whole card appears once there is a result.
-        verifyHint: 'recomputes the shuffle from the revealed seed, in your browser',
+        verifyHint: 'Recomputes the shuffle from the revealed seed, in your browser',
         verifyHintStyle: `font-size:11.5px;color:${MUT};display:${v ? 'none' : 'inline'}`,
         verifyResultStyle: `display:${v ? 'block' : 'none'};margin-top:14px;padding:14px 16px;border-radius:16px;background:rgba(232,236,248,0.09);border:1px solid rgba(232,236,248,0.11)`,
-        verdictText: v ? (v.error ? 'couldn\u2019t verify' : v.ok ? '\u2713  provably fair' : '\u2717  does not match') : '',
+        verdictText: v ? (v.error ? 'Couldn\u2019t verify' : v.ok ? '\u2713  provably fair' : '\u2717  does not match') : '',
         verdictStyle: `display:inline-block;padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600;letter-spacing:.01em;`
           + (v && v.ok && !v.error ? 'background:rgba(148,163,196,0.18);color:#7d4cf0' : 'background:rgba(148,163,196,0.16);color:#f33f5d'),
         verdictSub: v
           ? (v.error
               ? String(v.error)
               : v.ok
-                ? ('the deck was locked in before the deal, and every card you were shown was dealt from that same deck.'
-                    + (h.mySeedIncluded ? ' your own entropy is in the shuffle \u2014 the seed your client sent is part of the reveal.' : ''))
+                ? ('The deck was locked in before the deal, and every card you were shown was dealt from that same deck.'
+                    + (h.mySeedIncluded ? ' Your own entropy is in the shuffle: the seed your client sent is part of the reveal.' : ''))
                 : 'the cards shown do NOT match the committed deck \u2014 do not trust this hand; report it.')
           : '',
         verdictSubStyle: `font-size:12px;line-height:1.55;color:${INK};margin:10px 0 0`,
@@ -5816,10 +5841,10 @@ export default class SuitedApp extends React.Component<any, any> {
         // Only for hands where THIS client sent a seed (session memory) — a
         // server-loaded history row can't know what an earlier session sent.
         checkSeed: v && v.checks && h.myClientSeed
-          ? (h.mySeedIncluded ? '\u2713\u2002your contributed seed is in the revealed mix' : '\u2717\u2002the seed you sent is not in the reveal \u2014 it may have missed the seed window')
+          ? (h.mySeedIncluded ? '\u2713\u2002Your contributed seed is in the revealed mix' : '\u2717\u2002The seed you sent is not in the reveal, it may have missed the seed window')
           : '',
         checkSeedStyle: `font-size:11.5px;line-height:1.5;color:${h.mySeedIncluded ? '#7d4cf0' : '#f33f5d'};display:${v && v.checks && h.myClientSeed ? 'block' : 'none'}`,
-        deckLine: v && v.deckDigest ? `recomputed deck fingerprint \u00b7 ${v.deckDigest}` : '',
+        deckLine: v && v.deckDigest ? `Recomputed deck fingerprint \u00b7 ${v.deckDigest}` : '',
         deckLineStyle: `font-size:10.5px;color:${MUT};margin-top:12px;word-break:break-all;display:${v && v.deckDigest ? 'block' : 'none'}`,
       };
       // Registered so "verify every hand" runs exactly what the per-row button
@@ -5869,7 +5894,7 @@ export default class SuitedApp extends React.Component<any, any> {
     const feat = tOpen[0] || tSoon[0] || null;
     // The featured event's own detail — the only source of its structure.
     const fd = st.tFeatDetail && feat && st.tFeatDetail.id === feat.id ? st.tFeatDetail : null;
-    const fDash = (v) => (v == null ? '—' : v);
+    const fDash = (v) => (v == null ? 'N/A' : v);
 
     if (feat) {
       const fBuy = Number(feat.buyIn || 0) / 1e6;
@@ -5888,8 +5913,8 @@ export default class SuitedApp extends React.Component<any, any> {
       // `tCountdown` wraps the gap in a sentence; the hero wants the clock and
       // its caption apart.
       vals.featCountdown = fc.label.replace(/^(starts|registration opens) in /, '');
-      vals.featStartLine = (feat.state === 'registering' ? 'until cards are in the air · ' : 'until registration opens · ')
-        + (at ? new Date(at).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : '—');
+      vals.featStartLine = (feat.state === 'registering' ? 'Until cards are in the air · ' : 'Until registration opens · ')
+        + (at ? new Date(at).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : 'N/A');
       vals.featBlurbStyle = 'display:none';
       vals.featBlurb = '';
       vals.featFacts = [
@@ -5913,14 +5938,14 @@ export default class SuitedApp extends React.Component<any, any> {
         tone: i === 0 ? BRASS : MUTED,
       }));
       vals.featStructure = [
-        { k: 'starting stack', v: fd ? Number(fd.startingStack).toLocaleString() : '—' },
-        { k: 'levels', v: fd ? `${fd.levelMinutes} min` : '—' },
+        { k: 'Starting stack', v: fd ? Number(fd.startingStack).toLocaleString() : 'N/A' },
+        { k: 'Levels', v: fd ? `${fd.levelMinutes} min` : 'N/A' },
         // `tableSize` is never shipped on the wire, but `validateTournament`
         // refuses anything but 6 ("until 9-handed tables are built"), so this
         // is a fact about the engine rather than a guess about this event.
-        { k: 'table size', v: '6-handed' },
-        { k: 'added money', v: Number(feat.addedPrize || 0) > 0 ? usd(Number(feat.addedPrize) / 1e6) : 'none' },
-        { k: 'minimum field', v: String(feat.minEntrants) },
+        { k: 'Table size', v: '6-handed' },
+        { k: 'Added money', v: Number(feat.addedPrize || 0) > 0 ? usd(Number(feat.addedPrize) / 1e6) : 'none' },
+        { k: 'Minimum field', v: String(feat.minEntrants) },
       ];
       vals.featPaysStyle = fd && fd.payouts && fd.payouts.length
         ? 'display:flex;flex-direction:column;gap:6px;padding-top:2px'
@@ -5929,13 +5954,13 @@ export default class SuitedApp extends React.Component<any, any> {
         place: `${['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th'][i] || `${i + 1}th`} · ${p}%`,
         amount: usd(fPool * p / 100),
       }));
-      vals.featPoolNote = `Pool grows with every entry — ${usd(Number(feat.maxPool || 0) / 1e6)} if the field fills.`;
+      vals.featPoolNote = `Pool grows with every entry, ${usd(Number(feat.maxPool || 0) / 1e6)} if the field fills.`;
 
       vals.featActionLabel = fBusy
-        ? (feat.registered ? 'withdrawing…' : 'registering…')
-        : fFull ? 'full'
-          : feat.registered ? 'you are registered · withdraw'
-            : feat.state === 'registering' ? `register for ${usd(fBuy + fFee)}` : 'registration not open yet';
+        ? (feat.registered ? 'Withdrawing…' : 'Registering…')
+        : fFull ? 'Full'
+          : feat.registered ? 'You are registered · withdraw'
+            : feat.state === 'registering' ? `Register for ${usd(fBuy + fFee)}` : 'Registration not open yet';
       const fLive = !fBusy && !fFull && feat.state === 'registering';
       vals.featActionStyle = fLive && !feat.registered
         ? `padding:14px 24px;border-radius:5px;background:linear-gradient(180deg,#8b5cf6,#6d3fd4);border:1px solid rgba(255,255,255,0.165);box-shadow:inset 0 1px 0 rgba(255,255,255,0.285),0 2px 6px rgba(0,0,0,0.375);color:${ON_FILL};font-size:15px;font-weight:500;flex:none`
@@ -5978,7 +6003,7 @@ export default class SuitedApp extends React.Component<any, any> {
       vals.featCountdown = ''; vals.featStartLine = '';
       vals.featBlurbStyle = 'font-size:clamp(14px,22px,16px);color:#94a3c4;max-width:44ch;text-wrap:pretty';
       vals.featBlurb = st.tourErr
-        ? 'This is a problem reaching the server, not an empty calendar — try again in a moment.'
+        ? 'This is a problem reaching the server, not an empty calendar, try again in a moment.'
         : 'It shows up here as soon as it is scheduled, with the time to register.';
       vals.featFacts = [];
       vals.featBlindsLabel = '';
@@ -5987,7 +6012,7 @@ export default class SuitedApp extends React.Component<any, any> {
       vals.featPaysStyle = 'display:none';
       vals.featPayouts = [];
       vals.featPoolNote = '';
-      vals.featActionLabel = 'to the lobby';
+      vals.featActionLabel = 'To the lobby';
       vals.featActionStyle = `padding:14px 24px;border-radius:5px;background:linear-gradient(180deg,#8b5cf6,#6d3fd4);border:1px solid rgba(255,255,255,0.165);box-shadow:inset 0 1px 0 rgba(255,255,255,0.285),0 2px 6px rgba(0,0,0,0.375);color:${ON_FILL};font-size:15px;font-weight:500;flex:none`;
       vals.featAction = this.go('lobby');
       vals.featOpenStyle = 'display:none';
@@ -6016,11 +6041,11 @@ export default class SuitedApp extends React.Component<any, any> {
       let action, actionLabel, actionStyle;
       if (seated) {
         action = (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.enterTournamentTable(mine.tableId, mine.seatNo, mine.tournamentId); }; // FIX 2: thread the id
-        actionLabel = 'return to your table';
+        actionLabel = 'Return to your table';
         actionStyle = `padding:9px 16px;border-radius:5px;border:1px solid rgba(255,255,255,0.15);background:linear-gradient(180deg,#8b5cf6,#6d3fd4);box-shadow:inset 0 1px 0 rgba(255,255,255,0.27),0 1px 3px rgba(0,0,0,0.35);color:${ON_FILL};font-size:13px;font-weight:500;white-space:nowrap;cursor:pointer`;
       } else if (finished) {
         action = (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.openResult(mine); };
-        actionLabel = 'view result';
+        actionLabel = 'View result';
         actionStyle = `padding:9px 14px;border-radius:5px;border:1px solid rgba(232,236,248,0.28);background:linear-gradient(180deg,rgba(148,163,196,0.05),rgba(0,0,0,0.125));box-shadow:inset 0 1px 0 rgba(255,255,255,0.1);font-size:13px;white-space:nowrap;cursor:pointer;color:${FELT_INK}`;
       } else if (live) {
         /* Under way and not yours. The row opens the event's page — which is
@@ -6030,7 +6055,7 @@ export default class SuitedApp extends React.Component<any, any> {
            disable, and a greyed-out "register" would read as one that might
            come back. */
         action = (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.openTournament(tt.id); };
-        actionLabel = 'watch';
+        actionLabel = 'Watch';
         actionStyle = `padding:9px 14px;border-radius:5px;border:1px solid rgba(148,163,196,0.32);background:transparent;color:#22d3ee;font-size:13px;white-space:nowrap;cursor:pointer`;
       } else {
         // No seat left for this viewer: every paying seat is sold and they hold
@@ -6039,7 +6064,7 @@ export default class SuitedApp extends React.Component<any, any> {
         // one unregistered holding an invite, so everyone else reads "full".
         const full = !registered && !tt.invited && tt.openSeats === 0;
         action = (e) => { if (e && e.stopPropagation) e.stopPropagation(); if (!busy && !full) (registered ? this.unregisterFromTournament : this.registerForTournament)(tt.id); };
-        actionLabel = busy ? (registered ? 'withdrawing…' : 'registering…') : full ? 'full' : (registered ? 'withdraw' : 'register');
+        actionLabel = busy ? (registered ? 'Withdrawing…' : 'Registering…') : full ? 'Full' : (registered ? 'Withdraw' : 'Register');
         actionStyle = full && !busy
           ? `padding:9px 14px;border-radius:5px;border:1px solid rgba(232,236,248,0.16);background:transparent;color:${MUT};font-size:13px;white-space:nowrap;opacity:.7;cursor:not-allowed`
           : registered
@@ -6048,7 +6073,7 @@ export default class SuitedApp extends React.Component<any, any> {
       }
       return {
         name: tt.name,
-        buyInLabel: buyInMicro > 0 ? usd(buyInMicro / 1e6) : 'free',
+        buyInLabel: buyInMicro > 0 ? usd(buyInMicro / 1e6) : 'Free',
         // The menu pitch, in the regular UI font (the serif hero is saved for the
         // detail page): while registration is open, lead with the guaranteed floor
         // (added prize) and the ceiling (every paying seat filled); once locked,
@@ -6063,13 +6088,13 @@ export default class SuitedApp extends React.Component<any, any> {
           const preLock = tt.state === 'scheduled' || tt.state === 'registering';
           if (!preLock) return `${usd(projMicro / 1e6)} prize pool`;
           if (addedMicro > 0) return `${usd(addedMicro / 1e6)} guaranteed · up to ${usd(ceilMicro / 1e6)}`;
-          return `up to ${usd(ceilMicro / 1e6)}`;
+          return `Up to ${usd(ceilMicro / 1e6)}`;
         })(),
         // Seats held for invites are capacity the public can't buy — say how
         // many (never who).
         invitesLabel: tt.inviteSeats > 0 ? `${tt.inviteSeats} seat${tt.inviteSeats === 1 ? '' : 's'} held for invites` : '',
         invitesStyle: `display:${tt.inviteSeats > 0 ? 'block' : 'none'};font-size:11px;line-height:1.4;margin-top:2px;color:${MUT}`,
-        entrantsLabel: `${tt.entrants ?? 0}/${tt.maxEntrants ?? '—'}`,
+        entrantsLabel: `${tt.entrants ?? 0}/${tt.maxEntrants ?? 'N/A'}`,
         // The pool as its own column, beside buy-in and field. `poolLine` above
         // still carries the guaranteed/ceiling pitch under the name.
         pool: usd((tt.prizePool != null ? Number(tt.prizePool) : Number(tt.projectedPool || 0)) / 1e6),
@@ -6081,7 +6106,7 @@ export default class SuitedApp extends React.Component<any, any> {
            stated only once it is known. */
         when: live
           ? [
-              tt.state === 'final_table' ? 'final table' : 'in play',
+              tt.state === 'final_table' ? 'Final table' : 'In play',
               tt.currentLevel != null ? `level ${tt.currentLevel}` : '',
               tt.remaining != null ? `${tt.remaining} left` : '',
             ].filter(Boolean).join(' · ')
@@ -6110,10 +6135,10 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.scheduleStyle = tNothingAtAll ? 'display:none' : 'display:flex;flex-direction:column;gap:10px';
     vals.tournamentsEmpty = tRows.length === 0;
     vals.tournamentsEmptyText = st.tourErr
-      ? 'could not load the schedule — try again in a moment.'
-      : tFilter === 'open' ? 'nothing open for registration right now.'
-        : tFilter === 'live' ? 'no event is being played right now.'
-          : 'nothing scheduled — the next event shows up here when it is.';
+      ? 'Could not load the schedule, try again in a moment.'
+      : tFilter === 'open' ? 'Nothing open for registration right now.'
+        : tFilter === 'live' ? 'No event is being played right now.'
+          : 'Nothing scheduled, the next event shows up here when it is.';
     /* ALL / OPEN / RUNNING. No FINISHED chip: `handleList`'s allow-list stops
        at the states an event is still in, so a completed one is not on this
        page for anybody — your own finished events reach it through
@@ -6168,19 +6193,19 @@ export default class SuitedApp extends React.Component<any, any> {
       let action, actionLabel, actionStyle, statusLabel;
       if (seated) {
         action = (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.enterTournamentTable(mine.tableId, mine.seatNo, mine.tournamentId); };
-        actionLabel = 'return to your table';
+        actionLabel = 'Return to your table';
         actionStyle = `padding:9px 16px;border-radius:5px;border:1px solid rgba(255,255,255,0.15);background:linear-gradient(180deg,#8b5cf6,#6d3fd4);box-shadow:inset 0 1px 0 rgba(255,255,255,0.27),0 1px 3px rgba(0,0,0,0.35);color:${ON_FILL};font-size:13px;font-weight:500;white-space:nowrap;cursor:pointer`;
-        statusLabel = mine.state === 'final_table' ? 'final table' : 'in play';
+        statusLabel = mine.state === 'final_table' ? 'Final table' : 'In play';
       } else if (seating) {
         action = (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.openTournament(mine.tournamentId); };
-        actionLabel = 'view';
+        actionLabel = 'View';
         actionStyle = `padding:9px 14px;border-radius:5px;border:1px solid rgba(232,236,248,0.28);background:linear-gradient(180deg,rgba(148,163,196,0.05),rgba(0,0,0,0.125));box-shadow:inset 0 1px 0 rgba(255,255,255,0.1);font-size:13px;white-space:nowrap;cursor:pointer;color:${FELT_INK}`;
-        statusLabel = mine.state === 'locked' ? 'registration closed · seating you' : 'seating you…';
+        statusLabel = mine.state === 'locked' ? 'Registration closed · seating you' : 'Seating you…';
       } else {
         action = (e) => { if (e && e.stopPropagation) e.stopPropagation(); this.openResult(mine); };
-        actionLabel = 'view result';
+        actionLabel = 'View result';
         actionStyle = `padding:9px 14px;border-radius:5px;border:1px solid rgba(232,236,248,0.28);background:linear-gradient(180deg,rgba(148,163,196,0.05),rgba(0,0,0,0.125));box-shadow:inset 0 1px 0 rgba(255,255,255,0.1);font-size:13px;white-space:nowrap;cursor:pointer;color:${FELT_INK}`;
-        statusLabel = `finished ${ord(mine.finishPlace)}`;
+        statusLabel = `Finished ${ord(mine.finishPlace)}`;
       }
       /* What the row states beside the name. `mine` carries what actually
          moved — `buyInPaid`/`feePaid`, and `payout` once the event settles —
@@ -6189,10 +6214,10 @@ export default class SuitedApp extends React.Component<any, any> {
       const paid = (Number(mine.buyInPaid || 0) + Number(mine.feePaid || 0)) / 1e6;
       const metaK = finished ? 'PAYOUT' : 'BUY-IN PAID';
       const metaV = finished
-        ? (mine.payout != null ? usd(Number(mine.payout) / 1e6) : '\u2014')
+        ? (mine.payout != null ? usd(Number(mine.payout) / 1e6) : 'N/A')
         : (mine.paid ? usd(paid) : 'invited');
       rows.push({
-        name: mine.name || 'tournament',
+        name: mine.name || 'Tournament',
         statusLabel,
         // Live events wear the win rule; everything else the plain hairline.
         border: seated ? 'rgba(148,163,196,0.4)' : 'rgba(232,236,248,0.12)',
@@ -6208,7 +6233,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.hasMine = vals.tMineRows.length > 0;
     vals.tMineStyle = `display:${vals.tMineRows.length ? 'block' : 'none'};margin-bottom:22px`;
 
-    vals.tdName = td ? td.name : 'loading…';
+    vals.tdName = td ? td.name : 'Loading…';
     vals.tdStateLabel = td
       ? `${String(td.state).replace('_', ' ').toUpperCase()}${td.currentLevel ? ` · LEVEL ${td.currentLevel}` : ''}${td.remaining != null ? ` · ${td.remaining} LEFT` : ''}`
       : '';
@@ -6220,7 +6245,7 @@ export default class SuitedApp extends React.Component<any, any> {
     const tdPoolMicro = td
       ? (td.prizePool != null ? Number(td.prizePool) : Number(td.projectedPool || 0))
       : 0;
-    vals.tdPoolLabel = td ? usd(tdPoolMicro / 1e6) : '—';
+    vals.tdPoolLabel = td ? usd(tdPoolMicro / 1e6) : 'N/A';
     // Prize-pool showcase: an overlay event is a guaranteed floor (the added
     // prize) climbing to a ceiling (every paying seat filled — the server's
     // `maxPool`, which leaves out seats held for invites, so a full field fills
@@ -6232,12 +6257,12 @@ export default class SuitedApp extends React.Component<any, any> {
     const tdPreLock = !!(td && (td.state === 'scheduled' || td.state === 'registering'));
     const tdFillPct = tdMaxPoolMicro > 0 ? Math.max(3, Math.min(100, (tdPoolMicro / tdMaxPoolMicro) * 100)) : 3;
     vals.tdGtdLabel = `${usd(tdAddedMicro / 1e6)} guaranteed`;
-    vals.tdMaxPoolLabel = `up to ${usd(tdMaxPoolMicro / 1e6)}`;
+    vals.tdMaxPoolLabel = `Up to ${usd(tdMaxPoolMicro / 1e6)}`;
     vals.tdGtdChipStyle = `display:${tdPreLock && tdAddedMicro > 0 ? 'inline-flex' : 'none'};align-items:center;font-size:11px;color:#a78bfa;border:1px solid rgba(139,92,246,0.4);border-radius:5px;padding:3px 9px;background:linear-gradient(180deg,rgba(139,92,246,0.09),rgba(0,0,0,0.063))`;
     vals.tdCeilChipStyle = `display:${tdPreLock && tdMaxPoolMicro > tdPoolMicro ? 'inline-flex' : 'none'};align-items:center;font-size:11px;color:#94a3c4;border:1px solid rgba(232,236,248,0.18);border-radius:5px;padding:3px 9px`;
     vals.tdPoolBarStyle = `display:${tdPreLock && tdMaxPoolMicro > 0 ? 'block' : 'none'};position:relative;height:5px;border-radius:3px;background:rgba(0,0,0,0.35);margin-top:12px;max-width:420px;overflow:hidden`;
     vals.tdPoolFillStyle = `position:absolute;left:0;top:0;bottom:0;width:${tdFillPct}%;border-radius:3px;background:linear-gradient(90deg,rgba(139,92,246,0.6),#8b5cf6);box-shadow:0 0 10px -2px rgba(139,92,246,0.7);transition:width .4s ease`;
-    vals.tdEntrantsLabel = td ? `${td.entrants ?? 0}/${td.maxEntrants ?? '—'}` : '—';
+    vals.tdEntrantsLabel = td ? `${td.entrants ?? 0}/${td.maxEntrants ?? 'N/A'}` : 'N/A';
     // Seats held for invites: capacity the public can't buy, shown while it
     // still matters (before the field locks).
     const tdInviteSeats = td ? Number(td.inviteSeats || 0) : 0;
@@ -6269,22 +6294,22 @@ export default class SuitedApp extends React.Component<any, any> {
       return {
         levelLabel: `L${lvl}`,
         blindsLabel: `${fmt(l.sb)}/${fmt(l.bb)}`,
-        anteLabel: l.ante ? fmt(l.ante) : '—',
+        anteLabel: l.ante ? fmt(l.ante) : 'N/A',
         rowStyle: `display:grid;grid-template-columns:44px 1fr auto;gap:12px;padding:8px 18px;font-size:12.5px;border-bottom:1px dashed rgba(232,236,248,0.11);${current ? 'background:rgba(139,92,246,0.22);font-weight:500;' : ''}`,
       };
     }) : [];
     vals.tdYouStatus = (() => {
       if (!td) return '';
       const you = td.you;
-      if (!you) return 'connect a wallet to see your status';
+      if (!you) return 'Connect a wallet to see your status';
       if (you.finishPlace) {
         const payout = you.payout != null ? Number(you.payout) : 0;
-        return payout > 0 ? `you finished ${ord(you.finishPlace)} · ${usd(payout / 1e6)} credited` : `you finished ${ord(you.finishPlace)}`;
+        return payout > 0 ? `You finished ${ord(you.finishPlace)} · ${usd(payout / 1e6)} credited` : `You finished ${ord(you.finishPlace)}`;
       }
-      if (you.tableId) return `you're seated · table ${you.tableId} seat ${you.seatNo}`;
-      if (you.registered) return "you're registered — good luck";
-      if (you.invited) return 'you have a free invite — register to claim your seat';
-      return 'not registered';
+      if (you.tableId) return `You're seated · table ${you.tableId} seat ${you.seatNo}`;
+      if (you.registered) return "You're registered, good luck";
+      if (you.invited) return 'You have a free invite, register to claim your seat';
+      return 'Not registered';
     })();
     vals.tdRegisterAction = (() => {
       const hidden = { label: '', onClick: () => {}, style: 'display:none' };
@@ -6293,11 +6318,11 @@ export default class SuitedApp extends React.Component<any, any> {
       // Same rule as the list row: every paying seat sold and no invite held.
       if (!registered && !td.you.invited && td.openSeats === 0 && !tdBusy) {
         return {
-          label: 'full', onClick: () => {},
+          label: 'Full', onClick: () => {},
           style: `padding:10px 22px;border-radius:5px;font-size:12px;font-weight:500;border:1px solid rgba(232,236,248,0.22);background:transparent;color:${MUT};opacity:.6;cursor:not-allowed`,
         };
       }
-      const label = tdBusy ? (registered ? 'withdrawing…' : 'registering…') : (registered ? 'withdraw' : 'register');
+      const label = tdBusy ? (registered ? 'Withdrawing…' : 'Registering…') : (registered ? 'Withdraw' : 'Register');
       const onClick = () => {
         if (tdBusy) return;
         // Refresh the detail too (not just the list) so `you.registered` / status
@@ -6317,10 +6342,10 @@ export default class SuitedApp extends React.Component<any, any> {
       if (!td || !td.you || !td.you.tableId) return hidden;
       const tableId = td.you.tableId, seatNo = td.you.seatNo, tournamentId = td.id;
       return {
-        label: 'take your seat',
+        label: 'Take your seat',
         onClick: () => {
           if (this.enterTournamentTable) this.enterTournamentTable(tableId, seatNo, tournamentId); // FIX 2: pass td.id
-          else this.toast('table entry lands with the session controller', 'ok');
+          else this.toast('Table entry lands with the session controller', 'ok');
         },
         style: `padding:10px 22px;border-radius:5px;font-size:12px;font-weight:500;border:none;background:linear-gradient(180deg,#222c47,#0d1220);color:${PAPER_INK};box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),0 1px 2px rgba(0,0,0,0.35);cursor:pointer`,
       };
@@ -6340,19 +6365,19 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.tMoveOverlayTitle = (() => {
       if (!tMoving) return '';
       const r = tsess.pauseReason;
-      if (r === 'formingFinalTable') return 'forming the final table';
-      if (r === 'move') return 'tables are rebalancing';
+      if (r === 'formingFinalTable') return 'Forming the final table';
+      if (r === 'move') return 'Tables are rebalancing';
       if (r === 'handForHand') return 'hand-for-hand';
-      if (r === 'outage') return 'a brief pause';
-      return tsess.tableId ? 'moving tables' : 'taking your seat';
+      if (r === 'outage') return 'A brief pause';
+      return tsess.tableId ? 'Moving tables' : 'Taking your seat';
     })();
     vals.tMoveOverlaySub = tMoving
-      ? (tsess.tableId ? 'the field never waits — you move automatically' : 'the field never waits — you are seated automatically')
+      ? (tsess.tableId ? 'The field never waits, you move automatically' : 'The field never waits, you are seated automatically')
       : '';
     vals.tMoveOverlayCountdown = (() => {
       if (!tMoving || tsess.countdownAt == null) return '';
       const secs = Math.max(0, Math.ceil((tsess.countdownAt - st.now) / 1000));
-      return secs > 0 ? `moving in ${secs}s` : 'moving now…';
+      return secs > 0 ? `Moving in ${secs}s` : 'Moving now…';
     })();
     vals.tMoveOverlayGo = () => this.goMoveNow();
 
@@ -6365,16 +6390,16 @@ export default class SuitedApp extends React.Component<any, any> {
        withdraw, never a claim. */
     const tr = st.tournamentResult;
     const trInMoney = !!(tr && tr.payout != null && Number(tr.payout) > 0);
-    vals.trName = tr && tr.name ? tr.name : 'tournament';
+    vals.trName = tr && tr.name ? tr.name : 'Tournament';
     vals.trPlace = tr && tr.finishPlace != null ? ord(tr.finishPlace) : '';
     vals.trIsWinner = !!(tr && tr.finishPlace === 1);
     vals.trEyebrow = vals.trIsWinner ? 'CHAMPION' : 'TOURNAMENT';
-    vals.trFinishLabel = tr && tr.finishPlace != null ? `you finished ${vals.trPlace}` : 'thanks for playing';
+    vals.trFinishLabel = tr && tr.finishPlace != null ? `You finished ${vals.trPlace}` : 'Thanks for playing';
     // Below the money: quiet "no cash this time" — never a blank line, and
     // never a withdraw prompt for a $0 balance (trShowWithdraw below).
     vals.trPayoutLabel = trInMoney
       ? `${usd(Number(tr.payout) / 1e6)} credited to your bankroll`
-      : 'no cash this time';
+      : 'No cash this time';
     vals.trPayoutStyle = `font-size:13px;color:${trInMoney ? '#22d3ee' : '#94a3c4'};margin-bottom:34px`;
     vals.trShowWithdraw = trInMoney;
     // Reuses the exact profile withdraw pipeline — no new fetch, no new
@@ -6403,10 +6428,10 @@ export default class SuitedApp extends React.Component<any, any> {
 
     // With no hand running the felt should say so rather than name a street.
     const streetLabel = t && t.street
-      ? (t.phase === 'complete' ? 'showdown' : t.street)
-      : 'waiting';
-    vals.handIdLabel = t && t.handId ? t.handId : '—';
-    vals.commitLabel = t && t.commit ? t.commit.slice(0, 8) + '…' : '—';
+      ? (t.phase === 'complete' ? 'Showdown' : t.street)
+      : 'Waiting';
+    vals.handIdLabel = t && t.handId ? t.handId : 'N/A';
+    vals.commitLabel = t && t.commit ? t.commit.slice(0, 8) + '…' : 'N/A';
     vals.streetLabel = streetLabel;
     vals.feltRef = this.feltRef;
 
@@ -6635,6 +6660,12 @@ export default class SuitedApp extends React.Component<any, any> {
 
     /* Seats. One fixed 180×54 plate carrying an avatar, a name and one line
        under it — a stack when in the hand, or the state that has replaced it. */
+    // The seat wears the player's avatar (with its tier motion) when it has an
+    // earned one: the gateway resolves it per frame from the seat's pubkey. The
+    // hero prefers its own live `st.avatar`, so re-equipping updates the felt
+    // instantly. No avatar, or only a letter default → a generated portrait.
+    const seatAv = seats.map((s, i) => (s.empty ? null : ((i === 0 ? (st.avatar || s.avatar) : s.avatar) || null)));
+    const seatFace = seatPortraits(seats.map((s, i) => (!s.empty && wearsPortrait(seatAv[i]) ? (s.id || s.name || `seat-${i}`) : null)));
     vals.seatCells = seats.map((s, i) => {
       const isHero = i === 0;
       const empty = !!s.empty;
@@ -6664,10 +6695,10 @@ export default class SuitedApp extends React.Component<any, any> {
       const dash = (sittingOut || empty) ? '1px dashed rgba(232,236,248,0.06)' : '0';
 
       const isStack = !empty && !sittingOut && !folded && !allIn;
-      const sub = empty ? 'open'
-        : sittingOut ? 'sitting out'
-        : allIn ? 'all in'
-        : folded ? 'folded'
+      const sub = empty ? 'Open'
+        : sittingOut ? 'Sitting out'
+        : allIn ? 'All in'
+        : folded ? 'Folded'
         : this.amt(s.stack);
       /* The winner's plate goes bright violet, so its text has to go dark with
          it — light ink on that fill is 2.04:1, and the one moment it has to be
@@ -6675,11 +6706,8 @@ export default class SuitedApp extends React.Component<any, any> {
       const textCol = won ? FELT_DEEP : dimmed ? '#7884a1' : '#e8ecf8';
       const showPip = inHand;
       const tag = empty ? '' : ((s.name || (isHero ? 'you' : '?')).trim().replace(/[^a-z0-9]/gi, '').slice(0, 1).toUpperCase() || '0');
-      // The seat wears the player's avatar (with its tier motion) when it has one:
-      // the gateway resolves it per frame from the seat's pubkey. The hero prefers
-      // its own live `st.avatar`, so re-equipping updates the felt instantly. No
-      // avatar (many bots, players who never chose) → the name-initial as before.
-      const av = empty ? null : ((isHero ? (st.avatar || s.avatar) : s.avatar) || null);
+      const portrait = seatFace[i] != null;
+      const av = portrait ? null : seatAv[i];
 
       return {
         plate: `position:absolute;${SEAT_ANCHORS[i].plate};display:flex;align-items:center;gap:11px;width:${PLATE.w}px;height:${PLATE.h}px;box-sizing:border-box;padding:0 14px 0 9px;border-radius:9px;background:${bg};border:${dash};box-shadow:${ring};opacity:${recede};transition:background .3s linear,box-shadow .3s linear,opacity .3s linear;white-space:nowrap;z-index:${won ? 46 : 22}`,
@@ -6690,9 +6718,9 @@ export default class SuitedApp extends React.Component<any, any> {
         // Overlay disc, painted last so an opaque avatar covers the monogram;
         // display:none keeps it out of the box entirely when there is no avatar.
         avTier: av ? avTier(av) : '',
-        avWrap: av ? 'position:absolute;inset:0;width:100%;height:100%' : 'display:none',
-        avInner: av ? avInner(av) : '',
-        name: empty ? 'open seat' : (isHero ? 'you' : s.name),
+        avWrap: av || portrait ? 'position:absolute;inset:0;width:100%;height:100%' : 'display:none',
+        avInner: av ? avInner(av) : portrait ? portraitInner(seatFace[i]) : '',
+        name: empty ? 'Open seat' : (isHero ? 'You' : s.name),
         nameStyle: `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:${textCol}`,
         sub,
         subStyle: `display:${sub ? 'block' : 'none'};${isStack ? `font-family:${SERIF};font-size:16px;line-height:1;` : 'font-size:12px;letter-spacing:.06em;'}color:${textCol}`,
@@ -6788,7 +6816,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.turnPromptOn = away;
     vals.turnPromptBtn = `position:relative;pointer-events:auto;display:flex;align-items:center;gap:14px;padding:12px 22px 14px;border-radius:8px;background:linear-gradient(180deg,#3d2673,#39236a);color:${ON_FILL};overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,0.12),0 6px 22px rgba(0,0,0,0.438);animation:riseIn .3s ${EASE} both`;
     const aclock = t && t.clock ? t.clock.duration : 20000;
-    vals.turnPromptSub = t ? `${t.currentBet > (t.seats[0] || {}).bet ? this.amt(t.currentBet - t.seats[0].bet) + ' to call' : 'checked to you'} \u00b7 pot ${this.amt(t.potTotal || 0)}` : '';
+    vals.turnPromptSub = t ? `${t.currentBet > (t.seats[0] || {}).bet ? this.amt(t.currentBet - t.seats[0].bet) + ' to call' : 'Checked to you'} \u00b7 pot ${this.amt(t.potTotal || 0)}` : '';
     vals.turnPromptTrack = 'position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(232,236,248,0.25)';
     vals.turnPromptFill = `display:block;height:100%;background:#222c47;transform-origin:left center;animation:drain ${aclock}ms linear both`;
 
@@ -6826,15 +6854,15 @@ export default class SuitedApp extends React.Component<any, any> {
     const connExpired = !!(t && t.connection === 'expired');
     const connDown = connExpired || !!(t && t.connection === 'reconnecting');
     vals.reconnectStyle = `position:absolute;inset:0;z-index:40;display:${connDown ? 'flex' : 'none'};align-items:center;justify-content:center;background:rgba(0,0,0,0.72);backdrop-filter:blur(3px)`;
-    vals.reconnTitle = connExpired ? 'session expired' : 'reconnecting';
+    vals.reconnTitle = connExpired ? 'Session expired' : 'Reconnecting';
     vals.reconnNote = connExpired
-      ? 'your seat and stack are safe \u00b7 sign in again to take it back'
-      : 'your seat and stack are held on-chain \u00b7 nothing is lost';
-    vals.reconnBtn = connExpired ? 'sign in again' : 'resume now';
+      ? 'Your seat and stack are safe \u00b7 sign in again to take it back'
+      : 'Your seat and stack are held on-chain \u00b7 nothing is lost';
+    vals.reconnBtn = connExpired ? 'Sign in again' : 'Resume now';
     vals.reconnBarStyle = `position:relative;width:210px;height:5px;border-radius:999px;background:rgba(232,236,248,0.16);overflow:hidden;display:${connExpired ? 'none' : 'block'}`;
     vals.restore = connExpired
       ? () => { this.sfx('ui'); this.setState({ screen: 'connect', connectStep: 0 }, () => this.onResize()); }
-      : () => { this.adapter.restoreConnection(); this.toast('reconnected \u00b7 seat held', 'ok'); };
+      : () => { this.adapter.restoreConnection(); this.toast('Reconnected \u00b7 seat held', 'ok'); };
 
     /* ── action bar ───────────────────────────────────────────────── */
     const legal = t && t.toAct === 0 && this.adapter ? this.adapter.getLegal() : null;
@@ -6939,10 +6967,10 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.tHudClock = (() => {
       if (!tsd || tsd.levelStartedAt == null || tsd.levelMinutes == null) return '';
       const ms = tsd.levelStartedAt + tsd.levelMinutes * 60000 - st.now;
-      return ms > 0 ? fmtCountdown(ms) : 'leveling up…';
+      return ms > 0 ? fmtCountdown(ms) : 'Leveling up…';
     })();
     vals.tHudRemaining = (tsd && typeof tsd.remaining === 'number')
-      ? `${tsd.remaining} of ${tsd.entrants ?? '—'} left`
+      ? `${tsd.remaining} of ${tsd.entrants ?? 'N/A'} left`
       : '';
     // The bubble is the single spot before the money; otherwise, while short
     // of it, name where the money starts so the field size is oriented
@@ -6950,9 +6978,9 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.tHudNextPay = (() => {
       if (!tsd || typeof tsd.remaining !== 'number' || !Array.isArray(tsd.payouts) || !tsd.payouts.length) return '';
       const paid = tsd.payouts.length;
-      if (tsd.remaining <= paid) return 'in the money';
+      if (tsd.remaining <= paid) return 'In the money';
       if (tsd.remaining === paid + 1) return 'bubble';
-      return `in the money at ${ord(paid)}`;
+      return `In the money at ${ord(paid)}`;
     })();
     vals.tHudPool = (tsd && tsd.prizePool != null) ? usd(Number(tsd.prizePool) / 1e6) : '';
     // Stack off the felt's own hero seat (seat 0 is always the hero's
@@ -6991,11 +7019,11 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.tHudPauseOn = !!(tsdYou && tsdYou.pauseReason);
     vals.tHudPauseLabel = (() => {
       const r = tsdYou && tsdYou.pauseReason;
-      if (r === 'handForHand') return 'hand-for-hand — on the bubble';
-      if (r === 'move') return 'tables rebalancing — you may move any hand';
-      if (r === 'formingFinalTable') return 'forming the final table';
-      if (r === 'outage') return 'a brief pause — the clock keeps running';
-      return r ? 'table paused' : '';
+      if (r === 'handForHand') return 'Hand-for-hand, on the bubble';
+      if (r === 'move') return 'Tables rebalancing, you may move any hand';
+      if (r === 'formingFinalTable') return 'Forming the final table';
+      if (r === 'outage') return 'A brief pause, the clock keeps running';
+      return r ? 'Table paused' : '';
     })();
 
     // A single stacked column pinned over the top of the felt (not a flex
@@ -7019,12 +7047,12 @@ export default class SuitedApp extends React.Component<any, any> {
     /* One line now that the bar is one row. The stalled cases keep their
        detail because "waiting" without a reason reads as broken \u2014 everything
        else trusts the felt, which is already showing whose turn it is. */
-    vals.turnTitle = !t ? 'connecting\u2026'
-      : stalled ? (heroBroke ? 'out of chips \u2014 stand up to buy back in' : `waiting \u00b7 ${liveSeats} of 2 to deal`)
-      : spectating ? `watching ${sess ? sess.name : ''}`
-      : myTurn ? 'your action'
-      : t.phase === 'complete' ? 'hand complete'
-      : t.toAct != null ? `${(seats[t.toAct] || {}).name || ''} thinking` : 'dealing';
+    vals.turnTitle = !t ? 'Connecting\u2026'
+      : stalled ? (heroBroke ? 'Out of chips, stand up to buy back in' : `Waiting \u00b7 ${liveSeats} of 2 to deal`)
+      : spectating ? `Watching ${sess ? sess.name : ''}`
+      : myTurn ? 'Your action'
+      : t.phase === 'complete' ? 'Hand complete'
+      : t.toAct != null ? `${(seats[t.toAct] || {}).name || ''} thinking` : 'Dealing';
 
     const secs = st.secsLeft;
     const ticking = t && t.clock && secs != null;
@@ -7048,7 +7076,9 @@ export default class SuitedApp extends React.Component<any, any> {
     // The slider takes the slack — it grows to eat the space that used to sit
     // empty on the right — but shrinks first when the row is tight, down to a
     // small floor, so a raise prompt can never push the presets off the screen.
-    vals.betBlockStyle = `display:flex;flex-direction:column;gap:4px;flex:1 1 auto;min-width:${c ? 90 : 96}px;opacity:${myTurn ? 1 : 0.32};pointer-events:${myTurn ? 'auto' : 'none'};transition:opacity 260ms linear`;
+    // Side margin on top of the row gap: the thumb sits centred on the track's
+    // ends, so at min or max it would otherwise touch the neighbouring button.
+    vals.betBlockStyle = `display:flex;flex-direction:column;gap:4px;flex:1 1 auto;min-width:${c ? 90 : 96}px;margin:0 ${c ? 8 : 18}px;opacity:${myTurn ? 1 : 0.32};pointer-events:${myTurn ? 'auto' : 'none'};transition:opacity 260ms linear`;
     vals.specControls = `display:${spectating && t ? 'flex' : 'none'};flex:1;flex-wrap:wrap;align-items:center;gap:12px;justify-content:${c ? 'flex-start' : 'flex-end'}`;
 
     // The rail's own toggle disappears with it, so a floating tab reopens it.
@@ -7161,7 +7191,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.rebuyBankrollLabel = fmt(rbBankroll);
     vals.rebuyCanAfford = rbCanAfford;
     vals.rebuyCantAfford = !rbCanAfford;
-    vals.rebuyAmountLabel = rbAmount > 0 ? fmt(rbAmount) : '—';
+    vals.rebuyAmountLabel = rbAmount > 0 ? fmt(rbAmount) : 'N/A';
     vals.rebuyBbLabel = rbTbl.bb > 0 ? `${Math.round(rbAmount / rbTbl.bb)} big blinds` : '';
     vals.rebuyMinLabel = fmt(rbTbl.min);
     vals.rebuyMaxLabel = fmt(rbCeil);
@@ -7171,16 +7201,16 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.rebuyDown = (e) => { e.preventDefault(); e.currentTarget.setPointerCapture(e.pointerId); this.setState({ dragRebuy: true }); this.rebuyFrom(e, rbTbl.min, rbCeil); };
     vals.rebuyMove = (e) => { if (st.dragRebuy) this.rebuyFrom(e, rbTbl.min, rbCeil); };
     vals.rebuyUp = () => this.setState({ dragRebuy: false });
-    vals.rebuyBtnLabel = `rebuy ${fmt(rbAmount)}`;
+    vals.rebuyBtnLabel = `Rebuy ${fmt(rbAmount)}`;
     vals.rebuyBtnStyle = `display:block;width:100%;padding:14px;border-radius:999px;background:${CTA};color:${CTA_INK};font-size:14px;font-weight:500;text-align:center;opacity:${rbValid ? 1 : .4};pointer-events:${rbValid ? 'auto' : 'none'}`;
-    vals.rebuyNeedLabel = `you need ${fmt(rbTbl.min)} usdg to sit — top up your bankroll first`;
+    vals.rebuyNeedLabel = `You need ${fmt(rbTbl.min)} USDG to sit, top up your bankroll first`;
     vals.rebuyDepositStyle = `display:block;width:100%;padding:14px;border-radius:999px;background:${CTA};color:${CTA_INK};font-size:14px;font-weight:500;text-align:center`;
     vals.rebuyDeposit = () => this.go('profile')();
     vals.rebuyDismiss = () => this.setState({ rebuyDismissed: true });
     // The pill the dismissed modal leaves behind, in the action row.
     vals.rebuyBarStyle = `display:${rbBusted && st.rebuyDismissed ? 'flex' : 'none'};flex:1;align-items:center;gap:12px;min-width:0`;
     vals.rebuyReopen = () => this.setState({ rebuyDismissed: false });
-    vals.rebuyPillLabel = rbCanAfford ? `buy back in · ${fmt(rbBankroll)} usdg` : 'add funds to play on';
+    vals.rebuyPillLabel = rbCanAfford ? `Buy back in · ${fmt(rbBankroll)} USDG` : 'Add funds to play on';
     vals.doRebuy = () => {
       if (!this.adapter) return;
       if (!rbCanAfford) { this.go('profile')(); return; }   // bankroll too low → deposit
@@ -7198,7 +7228,7 @@ export default class SuitedApp extends React.Component<any, any> {
       // Fold the modal on this click (rebuyPending), don't wait on the round-trip.
       this.setState({ sittingOut: false, rebuyDraft: null, rebuyDismissed: false, rebuyPending: true });
       this.sfx('seat');
-      this.toast(`rebought ${fmt(rbAmount)} usdg — dealt in the next hand`, 'ok');
+      this.toast(`rebought ${fmt(rbAmount)} USDG, dealt in the next hand`, 'ok');
       // Backstop: if the sit-in never acks (a dropped socket), un-hide the modal
       // so the player can try again rather than staring at a chipless felt.
       setTimeout(() => { if (this.state.rebuyPending) this.setState({ rebuyPending: false }); }, 4000);
@@ -7223,9 +7253,20 @@ export default class SuitedApp extends React.Component<any, any> {
 
        `toAct` is the table's own answer and does not move until the server
        says so, which is the question this was always asking. */
-    const preMode = !spectating && t && !myTurn && t.toAct !== 0 && t.phase !== 'complete' && !stalled;
-    vals.foldStyle = preMode ? actPill(st.preAction === 'checkfold' ? 'on' : '') : actPill('fold');
-    vals.callStyle = preMode ? actPill(st.preAction === 'callany' ? 'on' : '') : actPill();
+    /* Folded, the hand is over for you: no pre-action means anything, so the
+       whole row greys out and ignores the pointer until the next deal. */
+    const heroFolded = !!(t && t.phase !== 'complete' && hero.folded);
+    const preMode = !spectating && t && !myTurn && t.toAct !== 0 && t.phase !== 'complete' && !stalled && !heroFolded;
+    const deadBtn = heroFolded ? ';opacity:.32;pointer-events:none;transition:opacity 260ms linear' : '';
+    vals.foldStyle = (preMode ? actPill(st.preAction === 'checkfold' ? 'on' : '') : actPill('fold')) + deadBtn;
+    vals.callStyle = (preMode ? actPill(st.preAction === 'callany' ? 'on' : '') : actPill()) + deadBtn;
+    // A lit dot on the armed pre-action, so a queued click reads at a glance
+    // rather than only through the plate's quieter `on` tint.
+    const preDot = (armed) => `display:${preMode && armed ? 'inline-block' : 'none'};width:7px;height:7px;border-radius:50%;`
+      + 'margin-right:7px;flex:none;background:#4ade80;box-shadow:0 0 0 2px rgba(74,222,128,.22),0 0 8px rgba(74,222,128,.85);'
+      + 'animation:suPulse 1.6s ease-in-out infinite';
+    vals.foldDotStyle = preDot(st.preAction === 'checkfold');
+    vals.callDotStyle = preDot(st.preAction === 'callany');
     /* The raise button reserves the width of the WIDEST label it can show this
        hand, and never resizes while you drag.
 
@@ -7251,7 +7292,7 @@ export default class SuitedApp extends React.Component<any, any> {
        unit is measured in whatever unit is actually on screen. */
     const raiseCandidates = [];
     if (legal) {
-      const verb = legal.isRaise ? 'raise to' : 'bet';
+      const verb = legal.isRaise ? 'Raise to' : 'Bet';
       const widestCents = Math.max(minTo, Math.min(maxTo, Math.floor(maxTo) - 0.01));
       for (const n of [minTo, maxTo, widestCents]) raiseCandidates.push(`${verb} ${this.amt(n)}`);
       raiseCandidates.push(`all-in ${this.amt(legal.stack)}`);
@@ -7282,7 +7323,7 @@ export default class SuitedApp extends React.Component<any, any> {
     // No "usdc" on the action buttons: the felt and the slider readout carry
     // the unit, and the words were what pushed this row off the screen at a
     // raise prompt on a narrow window.
-    vals.callLabel = preMode ? 'call any' : legal ? (legal.canCheck ? 'check' : `call ${this.amt(toCall)}`) : 'check';
+    vals.callLabel = preMode ? 'Call any' : legal ? (legal.canCheck ? 'Check' : `Call ${this.amt(toCall)}`) : 'Check';
     /* Two units sat side by side on this row. `call` shows what leaves your
        stack; `betTo` is a raise-TO total — the chips already out in front this
        street plus the chips you push. With a blind or a call in front, that total
@@ -7298,8 +7339,8 @@ export default class SuitedApp extends React.Component<any, any> {
        over a bet you cannot cover, the shove is still legal, and it is the only
        aggressive line left. */
     vals.raiseLabel = legal
-      ? (betTo >= maxTo ? `all-in ${this.amt(legal.stack)}` : `${legal.isRaise ? 'raise to' : 'bet'} ${this.amt(betTo)}`)
-      : 'bet';
+      ? (betTo >= maxTo ? `all-in ${this.amt(legal.stack)}` : `${legal.isRaise ? 'Raise to' : 'Bet'} ${this.amt(betTo)}`)
+      : 'Bet';
     /* Split so the hotkey can be underlined inside the word. When the label
        does not begin with its key the letter is shown on its own instead —
        underlining the b of "bet" would name a key that does nothing. */
@@ -7308,30 +7349,30 @@ export default class SuitedApp extends React.Component<any, any> {
        keys it has been told to ignore is lying in a small way. Pre-actions are
        clicks, not keys, so the underline goes there too. */
     const hint = st.hotkeys && !preMode;
-    const key = (label, k) => (label.charAt(0) === k
+    const key = (label, k) => (label.charAt(0).toLowerCase() === k
       ? { rest: hint ? label.slice(1) : label, style: hint ? 'text-decoration:underline;text-underline-offset:3px' : 'display:none' }
       : { rest: hint ? ` · ${label}` : label, style: hint ? 'text-decoration:underline;text-underline-offset:3px;opacity:.55' : 'display:none' });
     const ck = key(vals.callLabel, 'c');
     const rk = key(vals.raiseLabel, 'r');
     vals.callRest = ck.rest; vals.callKeyStyle = ck.style;
     vals.raiseRest = rk.rest; vals.raiseKeyStyle = rk.style;
-    vals.foldKey = preMode ? '' : 'f';
+    vals.foldKey = preMode ? '' : 'F';
     vals.foldKeyStyle = hint ? 'text-decoration:underline;text-underline-offset:3px' : '';
-    vals.foldRest = preMode ? 'check / fold' : 'old';
+    vals.foldRest = preMode ? 'Check / fold' : 'old';
 
     /* Same furniture language as the volume disc it now sits under: ink when
        live, outlined when off, and the strike says off without a word. Hidden
        for spectators outright — no actions, no keys. */
     vals.hotkeysTitle = st.hotkeys
-      ? 'action hotkeys are on · f / c / r / a · click to turn off'
-      : 'action hotkeys are off · click to turn on';
+      ? 'Action hotkeys are on · f / c / r / a · click to turn off'
+      : 'Action hotkeys are off · click to turn on';
     vals.hotkeysStyle = `display:${spectating ? 'none' : 'flex'};align-items:center;justify-content:center;width:34px;height:34px;border-radius:999px;flex:0 0 auto;background:${st.hotkeys ? INK : 'rgba(232,236,248,0.1)'};color:${st.hotkeys ? BG : 'rgba(232,236,248,0.086)'};border:1px solid ${st.hotkeys ? 'transparent' : 'rgba(232,236,248,0.041)'};transition:background .2s ease,color .2s ease`;
     vals.hotkeysStrike = `opacity:${st.hotkeys ? 0 : 1};transition:opacity .2s ease`;
     vals.toggleHotkeys = () => {
       const next = !st.hotkeys;
       this.setState({ hotkeys: next });
       try { localStorage.setItem('suited:hotkeys', next ? 'on' : 'off'); } catch {}
-      this.toast(next ? 'action hotkeys on · f / c / r / a' : 'action hotkeys off', 'ok');
+      this.toast(next ? 'Action hotkeys on · f / c / r / a' : 'Action hotkeys off', 'ok');
     };
     vals.doFold = () => {
       if (preMode) { this.sfx('ui'); this.setState((s) => ({ preAction: s.preAction === 'checkfold' ? null : 'checkfold' })); return; }
@@ -7461,7 +7502,7 @@ export default class SuitedApp extends React.Component<any, any> {
        your stack. Both are thunks: these are built on every render, including
        before there is a table to size against. */
     const bbOpen = (n) => ({ label: bbLabel(rawBb(n)), sub: 'bb', to: () => sizeBb(n), raw: () => rawBb(n) });
-    const potFrac = (label, f) => ({ label, sub: 'pot', to: () => sizeTo(f), raw: () => rawTo(f) });
+    const potFrac = (label, f) => ({ label, sub: 'Pot', to: () => sizeTo(f), raw: () => rawTo(f) });
     const presets = preflopSizing
       ? (opened
           ? [bbOpen(2.5), bbOpen(3), bbOpen(3.5), bbOpen(4)]
@@ -7489,7 +7530,7 @@ export default class SuitedApp extends React.Component<any, any> {
     // stand from a seat you do not hold. Part 4 Task 4: also hidden on a
     // tournament table — freezeout has no voluntary sit-out.
     vals.sitUpStyle = `font-family:${UI};font-size:11px;letter-spacing:.02em;border-radius:999px;padding:5px 12px;white-space:nowrap;background:transparent;display:${t && !spectating && !isTournamentTable ? 'inline-flex' : 'none'};transition:background .18s ease,border-color .18s ease,color .18s ease;${st.sittingOut ? `color:${BRASS};border:1px solid rgba(139,92,246,0.5)` : `color:${PAPER_COOL};border:1px solid rgba(232,236,248,0.28)`}`;
-    vals.sitUpLabel = st.sittingOut ? 'sit down' : 'sit up';
+    vals.sitUpLabel = st.sittingOut ? 'Sit down' : 'Sit up';
     vals.sitUp = () => {
       // Belt-and-suspenders alongside the display gate above: freezeout
       // never sits a seat out voluntarily, no matter what triggers the click.
@@ -7499,13 +7540,13 @@ export default class SuitedApp extends React.Component<any, any> {
         this.adapter.sitIn();
         this.setState({ sittingOut: false });
         this.sfx('seat');
-        this.toast('you are dealt in next hand', 'ok');
+        this.toast('You are dealt in next hand', 'ok');
         return;
       }
       const r = this.adapter.sitUp();
       this.setState({ sittingOut: true, preAction: null });
       this.sfx(r === 'out' ? 'ui' : 'fold');
-      this.toast(r === 'out' ? 'sitting up \u00b7 you will be skipped' : 'hand folded \u00b7 sitting up', 'warn');
+      this.toast(r === 'out' ? 'Sitting up \u00b7 you will be skipped' : 'Hand folded \u00b7 sitting up', 'warn');
     };
     // Part 4 Task 4: hidden on a tournament table — leaving the seat is
     // elimination, not a cash-out; a tournament player detaches the felt by
@@ -7528,7 +7569,7 @@ export default class SuitedApp extends React.Component<any, any> {
         { seated: false, sittingOut: false, screen: 'lobby' },
         () => { this.onResize(); this.syncTitle(this.state.table); },
       );
-      this.toast(`seat closed \u00b7 ${fmt(amount)} usdg back in your wallet`, 'ok');
+      this.toast(`Seat closed \u00b7 ${fmt(amount)} USDG back in your wallet`, 'ok');
     };
     // Not currently wired to any template control (no display binding
     // exists for it) — guarded anyway so a tournament table can never reach
@@ -7538,7 +7579,7 @@ export default class SuitedApp extends React.Component<any, any> {
       const next = !st.sittingOut;
       this.setState({ sittingOut: next });
       if (this.adapter) next ? this.adapter.sitOut() : this.adapter.sitIn();
-      this.toast(next ? 'you sit out after this hand' : 'back in next hand', 'ok');
+      this.toast(next ? 'You sit out after this hand' : 'Back in next hand', 'ok');
     };
     /* The time-bank button is gone from the bar. The server still accrues and
        accepts the bank; nothing in this client spends it any more, which for
@@ -7561,7 +7602,8 @@ export default class SuitedApp extends React.Component<any, any> {
     // The body cedes room to the tab strip and chat input, so the input is
     // never the part the viewport cap clips away.
     vals.railBody = `flex:1;overflow-y:auto;min-height:0;max-height:${c ? 'calc(min(320px, 34vh) - 60px)' : 'none'}`;
-    vals.railToggleLabel = st.railOpen ? 'hide' : 'show';
+    vals.railToggleLabel = st.railOpen ? 'Hide' : 'Show';
+    vals.railOpen = !!st.railOpen;
     vals.toggleRail = () => { this.railTouched = true; this.setState((s) => ({ railOpen: !s.railOpen }), this.onResize); };
     vals.railIsLog = st.railTab === 'log';
     vals.railIsChat = st.railTab === 'chat';
@@ -7607,7 +7649,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.chatSend = () => {
       const text = (st.chatDraft || '').trim();
       if (!text) return;
-      if (!chatReady) { this.toast(st.seated ? 'chat needs a live table' : 'take a seat to chat', 'warn'); return; }
+      if (!chatReady) { this.toast(st.seated ? 'Chat needs a live table' : 'Take a seat to chat', 'warn'); return; }
       this.adapter.sendChat(text);
       this.setState({ chatDraft: '' });
     };
@@ -7626,16 +7668,16 @@ export default class SuitedApp extends React.Component<any, any> {
 
     /* ── private rooms: the join screen and the create-a-room modal ─────── */
     const roomInf = st.roomInfo;
-    vals.roomName = roomInf ? (roomInf.name || st.roomSlug || 'private room') : (st.roomSlug || 'private room');
+    vals.roomName = roomInf ? (roomInf.name || st.roomSlug || 'Private room') : (st.roomSlug || 'Private room');
     vals.roomHasInfo = !!roomInf;
     vals.roomStakesLabel = roomInf ? `${usd(roomInf.sb / 1e6)} / ${usd(roomInf.bb / 1e6)}` : '';
     vals.roomBuyInLabel = roomInf ? `${usd(roomInf.minBuyIn / 1e6)} – ${usd(roomInf.maxBuyIn / 1e6)}` : '';
-    vals.roomSeatedLabel = roomInf ? `${roomInf.seated}/${roomInf.maxSeats} seated` : 'checking the room…';
+    vals.roomSeatedLabel = roomInf ? `${roomInf.seated}/${roomInf.maxSeats} seated` : 'Checking the room…';
     vals.roomPin = st.roomPin;
     vals.roomPinInput = (e) => this.setState({ roomPin: e.target.value.replace(/\D/g, '').slice(0, 4), roomMsg: '', roomBad: false });
     vals.roomPinKey = (e) => { if (e.key === 'Enter') this.joinRoom(); };
     vals.joinRoom = this.joinRoom;
-    vals.roomJoinLabel = st.roomBusy ? 'joining…' : 'join room';
+    vals.roomJoinLabel = st.roomBusy ? 'Joining…' : 'Join room';
     vals.roomBackToLobby = this.go('lobby');
     vals.roomMsg = st.roomMsg;
     vals.roomMsgStyle = `font-size:12px;color:${st.roomBad ? RED : INK_MUT};margin-top:10px;min-height:16px`;
@@ -7655,14 +7697,14 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.crSeats = st.crSeats; vals.crSeatsInput = (e) => this.setState({ crSeats: e.target.value.replace(/[^2-6]/g, '').slice(0, 1) });
     vals.crPin = st.crPin; vals.crPinInput = (e) => this.setState({ crPin: e.target.value.replace(/\D/g, '').slice(0, 4), crMsg: '' });
     vals.createRoom = this.createRoom;
-    vals.crCreateLabel = st.crBusy ? 'creating…' : 'create room';
+    vals.crCreateLabel = st.crBusy ? 'Creating…' : 'Create room';
     vals.crMsg = st.crMsg;
     vals.crMsgStyle = `font-size:12px;color:${st.crBad ? RED : INK_MUT};margin-top:8px;min-height:16px`;
     const madeRoom = st.createdRoom;
     vals.crShareUrl = madeRoom ? madeRoom.url : '';
     vals.crSharePin = madeRoom ? madeRoom.pin : '';
     vals.copyRoomLink = this.copyRoomLink;
-    vals.crCopyLabel = st.crCopied ? 'copied' : 'copy link';
+    vals.crCopyLabel = st.crCopied ? 'Copied' : 'Copy link';
     vals.enterCreatedRoom = this.enterCreatedRoom;
 
     // Host controls: the "end the session" item + its confirm sheet, shown only
@@ -7672,7 +7714,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.closeRoomOn = st.closeRoomOn;
     vals.dismissCloseRoom = this.dismissCloseRoom;
     vals.closeRoom = this.closeRoom;
-    vals.closeRoomLabel = st.roomClosing ? 'ending…' : 'end the session';
+    vals.closeRoomLabel = st.roomClosing ? 'Ending…' : 'End the session';
     vals.closeRoomMsg = st.closeRoomMsg;
     vals.closeRoomMsgStyle = `font-size:12px;color:${st.closeRoomBad ? RED : INK_MUT};min-height:${st.closeRoomMsg ? 18 : 0}px`;
 

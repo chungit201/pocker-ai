@@ -15,11 +15,8 @@ export default function Leaderboard({ v }: { v: any }) {
         {"\r\n\r\n      "}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "clamp(12px,21px,18px)", alignItems: "stretch" }}>
           {"\r\n        "}
-          <div style={{ flex: "1 1 520px", minWidth: "0", position: "relative", borderRadius: "12px", overflow: "hidden", background: "#0a0d16", border: "1px solid rgba(232,236,248,0.08)", display: "flex", flexDirection: "column" }}>
+          <div className="gm-panel" style={{ flex: "1 1 520px", minWidth: "0", position: "relative", borderRadius: "12px", overflow: "hidden", background: "#0a0d16", border: "1px solid rgba(232,236,248,0.08)", display: "flex", flexDirection: "column" }}>
             {"\r\n          "}
-            <div aria-hidden="true" style={css(v.heroTexStyle)} />
-            {"\r\n          "}
-            <div style={{ position: "absolute", inset: "0", pointerEvents: "none", background: "radial-gradient(70% 90% at 8% 20%, rgba(148,163,196,0.05), rgba(0,0,0,0.225) 100%)" }} />
             {"\r\n          "}
             <div style={{ position: "relative", padding: "clamp(22px,42px,34px)", display: "flex", flexDirection: "column", gap: "14px", flex: "1" }}>
               {"\r\n            "}
@@ -73,7 +70,7 @@ export default function Leaderboard({ v }: { v: any }) {
             {"\r\n        "}
           </div>
           {"\r\n        "}
-          <div style={{ flex: "1 1 280px", minWidth: "0", border: "1px solid rgba(232,236,248,0.12)", borderRadius: "12px", padding: "18px", display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div className="gm-side" style={{ flex: "1 1 280px", minWidth: "0", border: "1px solid rgba(232,236,248,0.12)", borderRadius: "12px", padding: "18px", display: "flex", flexDirection: "column", gap: "12px" }}>
             {"\r\n          "}
             <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#a78bfa" }}>{"YOUR TICKETS"}</span>
             {"\r\n          "}
@@ -88,7 +85,7 @@ export default function Leaderboard({ v }: { v: any }) {
                       {interp(v.youChance)}
                     </span>
                     {"\r\n                "}
-                    <span style={{ fontSize: "12.5px", color: "#94a3c4" }}>{"chance to win"}</span>
+                    <span style={{ fontSize: "12.5px", color: "#94a3c4" }}>{"Chance to win"}</span>
                     {"\r\n              "}
                   </div>
                   {"\r\n              "}
@@ -202,7 +199,7 @@ export default function Leaderboard({ v }: { v: any }) {
               {"\r\n          "}
               <span style={css(v.jkClaimMsgStyle)}>
                 {interp(v.jkClaimMsg)}
-                <a href={v.jkClaimTxUrl} target="_blank" rel="noopener noreferrer" style={css(v.jkClaimTxStyle)}>{"receipt ↗"}</a>
+                <a href={v.jkClaimTxUrl} target="_blank" rel="noopener noreferrer" style={css(v.jkClaimTxStyle)}>{"Receipt ↗"}</a>
               </span>
               {"\r\n        "}
             </div>
@@ -218,16 +215,16 @@ export default function Leaderboard({ v }: { v: any }) {
             {"\r\n          "}
             <div style={{ display: "flex", alignItems: "center", gap: "14px", flexWrap: "wrap" }}>
               {"\r\n            "}
-              <div style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
+              <div className="su-seg" style={{ display: "flex", gap: "5px", flexWrap: "wrap" }}>
                 {"\r\n              "}
                 {asArray(v.lbPeriods).map((p: any, $index: number) => (
                   <Fragment key={$index}>
                     {"\r\n                "}
-                    <button className="chip" onClick={p?.pick} style={{ position: "relative", padding: "5px 10px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.18)", fontFamily: "'JetBrains Mono',monospace", fontSize: "10px", letterSpacing: ".08em", color: "#94a3c4", transition: "border-color .16s ease,color .16s ease" }}>
+                    <button className={p?.on ? "su-seg-btn su-seg-btn--on" : "su-seg-btn"} onClick={p?.pick}>
                       {"\r\n                  "}
                       {p?.on ? (
                         <>
-                          <span style={{ position: "absolute", inset: "-1px", borderRadius: "5px", background: "rgba(139,92,246,0.14)", border: "1px solid rgba(139,92,246,0.5)" }} />
+                          <span className="su-seg-glow" />
                         </>
                       ) : null}
                       {"\r\n                  "}
@@ -247,9 +244,9 @@ export default function Leaderboard({ v }: { v: any }) {
                  narrows the standings to one game.
               */}
               {"\r\n            "}
-              <select value={v.lbStakeVal ?? ''} onChange={v.setLbStake} style={css(v.lbStakeSelStyle)}>
+              <select className="su-select" value={v.lbStakeVal ?? ''} onChange={v.setLbStake}>
                 {"\r\n              "}
-                <option value="">{"all stakes"}</option>
+                <option value="">{"All stakes"}</option>
                 {"\r\n              "}
                 <option value="nl2">{"1¢/2¢"}</option>
                 {"\r\n              "}
@@ -385,7 +382,7 @@ export default function Leaderboard({ v }: { v: any }) {
                     <span style={css(v.headerAvInner)} />
                   </span>
                   {"\r\n              "}
-                  <span style={{ fontSize: "13.5px", color: "#e8ecf8" }}>{"you"}</span>
+                  <span style={{ fontSize: "13.5px", color: "#e8ecf8" }}>{"You"}</span>
                   {"\r\n            "}
                 </span>
                 {"\r\n            "}
@@ -482,7 +479,7 @@ export default function Leaderboard({ v }: { v: any }) {
                       {"\r\n                  "}
                       <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px", alignItems: "center", paddingLeft: "62px" }}>
                         {"\r\n                    "}
-                        <a href={w?.claimTx} target="_blank" rel="noopener noreferrer" style={css(w?.claimStyle)}>{"tx ↗"}</a>
+                        <a href={w?.claimTx} target="_blank" rel="noopener noreferrer" style={css(w?.claimStyle)}>{"Tx ↗"}</a>
                         {"\r\n                    "}
                         <button onClick={w?.verify} style={css(w?.verifyStyle)}>
                           {interp(w?.verifyLabel)}
@@ -519,7 +516,7 @@ export default function Leaderboard({ v }: { v: any }) {
                   <>
                     {"\r\n                "}
                     <div style={{ padding: "16px 0", fontSize: "13px", color: "#94a3c4" }}>
-                      {"no draws yet — the first pays out when the day closes"}
+                      {"No draws yet, the first pays out when the day closes"}
                     </div>
                     {"\r\n              "}
                   </>
@@ -574,7 +571,7 @@ export default function Leaderboard({ v }: { v: any }) {
                 {v.jkNoPots ? (
                   <>
                     {"\r\n                "}
-                    <div style={{ padding: "16px 0", fontSize: "13px", color: "#94a3c4" }}>{"no pots recorded yet"}</div>
+                    <div style={{ padding: "16px 0", fontSize: "13px", color: "#94a3c4" }}>{"No pots recorded yet"}</div>
                     {"\r\n              "}
                   </>
                 ) : null}

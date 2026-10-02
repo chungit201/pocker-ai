@@ -304,7 +304,7 @@ export function createRemoteAdapter(cfg) {
     stopHeartbeat();
     view = { ...view, connection: 'expired' };
     publish({ t: 'connection', status: 'expired' });
-    onError('your session expired \u2014 sign in again', 'session_expired');
+    onError('Your session expired, sign in again', 'session_expired');
   };
 
   let connectGen = 0;
@@ -452,7 +452,7 @@ export function createRemoteAdapter(cfg) {
       case 'reject': {
         // The server refused an action we may have shown optimistically.
         legal = decodeLegal(frame.legal) ?? legal;
-        onError(frame.reason || 'action rejected');
+        onError(frame.reason || 'Action rejected');
         publish({ t: 'reject', reason: frame.reason, seq: frame.seq });
         return;
       }
@@ -634,11 +634,11 @@ export function createRemoteAdapter(cfg) {
  * every player contributed.
  */
 export function verifyRemote(rec) {
-  if (!rec) return { ok: false, reason: 'unknown hand' };
+  if (!rec) return { ok: false, reason: 'Unknown hand' };
   return {
     ok: false,
     pending: true,
-    reason: 'the proof for this hand has not been fetched yet',
+    reason: 'The proof for this hand has not been fetched yet',
     commit: rec.commit,
     clientSeeds: rec.clientSeeds ?? [],
     board: (rec.board ?? []).join(' '),

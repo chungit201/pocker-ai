@@ -37,6 +37,7 @@ import Seat from './screens/Seat';
 import Settings from './screens/Settings';
 import Staking from './screens/Staking';
 import Table from './screens/Table';
+import TableDrawer from './screens/TableDrawer';
 import TournamentDetail from './screens/TournamentDetail';
 import TournamentMoveOverlay from './screens/TournamentMoveOverlay';
 import TournamentResult from './screens/TournamentResult';
@@ -94,6 +95,7 @@ export default function SuitedTemplate({ v }: { v: any }) {
         {/* ── the table ───────────────────────────────────────────────────── */}
         {"\r\n  "}
         {v.isTable ? <Table v={v} /> : null}
+        {v.isTable ? <TableDrawer v={v} /> : null}
         {"\r\n\r\n  "}
         {/* ── hand history ────────────────────────────────────────────────── */}
         {"\r\n  "}

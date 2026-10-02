@@ -156,7 +156,7 @@ function block(b) {
         const s = el('a', `display:block;margin-top:6px;font-size:14px;line-height:1.5;color:${T.muted};text-decoration:underline;text-decoration-color:${T.brass};text-decoration-thickness:1px;text-underline-offset:3px`);
         s.className = 'docs-a';
         s.href = r.source; s.target = '_blank'; s.rel = 'noopener noreferrer';
-        s.textContent = 'read the source';
+        s.textContent = 'Read the source';
         row.appendChild(s);
       }
       wrap.appendChild(row);
@@ -213,7 +213,7 @@ export function renderBody(container, onPick) {
   });
 
   const mast = el('header', `display:flex;justify-content:space-between;align-items:baseline;gap:20px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid ${T.rule}`);
-  const left = el('div', `${EYEBROW};color:${T.muted}`); left.textContent = 'Suited — Documentation';
+  const left = el('div', `${EYEBROW};color:${T.muted}`); left.textContent = 'Suited · Documentation';
   const right = el('div', EYEBROW); right.textContent = fillChainWords('{chain}');
   mast.appendChild(left); mast.appendChild(right);
   container.appendChild(mast);

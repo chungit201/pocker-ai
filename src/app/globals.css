@@ -614,17 +614,255 @@ html, body { height: 100%; margin: 0 }
 :is(button, a)[style*="rgb(139, 92, 246), rgb(109, 63, 212)"]:active { transform: translateY(1px) !important; }
 :is(button, a)[style*="rgb(139, 92, 246), rgb(109, 63, 212)"]:disabled { opacity: .45 !important; box-shadow: none !important; }
 
-/* secondary: the outline and ink plates, and the lobby's join */
+/* secondary: the outline and ink plates */
 :is(.pill, .pill-flat)[style*="rgba(148, 163, 196, 0.05)"],
-.pill-flat[style*="rgb(34, 44, 71)"],
-.su-join {
+.pill-flat[style*="rgb(34, 44, 71)"] {
   background: rgba(12,17,34,0.5) !important; color: #e8ecf8 !important;
   border: 1px solid rgba(232,236,248,0.16) !important; border-radius: 12px !important; box-shadow: none !important; }
 :is(.pill, .pill-flat)[style*="rgba(148, 163, 196, 0.05)"]:hover,
-.pill-flat[style*="rgb(34, 44, 71)"]:hover,
-.su-join:hover {
+.pill-flat[style*="rgb(34, 44, 71)"]:hover {
   color: #e8ecf8 !important; border-color: rgba(139,92,246,0.55) !important;
   background: rgba(139,92,246,0.12) !important; box-shadow: none !important; }
 
 /* filter chips: the landing's eyebrow shape */
 .chip { border-radius: 999px !important; }
+
+/* ── game panels ────────────────────────────────────────────────────────────
+   The hero card on lobby, leaderboard, tournaments, hands and staking, in the
+   landing's table language: violet felt lit from one side, a dark rail with a
+   hairline of light inside it, and the edge of a table's oval sweeping in from
+   the right. Replaces the guilloché those cards used to carry.
+   !important beats each card's inline resting style. */
+.gm-panel {
+  position: relative; isolation: isolate;
+  background: radial-gradient(120% 140% at 88% 18%, #2d2266 0%, #1c1844 42%, #121433 100%) !important;
+  border: 1px solid rgba(167,139,250,0.32) !important; border-radius: 20px !important;
+  box-shadow: inset 0 0 0 6px rgba(12,17,34,0.5), inset 0 0 0 7px rgba(167,139,250,0.16),
+    inset 0 0 90px rgba(0,0,0,0.45), 0 24px 60px -40px rgba(109,63,212,0.45) !important;
+}
+/* the table's oval, cropped by the card */
+.gm-panel::before {
+  content: ''; position: absolute; z-index: -1; pointer-events: none;
+  right: -22%; top: -38%; width: 72%; aspect-ratio: 2 / 1; border-radius: 50%;
+  border: 2px solid rgba(167,139,250,0.2);
+  box-shadow: 0 0 0 16px rgba(12,17,34,0.35), 0 0 0 17px rgba(167,139,250,0.12), inset 0 0 60px rgba(139,92,246,0.18);
+}
+/* a soft spotlight where the cards would land */
+.gm-panel::after {
+  content: ''; position: absolute; z-index: -1; pointer-events: none; inset: 0;
+  background: radial-gradient(40% 60% at 80% 40%, rgba(139,92,246,0.16), transparent 70%);
+}
+
+/* the eyebrow as the landing's live pill */
+.gm-eyebrow { display: inline-flex; align-items: center; gap: 9px; align-self: flex-start;
+  padding: 5px 14px 5px 10px; border-radius: 999px;
+  background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.35); }
+
+/* figures as chips on the felt */
+.gm-stat { background: rgba(12,17,34,0.55) !important; border: 1px solid rgba(167,139,250,0.22) !important;
+  border-radius: 14px !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); }
+.gm-stat-k { display: inline-flex; align-items: center; gap: 7px; }
+.gm-stat-k::before { content: ''; flex: none; width: 11px; height: 11px; border-radius: 50%;
+  background: radial-gradient(circle, #8b5cf6 0 38%, transparent 40%),
+    conic-gradient(#8b5cf6 0 12.5%, #f2f5ff 0 25%, #8b5cf6 0 37.5%, #f2f5ff 0 50%, #8b5cf6 0 62.5%, #f2f5ff 0 75%, #8b5cf6 0 87.5%, #f2f5ff 0);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.4), 0 0 8px rgba(139,92,246,0.7); }
+
+/* the lobby hero's dealt cards and chip stacks, top right */
+.gm-deal { position: absolute; z-index: 0; right: clamp(20px, 4%, 48px); top: 22px; width: 250px; height: 122px; pointer-events: none; }
+.gm-card { position: absolute; width: 76px; height: 106px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 18px 30px -10px rgba(0,0,0,0.6); }
+.gm-card--back { left: 112px; top: 12px; transform: rotate(-10deg); background: #0d1220; border: 1px solid rgba(232,236,248,0.18); }
+.gm-card--back::after { content: ''; position: absolute; inset: 7px; border-radius: 6px; border: 1px solid rgba(232,236,248,0.16);
+  background: repeating-linear-gradient(45deg, rgba(139,92,246,0.14) 0 2px, transparent 2px 8px); }
+.gm-card--face { left: 170px; top: 2px; transform: rotate(7deg); background: #f2f5ff; color: #101828; }
+.gm-card--face .gm-rank { position: absolute; left: 8px; top: 6px; font-family: 'Instrument Serif', serif; font-size: 22px; line-height: .8; }
+.gm-chips { position: absolute; left: 0; bottom: 0; display: flex; gap: 6px; align-items: flex-end; }
+.gm-chipstack { display: flex; flex-direction: column-reverse; }
+.gm-chipstack i { display: block; width: 34px; height: 9px; margin-top: -4px; border-radius: 50%;
+  background: var(--c); border: 1px dashed rgba(255,255,255,0.75); box-shadow: 0 2px 0 rgba(0,0,0,0.35); }
+@media (max-width: 900px) { .gm-deal { display: none; } }
+
+/* the card beside each hero: same felt family, quieter — glass over the
+   ground with the violet rail, no oval */
+.gm-side { border-radius: 20px !important; border: 1px solid rgba(167,139,250,0.24) !important;
+  background: linear-gradient(180deg, rgba(29,38,66,0.62), rgba(13,18,32,0.7)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.05); }
+
+/* stake tiles as table seats: rounder, the selected one lit like the felt */
+.su-stake { border-radius: 16px !important; background: rgba(20,26,47,0.6) !important; }
+.su-stake--on { background: radial-gradient(120% 120% at 50% 0%, rgba(139,92,246,0.2), rgba(20,26,47,0.75) 70%) !important; box-shadow: none !important; }
+
+/* On a phone the nav's connect button sits right against "more"; the
+   primary's heavier weight was enough to make them touch. */
+@media (max-width: 600px) {
+  .su-nav-left { gap: 12px !important; }
+  .pill.scp0 { padding: 0 14px !important; font-weight: 500 !important; box-shadow: 0 0 0 3px rgba(139,92,246,0.18) !important; }
+}
+
+/* ── the nav bar, as a game's top menu ──────────────────────────────────────
+   Dark glass tinted violet, a lit edge along the bottom, a glowing mark, pill
+   tabs (the active pill is drawn in SuitedApp's `tab()`), and a live
+   "N online" chip by the account button. */
+.su-nav {
+  background: linear-gradient(180deg, rgba(24,18,56,0.94), rgba(12,17,34,0.9)) !important;
+  border-bottom: 1px solid rgba(167,139,250,0.22) !important;
+  box-shadow: 0 12px 34px -16px rgba(109,63,212,0.55);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+}
+.su-nav::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, rgba(167,139,250,0.9) 30%, rgba(196,181,253,1) 50%, rgba(167,139,250,0.9) 70%, transparent); opacity: .55; }
+.su-nav-logo svg { filter: drop-shadow(0 0 8px rgba(139,92,246,0.85)); }
+.su-tabs { gap: 4px !important; }
+.su-tab:not([style*="rgba(167, 139, 250, 0.55)"]):hover { color: #ffffff !important; background: rgba(139,92,246,0.12) !important; }
+.su-online { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; white-space: nowrap;
+  font-size: 12px; font-weight: 500; color: #c3cbe0; background: rgba(12,17,34,0.55); border: 1px solid rgba(74,222,128,0.28); }
+.su-online i { width: 7px; height: 7px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 8px #4ade80;
+  animation: suPulse 2.2s ease-in-out infinite; will-change: opacity; }
+@media (max-width: 900px) { .su-online { display: none; } }
+@media (max-width: 600px) { .su-tab { padding: 6px 10px !important; } }
+@media (max-width: 420px) {
+  .su-nav-logo { gap: 8px !important; }
+  .su-nav-left > div > div:last-child > span:first-child { margin: 0 4px !important; }
+  .su-tab { padding: 6px 7px !important; }
+}
+/* the narrowest phones keep the mark and drop the wordmark */
+@media (max-width: 340px) { .su-nav-logo span { display: none; } }
+
+/* ── the lobby's join: the screen's one way in. Clearly the action, but
+   in the same register as the panels around it: dark felt tinted violet, a
+   lit violet edge, white label, the stake in the accent. A shut join (every
+   table full) goes quiet. */
+.su-join {
+  position: relative; margin: 4px 0 20px;
+  padding: 14px 18px !important; border-radius: 16px !important;
+  background: linear-gradient(180deg, rgba(139,92,246,0.2), rgba(109,63,212,0.1)) !important;
+  border: 1px solid rgba(167,139,250,0.5) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 10px 30px -18px rgba(139,92,246,0.7) !important;
+  transition: background .18s ease, border-color .18s ease, box-shadow .2s ease, transform .15s ease !important;
+}
+.su-join > span:first-child { color: #ffffff !important; font-size: 12px !important; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; }
+.su-join > span:last-child { color: #c4b5fd !important; }
+.su-join:hover {
+  background: linear-gradient(180deg, rgba(139,92,246,0.3), rgba(109,63,212,0.16)) !important;
+  border-color: rgba(196,181,253,0.75) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.1), 0 14px 36px -16px rgba(139,92,246,0.85) !important; }
+.su-join:active { transform: translateY(1px); }
+.su-join--shut, .su-join--shut:hover {
+  background: rgba(12,17,34,0.5) !important; border-color: rgba(232,236,248,0.12) !important; box-shadow: none !important; }
+.su-join--shut > span { color: #8592b3 !important; }
+
+/* A slimmer bar: 60px instead of 73, with the type and pills scaled to suit. */
+.su-nav-logo span { font-size: 19px !important; }
+.su-nav-logo svg { width: 13px; height: 18px; }
+.su-tab { padding: 5px 12px !important; font-size: 13px; border-radius: 9px !important; }
+.su-online { padding: 4px 10px; font-size: 11.5px; }
+.su-nav .pill.scp0 { height: 30px !important; padding: 0 16px !important; font-size: 13px; }
+
+/* nav icons: a touch quieter than the label when idle, lit with it when active */
+.su-tab .su-nav-icon { opacity: .75; transition: opacity .18s ease, filter .18s ease; }
+.su-tab:hover .su-nav-icon { opacity: 1; }
+.su-tab[style*="rgba(167, 139, 250, 0.55)"] .su-nav-icon { opacity: 1; color: #c4b5fd; filter: drop-shadow(0 0 4px rgba(139,92,246,0.9)); }
+.su-menu-item { display: flex !important; align-items: center; gap: 10px; }
+.su-menu-item .su-nav-icon { color: #a78bfa; }
+.su-menu-item:hover { background: rgba(139,92,246,0.12); }
+/* tight phones: the label carries it, the icon would only crowd the row */
+@media (max-width: 420px) { .su-tab .su-nav-icon { display: none; } }
+
+/* ── leaderboard filters ────────────────────────────────────────────────────
+   The period chips as one segmented control in the nav's language (the lit
+   pill is the active period), and the stake picker as a dark glass select.
+   The option list is drawn by the OS, so its colours are set explicitly or it
+   falls back to white with the select's light text: unreadable. */
+.su-seg { gap: 2px !important; padding: 3px; border-radius: 12px;
+  background: rgba(12,17,34,0.6); border: 1px solid rgba(232,236,248,0.12); }
+.su-seg-btn { position: relative; padding: 6px 14px; border-radius: 9px; font-size: 12.5px; font-weight: 500;
+  border: 1px solid transparent; white-space: nowrap; transition: background .16s ease, color .16s ease; }
+.su-seg-btn:not(.su-seg-btn--on):hover { background: rgba(139,92,246,0.12); }
+.su-seg-btn:not(.su-seg-btn--on):hover span { color: #ffffff !important; }
+.su-seg-glow { position: absolute; inset: -1px; border-radius: 9px;
+  background: linear-gradient(180deg, rgba(139,92,246,0.42), rgba(109,63,212,0.2));
+  border: 1px solid rgba(167,139,250,0.55); box-shadow: 0 0 16px -4px rgba(139,92,246,0.8), inset 0 1px 0 rgba(255,255,255,0.14); }
+
+.su-select {
+  appearance: none; -webkit-appearance: none; cursor: pointer;
+  padding: 8px 36px 8px 14px; border-radius: 12px; font: 500 12.5px "Inter Tight", system-ui, sans-serif; color: #e8ecf8;
+  background: rgba(12,17,34,0.6) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpolyline points='1,1 5,5 9,1' fill='none' stroke='%23c4b5fd' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 14px center;
+  border: 1px solid rgba(167,139,250,0.4);
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
+}
+.su-select:hover { border-color: rgba(196,181,253,0.7); background-color: rgba(139,92,246,0.12); }
+.su-select:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(139,92,246,0.3); }
+.su-select option { background: #141a2f; color: #e8ecf8; }
+.su-select option:checked { background: #6d3fd4; color: #ffffff; }
+
+/* ── the table's menu ───────────────────────────────────────────────────────
+   No nav bar on the felt; one glass button top right opens a drawer from the
+   right edge. Only transform and opacity animate. */
+.td-toggle { position: fixed; z-index: 70; top: 12px; right: 12px; width: 40px; height: 40px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center; color: #e8ecf8;
+  background: rgba(18,16,44,0.72); border: 1px solid rgba(167,139,250,0.35);
+  box-shadow: 0 8px 24px -10px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.08);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  transition: background .18s ease, border-color .18s ease, opacity .18s ease; }
+.td-toggle:hover { background: rgba(139,92,246,0.28); border-color: rgba(196,181,253,0.7); }
+.td-toggle--open { opacity: 0; pointer-events: none; }
+
+.td-scrim { position: fixed; inset: 0; z-index: 71; background: rgba(5,8,18,0.55); opacity: 0; pointer-events: none; transition: opacity .22s ease; }
+.td-scrim--open { opacity: 1; pointer-events: auto; }
+
+.td-panel { position: fixed; z-index: 72; top: 0; right: 0; bottom: 0; width: min(330px, 88vw);
+  display: flex; flex-direction: column;
+  background: linear-gradient(180deg, rgba(26,20,60,0.98), rgba(12,17,34,0.98));
+  border-left: 1px solid rgba(167,139,250,0.3);
+  box-shadow: -24px 0 60px -20px rgba(0,0,0,0.8), inset 1px 0 0 rgba(255,255,255,0.04);
+  transform: translateX(105%); transition: transform .26s cubic-bezier(.2,.8,.2,1); will-change: transform; }
+.td-panel--open { transform: translateX(0); }
+@media (prefers-reduced-motion: reduce) { .td-panel, .td-scrim { transition: none; } }
+
+.td-head { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 14px 20px;
+  border-bottom: 1px solid rgba(167,139,250,0.18); }
+.td-brand { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 500; letter-spacing: -.03em; color: #e8ecf8; }
+.td-brand svg { filter: drop-shadow(0 0 8px rgba(139,92,246,0.85)); }
+.td-close { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #aab4cf;
+  border: 1px solid rgba(232,236,248,0.12); transition: background .16s ease, color .16s ease; }
+.td-close:hover { color: #fff; background: rgba(139,92,246,0.16); }
+
+.td-body { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 14px 24px; display: flex; flex-direction: column; gap: 18px; }
+.td-card { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 16px;
+  background: rgba(12,17,34,0.55); border: 1px solid rgba(167,139,250,0.22); }
+.td-me { display: flex; align-items: center; gap: 12px; padding: 2px 0 8px; text-align: left; }
+.td-me-name { font-size: 15px; font-weight: 600; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.td-kv { display: flex; align-items: baseline; justify-content: space-between; padding: 6px 0 2px; border-top: 1px solid rgba(232,236,248,0.08); }
+.td-kv span { font-size: 12px; color: #94a3c4; }
+.td-kv b { font: 400 20px 'Instrument Serif', serif; color: #e8ecf8; }
+.td-kv small { font: 500 11px "Inter Tight", system-ui, sans-serif; color: #94a3c4; }
+.td-connect { width: 100%; height: 42px; justify-content: center; }
+
+.td-group { display: flex; flex-direction: column; gap: 2px; }
+.td-label { padding: 0 8px 6px; font-size: 11px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: #a78bfa; }
+.td-item { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 10px 10px; border-radius: 11px;
+  font-size: 14px; color: #e8ecf8; transition: background .16s ease; }
+.td-item:hover { background: rgba(139,92,246,0.14); }
+.td-item .su-nav-icon { color: #a78bfa; }
+.td-item--two { flex-direction: column; align-items: flex-start; gap: 2px; }
+.td-item--two small { font-size: 12px; color: #94a3c4; }
+.td-item--danger > span { color: #f2676b; }
+.td-item--muted { color: #94a3c4; }
+
+/* ── the side rail's header on the felt ─────────────────────────────────────
+   Two rows: the table (name over stakes) with the menu and collapse icons on
+   its right, then sit up / leave sharing the width. Every control is 30px
+   tall with the same corner, so they read as one set. */
+.tb-railhead { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 14px 12px 18px; color: #e8ecf8; }
+.tb-railname { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.tb-railname span { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tb-railname small { font-size: 11px; color: #94a3c4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tb-railbtns { flex: none; display: flex; align-items: center; gap: 6px; }
+.tb-railacts { flex: 1 0 100%; display: flex; gap: 8px; }
+/* spectating: both seat buttons are display:none, so drop the empty row too */
+.tb-railacts:not(:has(.tb-btn[style*="inline-flex"])) { display: none; }
+.tb-btn { flex: 1; height: 30px; padding: 0 11px !important; border-radius: 9px !important; font-size: 12px !important; align-items: center; justify-content: center; }
+.tb-icon { width: 30px; height: 30px; flex: none; border-radius: 9px; display: flex; align-items: center; justify-content: center;
+  color: #c3cbe0; border: 1px solid rgba(232,236,248,0.16); background: rgba(12,17,34,0.4);
+  transition: background .16s ease, border-color .16s ease, color .16s ease; }
+.tb-icon:hover { color: #ffffff; background: rgba(139,92,246,0.18); border-color: rgba(167,139,250,0.55); }

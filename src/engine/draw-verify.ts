@@ -177,14 +177,14 @@ export function verifyDraw(record, me) {
   const checks = [];
   const add = (key, ok, label) => checks.push({ key, ok, label });
   if (!d || !d.seed) {
-    return { ok: false, verifiable: false, checks, reason: 'this day has not been drawn yet' };
+    return { ok: false, verifiable: false, checks, reason: 'This day has not been drawn yet' };
   }
   add('commit', commitFor(d.seed, day) === d.commit, 'the revealed seed matches the commitment published at the start of the day');
   add('random', randomFor(d.seed, day, d.blockhash) === d.random, 'the random value comes from that seed and the Ethereum block');
   if (!f) {
     return {
       ok: checks.every((c) => c.ok), verifiable: false, checks,
-      reason: 'drawn before full fields were published — the seed and block check, the entrant list cannot',
+      reason: 'Drawn before full fields were published, the seed and block check, the entrant list cannot',
     };
   }
   add('block', !!f.entropy && f.entropy.hash === d.blockhash && f.entropy.number === d.blockNumber

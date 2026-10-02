@@ -282,7 +282,7 @@ export function createLocalAdapter(cfg) {
    check over the server seed + the on-chain commitment.                     */
 
 export function verifyRecord(rec) {
-  if (!rec) return { ok: false, reason: 'unknown hand' };
+  if (!rec) return { ok: false, reason: 'Unknown hand' };
   // Server-dealt hands carry a real commitment and a revealed 256-bit seed, so
   // they verify against that rather than by re-running the demo's 32-bit PRNG.
   // The history screen calls this directly (Suited.dc.html), so it has to handle
@@ -293,7 +293,7 @@ export function verifyRecord(rec) {
   // routing bug, and a verifier that dies with a TypeError tells the player
   // their hand is broken rather than that we are.
   if (typeof rec.seed !== 'number' || !(rec.dealt || rec.seats?.length)) {
-    return { ok: false, reason: 'this hand has no local deal to re-run — fetch its proof instead' };
+    return { ok: false, reason: 'This hand has no local deal to re-run, fetch its proof instead' };
   }
   const deck = shuffle(freshDeck(), mulberry32(rec.seed + rec.handNo * 7919));
   const n = rec.dealt || rec.seats.length;

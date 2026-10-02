@@ -6,6 +6,7 @@
  */
 import { Fragment } from 'react';
 import { interp, css, asArray } from '../dc-runtime';
+import { openTableMenu } from './TableDrawer';
 
 export default function Table({ v }: { v: any }) {
   return (
@@ -56,7 +57,7 @@ export default function Table({ v }: { v: any }) {
                 <span style={css(v.tHudDotStyle)} />
                 {"\r\n            "}
                 <span style={css(v.tHudMetaStyle)}>
-                  {"pool "}
+                  {"Pool "}
                   {interp(v.tHudPool)}
                 </span>
                 {"\r\n            "}
@@ -101,10 +102,10 @@ export default function Table({ v }: { v: any }) {
                   <div>
                     {"\r\n                "}
                     <h2 style={{ fontFamily: "'Inter Tight',system-ui,sans-serif", fontWeight: "600", letterSpacing: "-.03em", fontSize: "26px", margin: "0 0 3px" }}>
-                      {"out of chips"}
+                      {"Out of chips"}
                     </h2>
                     {"\r\n                "}
-                    <div style={{ fontSize: "12px", color: "#94a3c4" }}>{"buy back in — you're dealt the next hand"}</div>
+                    <div style={{ fontSize: "12px", color: "#94a3c4" }}>{"Buy back in, you're dealt the next hand"}</div>
                     {"\r\n              "}
                   </div>
                   {"\r\n              "}
@@ -184,7 +185,7 @@ export default function Table({ v }: { v: any }) {
                         {interp(v.rebuyNeedLabel)}
                       </div>
                       {"\r\n                "}
-                      <button className="pill-flat" onClick={v.rebuyDeposit} style={css(v.rebuyDepositStyle)}>{"add funds"}</button>
+                      <button className="pill-flat" onClick={v.rebuyDeposit} style={css(v.rebuyDepositStyle)}>{"Add funds"}</button>
                       {"\r\n              "}
                     </div>
                     {"\r\n            "}
@@ -194,11 +195,11 @@ export default function Table({ v }: { v: any }) {
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "12px", marginTop: "18px" }}>
                   {"\r\n              "}
                   <button onClick={v.rebuyDismiss} style={{ fontSize: "12px", color: "#94a3c4", background: "transparent" }}>
-                    {"watch instead"}
+                    {"Watch instead"}
                   </button>
                   {"\r\n              "}
                   <button onClick={v.leaveTable} style={{ fontSize: "12px", color: "#e5484d", background: "transparent" }}>
-                    {"leave the table"}
+                    {"Leave the table"}
                   </button>
                   {"\r\n            "}
                 </div>
@@ -348,7 +349,7 @@ export default function Table({ v }: { v: any }) {
                     {interp(v.potLabel)}
                   </span>
                   {"\r\n                "}
-                  <span style={css(v.potUnitStyle)}>{"pot"}</span>
+                  <span style={css(v.potUnitStyle)}>{"Pot"}</span>
                   {"\r\n              "}
                 </div>
                 {"\r\n            "}
@@ -575,7 +576,7 @@ export default function Table({ v }: { v: any }) {
                 {"\r\n            "}
               </div>
               {"\r\n            "}
-              <button onPointerDown={v.volDown} onPointerMove={v.volMove} onPointerUp={v.volUp} onPointerCancel={v.volUp} title="click to mute · hold and drag up or down for volume" style={css(v.sndBtnStyle)}>
+              <button onPointerDown={v.volDown} onPointerMove={v.volMove} onPointerUp={v.volUp} onPointerCancel={v.volUp} title="Click to mute · hold and drag up or down for volume" style={css(v.sndBtnStyle)}>
                 {"\r\n              "}
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round" style={css(v.sndGlyphStyle)}>
                   {"\r\n                "}
@@ -631,6 +632,7 @@ export default function Table({ v }: { v: any }) {
               */}
               {"\r\n            "}
               <button className="pill scpb scp6" onClick={v.doFold} style={css(v.foldStyle)}>
+                <span style={css(v.foldDotStyle)} />
                 <span style={css(v.foldKeyStyle)}>
                   {interp(v.foldKey)}
                 </span>
@@ -638,12 +640,13 @@ export default function Table({ v }: { v: any }) {
               </button>
               {"\r\n            "}
               <button className="pill scpc scp6" onClick={v.doCheckCall} style={css(v.callStyle)}>
-                <span style={css(v.callKeyStyle)}>{"c"}</span>
+                <span style={css(v.callDotStyle)} />
+                <span style={css(v.callKeyStyle)}>{"C"}</span>
                 {interp(v.callRest)}
               </button>
               {"\r\n            "}
               <button className="pill pill-ink scpd scpe" onClick={v.doRaise} style={css(v.raiseStyle)}>
-                <span style={css(v.raiseKeyStyle)}>{"r"}</span>
+                <span style={css(v.raiseKeyStyle)}>{"R"}</span>
                 {interp(v.raiseRest)}
               </button>
               {"\r\n            "}
@@ -693,7 +696,7 @@ export default function Table({ v }: { v: any }) {
               */}
               {"\r\n            "}
               <button className="pill scpf scp8" onClick={v.sizeMin} style={css(v.sizeStyle)}>
-                <span>{"min"}</span>
+                <span>{"Min"}</span>
               </button>
               {"\r\n            "}
               {/*
@@ -740,8 +743,8 @@ export default function Table({ v }: { v: any }) {
               </button>
               {"\r\n            "}
               <button className="pill scpf scp8" onClick={v.sizeAllIn} style={css(v.sizeAllInStyle)}>
-                <span>{"all"}</span>
-                <span style={css(v.sizeSubStyle)}>{"in"}</span>
+                <span>{"All"}</span>
+                <span style={css(v.sizeSubStyle)}>{"In"}</span>
               </button>
               {"\r\n          "}
             </div>
@@ -753,7 +756,7 @@ export default function Table({ v }: { v: any }) {
               </span>
               {"\r\n            "}
               <button className="pill-flat" onClick={v.sitHere} style={{ flex: "0 0 auto", padding: "11px 20px", borderRadius: "5px", background: "linear-gradient(180deg,#8b5cf6,#6d3fd4)", border: "1px solid rgba(255,255,255,0.165)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.27),0 1px 3px rgba(0,0,0,0.35)", color: "#f6f3ff", fontSize: "13px", fontWeight: "500", whiteSpace: "nowrap" }}>
-                {"take this seat"}
+                {"Take this seat"}
               </button>
               {"\r\n          "}
             </div>
@@ -770,7 +773,7 @@ export default function Table({ v }: { v: any }) {
                 {interp(v.rebuyPillLabel)}
               </button>
               {"\r\n            "}
-              <span style={{ fontSize: "11px", color: "#94a3c4", whiteSpace: "nowrap" }}>{"out of chips"}</span>
+              <span style={{ fontSize: "11px", color: "#94a3c4", whiteSpace: "nowrap" }}>{"Out of chips"}</span>
               {"\r\n          "}
             </div>
             {"\r\n\r\n        "}
@@ -806,38 +809,42 @@ export default function Table({ v }: { v: any }) {
           {"\r\n       "}
           <div style={css(v.railInner)}>
             {"\r\n        "}
-            <div style={{ display: "flex", alignItems: "center", gap: "9px", padding: "16px 18px 10px", color: "#e8ecf8" }}>
-              {"\r\n          "}
+            <div className="tb-railhead">
               <span style={css(v.connDotStyle)} />
-              {"\r\n          "}
-              <span style={{ fontSize: "12px", fontWeight: "500" }}>
-                {interp(v.tableName)}
-              </span>
-              {"\r\n          "}
-              <span style={{ fontSize: "11px", color: "#94a3c4" }}>
-                {interp(v.tableStakes)}
-              </span>
-              {"\r\n          "}
-              <span style={{ flex: "1" }} />
-              {"\r\n          "}
-              <button className="pill-flat" onClick={v.sitUp} style={css(v.sitUpStyle)}>
-                {interp(v.sitUpLabel)}
-              </button>
-              {"\r\n          "}
-              <button className="pill-flat" onClick={v.leaveTable} style={css(v.leaveStyle)}>{"leave"}</button>
-              {"\r\n          "}
-              <button onClick={v.toggleRail} style={{ fontSize: "11px", color: "#94a3c4", marginLeft: "4px", background: "transparent" }}>
-                {interp(v.railToggleLabel)}
-              </button>
+              <div className="tb-railname">
+                <span>{interp(v.tableName)}</span>
+                <small>{interp(v.tableStakes)}</small>
+              </div>
+              {/* The table menu (it replaces the nav bar here) and collapse sit
+                  beside the name; the seat actions get their own row below, so
+                  nothing has to squeeze the name to fit. */}
+              <div className="tb-railbtns">
+                <button className="tb-icon" onClick={openTableMenu} aria-label="Menu" title="Menu">
+                  <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M2.5 4.5h11M2.5 8h11M2.5 11.5h11" style={{ fill: "none", stroke: "currentColor", strokeWidth: 1.6, strokeLinecap: "round" }} />
+                  </svg>
+                </button>
+                <button className="tb-icon" onClick={v.toggleRail} aria-label={v.railToggleLabel + " panel"} title={v.railToggleLabel + " panel"}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true">
+                    <path d="M3.5 3l4 4-4 4M7.5 3l4 4-4 4" style={{ fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round" }} />
+                  </svg>
+                </button>
+              </div>
+              <div className="tb-railacts">
+                <button className="pill-flat tb-btn" onClick={v.sitUp} style={css(v.sitUpStyle)}>
+                  {interp(v.sitUpLabel)}
+                </button>
+                <button className="pill-flat tb-btn" onClick={v.leaveTable} style={css(v.leaveStyle)}>{"Leave"}</button>
+              </div>
               {"\r\n        "}
             </div>
             {"\r\n        "}
             <div style={{ position: "relative", display: "flex", gap: "20px", padding: "0 18px 10px", fontSize: "12px", borderBottom: "1px solid rgba(232,236,248,0.14)" }}>
               {"\r\n          "}
-              <button onClick={v.railLog} data-a={v.railALog} style={css(v.railTabLog)}>{"log"}</button>
+              <button onClick={v.railLog} data-a={v.railALog} style={css(v.railTabLog)}>{"Log"}</button>
               {"\r\n          "}
               <button onClick={v.railChat} data-a={v.railAChat} style={css(v.railTabChat)}>
-                {"chat"}
+                {"Chat"}
                 <span style={css(v.chatDotStyle)} />
               </button>
               {"\r\n          "}
@@ -878,7 +885,7 @@ export default function Table({ v }: { v: any }) {
                   {"\r\n            "}
                   <div style={{ display: "flex", flexDirection: "column", gap: "10px", padding: "12px 18px" }}>
                     {"\r\n              "}
-                    <div style={css(v.chatEmptyStyle)}>{"table talk stays at the table — say hi"}</div>
+                    <div style={css(v.chatEmptyStyle)}>{"Table talk stays at the table, say hi"}</div>
                     {"\r\n              "}
                     {asArray(v.chatLines).map((m: any, $index: number) => (
                       <Fragment key={$index}>
@@ -915,7 +922,7 @@ export default function Table({ v }: { v: any }) {
             {"\r\n        "}
             <div style={css(v.chatInputRow)}>
               {"\r\n          "}
-              <input value={v.chatDraft ?? ''} onInput={v.chatInput} onKeyDown={v.chatKeyDown} placeholder="say something" maxLength={240} style={{ flex: "1", minWidth: "0", border: "0", background: "transparent", outline: "none", fontFamily: "'Inter Tight',system-ui,sans-serif", fontSize: "12.5px", color: "#e8ecf8", caretColor: "#a78bfa" }} />
+              <input value={v.chatDraft ?? ''} onInput={v.chatInput} onKeyDown={v.chatKeyDown} placeholder="Say something" maxLength={240} style={{ flex: "1", minWidth: "0", border: "0", background: "transparent", outline: "none", fontFamily: "'Inter Tight',system-ui,sans-serif", fontSize: "12.5px", color: "#e8ecf8", caretColor: "#a78bfa" }} />
               {"\r\n          "}
               <button className="pill-flat" onClick={v.chatSend} style={css(v.chatSendStyle)}>{"SEND"}</button>
               {"\r\n        "}

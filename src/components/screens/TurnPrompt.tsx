@@ -19,7 +19,7 @@ export default function TurnPrompt({ v }: { v: any }) {
             <span style={{ width: "8px", height: "8px", borderRadius: "999px", background: "#222c47", animation: "seatPulse 1.1s ease-in-out infinite" }} />
             {"\r\n          "}
             <span style={{ fontFamily: "'Inter Tight',system-ui,sans-serif", fontWeight: "600", letterSpacing: "-.03em", fontSize: "17px" }}>
-              {"your turn"}
+              {"Your turn"}
             </span>
             {"\r\n        "}
           </span>
@@ -33,7 +33,7 @@ export default function TurnPrompt({ v }: { v: any }) {
             </span>
             {"\r\n          "}
             <span style={{ fontSize: "10px", opacity: ".75" }}>
-              {"back to "}
+              {"Back to "}
               {interp(v.tableName)}
               {" >"}
             </span>

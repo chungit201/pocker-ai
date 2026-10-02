@@ -19,7 +19,7 @@ export default function Seat({ v }: { v: any }) {
             <div style={{ display: "flex", flexDirection: "column", gap: "12px", minWidth: "0" }}>
               {"\r\n            "}
               <div style={{ fontSize: "clamp(30px,4.4vw,42px)", fontWeight: "400", letterSpacing: "-.035em", lineHeight: "1", color: "#e8ecf8" }}>
-                {"take a seat"}
+                {"Take a seat"}
               </div>
               {"\r\n            "}
               <div style={{ fontSize: "13px", letterSpacing: ".02em", color: "#94a3c4" }}>
@@ -30,7 +30,7 @@ export default function Seat({ v }: { v: any }) {
             {"\r\n          "}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px", flex: "none" }}>
               {"\r\n            "}
-              <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#a78bfa" }}>{"bankroll"}</span>
+              <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#a78bfa" }}>{"Bankroll"}</span>
               {"\r\n            "}
               <span style={{ fontFamily: "'Instrument Serif',serif", fontSize: "30px", fontVariantNumeric: "tabular-nums", lineHeight: "1", color: "#e8ecf8" }}>
                 {interp(v.bankrollLabel)}
@@ -46,7 +46,7 @@ export default function Seat({ v }: { v: any }) {
               {"\r\n            "}
               <div style={{ display: "flex", flexDirection: "column", gap: "11px" }}>
                 {"\r\n              "}
-                <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#a78bfa" }}>{"you bring"}</span>
+                <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#a78bfa" }}>{"You bring"}</span>
                 {"\r\n              "}
                 <div style={{ display: "flex", alignItems: "baseline", gap: "10px" }}>
                   {"\r\n                "}
@@ -98,7 +98,7 @@ export default function Seat({ v }: { v: any }) {
               {"\r\n            "}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "17px 0", borderBottom: "1px solid rgba(232,236,248,0.1)" }}>
                 {"\r\n              "}
-                <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#a78bfa" }}>{"table allows"}</span>
+                <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#a78bfa" }}>{"Table allows"}</span>
                 {"\r\n              "}
                 <span style={{ fontSize: "16px", fontVariantNumeric: "tabular-nums", color: "#94a3c4" }}>
                   {interp(v.tableRangeLabel)}
@@ -108,7 +108,7 @@ export default function Seat({ v }: { v: any }) {
               {"\r\n            "}
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", padding: "17px 0", borderBottom: "1px solid rgba(232,236,248,0.1)" }}>
                 {"\r\n              "}
-                <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#a78bfa" }}>{"left in bankroll"}</span>
+                <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#a78bfa" }}>{"Left in bankroll"}</span>
                 {"\r\n              "}
                 <span style={{ fontSize: "16px", fontVariantNumeric: "tabular-nums", color: "#94a3c4" }}>
                   {interp(v.sitLeftLabel)}
@@ -136,7 +136,7 @@ export default function Seat({ v }: { v: any }) {
             </button>
             {"\r\n          "}
             <button onClick={v.goLobby} style={{ fontSize: "12px", letterSpacing: ".06em", color: "#94a3c4" }}>
-              {"back to lobby"}
+              {"Back to lobby"}
             </button>
             {"\r\n        "}
           </div>

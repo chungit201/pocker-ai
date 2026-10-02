@@ -73,7 +73,7 @@ export function detectProviders() {
   for (const w of solana.filter((w) => w.ready)) {
     rows.push({
       id: `solana:${w.name}`,
-      label: `${w.name.toLowerCase()} · solana`,
+      label: w.name,
       short: w.name.slice(0, 2).toLowerCase(),
       icon: w.icon || null,
       detected: true,
@@ -93,7 +93,7 @@ export function detectProviders() {
   for (const w of evm) {
     rows.push({
       id: `evm:${w.id}`,
-      label: `${w.name.toLowerCase()} · evm`,
+      label: w.name,
       short: w.name.slice(0, 2).toLowerCase(),
       icon: w.icon,
       detected: true,
@@ -114,7 +114,7 @@ export function detectProviders() {
     if (isAlreadyFound(entry, found)) continue;
     rows.push({
       id: entry.chain === 'solana' ? `solana:${entry.name}` : `evm:${entry.id}`,
-      label: `${entry.name.toLowerCase()} · ${entry.chain}`,
+      label: entry.name,
       short: entry.name.slice(0, 2).toLowerCase(),
       // The wallet's own mark from public/wallets/. Same-origin, so nothing is
       // fetched from a third party; the two letters stay underneath in case the
@@ -198,7 +198,7 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
      of everything it might carry, TS would still have to be told at each of the
      eleven read sites that the field is optional — so it is `any` here and the
      shape is documented by the literal, as it was in JavaScript. */
-  let st: any = { address: null, label: null, balance: 0, walletBalance: null, avatar: 'index-as', achievements: [], level: { level: 0, title: 'fish' }, wagered: 0, seat: null };
+  let st: any = { address: null, label: null, balance: 0, walletBalance: null, avatar: 'index-as', achievements: [], level: { level: 0, title: 'Fish' }, wagered: 0, seat: null };
   let token = null;
   let subs = [];
   const publish = () => subs.forEach((f) => f({ ...st }));
@@ -772,7 +772,7 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
         if (holding === 0) {
           const tokenId = info.mint ?? info.token;
           throw new Error(
-            `no ${tokenId.slice(0, 6)}…${tokenId.slice(-4)} in this wallet — `
+            `No ${tokenId.slice(0, 6)}…${tokenId.slice(-4)} in this wallet, `
             + 'only that exact token is accepted',
           );
         }

@@ -21,11 +21,23 @@ export default function Lobby({ v }: { v: any }) {
         {"\r\n      "}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "clamp(12px,21px,18px)", alignItems: "stretch", paddingBottom: "clamp(20px,36px,30px)" }}>
           {"\r\n        "}
-          <div style={{ flex: "1 1 520px", minWidth: "0", position: "relative", borderRadius: "12px", overflow: "hidden", background: "#0a0d16", border: "1px solid rgba(232,236,248,0.08)", display: "flex", flexDirection: "column" }}>
+          <div className="gm-panel" style={{ flex: "1 1 520px", minWidth: "0", position: "relative", borderRadius: "12px", overflow: "hidden", background: "#0a0d16", border: "1px solid rgba(232,236,248,0.08)", display: "flex", flexDirection: "column" }}>
             {"\r\n          "}
-            <div aria-hidden="true" style={css(v.heroTexStyle)} />
-            {"\r\n          "}
-            <div style={{ position: "absolute", inset: "0", pointerEvents: "none", background: "radial-gradient(70% 90% at 8% 20%, rgba(148,163,196,0.05), rgba(0,0,0,0.225) 100%)" }} />
+            <div className="gm-deal" aria-hidden="true">
+              <div className="gm-card gm-card--back" />
+              <div className="gm-card gm-card--face">
+                <span className="gm-rank">A</span>
+                <svg viewBox="0 0 72 100" style={{ width: "34px", height: "auto", display: "block" }}>
+                  <path d="M36,0 Q22,29 0,50 Q22,71 36,100 Z" style={{ fill: "#101828" }} />
+                  <path d="M36,0 Q50,29 72,50 Q50,71 36,100 Z" style={{ fill: "#8b5cf6" }} />
+                </svg>
+              </div>
+              <div className="gm-chips">
+                <span className="gm-chipstack" style={{ ["--c" as any]: "#8b5cf6" }}><i /><i /><i /><i /><i /></span>
+                <span className="gm-chipstack" style={{ ["--c" as any]: "#e8c66a" }}><i /><i /><i /></span>
+                <span className="gm-chipstack" style={{ ["--c" as any]: "#3b4a7a" }}><i /><i /><i /><i /><i /><i /><i /></span>
+              </div>
+            </div>
             {"\r\n          "}
             <div style={{ position: "relative", padding: "clamp(22px,42px,34px)", display: "flex", flexDirection: "column", gap: "16px", flex: "1" }}>
               {"\r\n            "}
@@ -34,7 +46,7 @@ export default function Lobby({ v }: { v: any }) {
                  count describes our spawner rather than whether there is a game.
               */}
               {"\r\n            "}
-              <div style={{ display: "flex", alignItems: "center", gap: "9px" }}>
+              <div className="gm-eyebrow">
                 {"\r\n              "}
                 <span style={css(v.lobbyPipStyle)} />
                 {"\r\n              "}
@@ -65,9 +77,9 @@ export default function Lobby({ v }: { v: any }) {
                 {asArray(v.lobbyFacts).map((f: any, $index: number) => (
                   <Fragment key={$index}>
                     {"\r\n                "}
-                    <span style={{ flex: "1 1 130px", minWidth: "0", display: "flex", flexDirection: "column", gap: "3px", padding: "11px 13px", border: "1px solid rgba(232,236,248,0.12)", borderRadius: "8px", background: "rgba(0,0,0,0.175)" }}>
+                    <span className="gm-stat" style={{ flex: "1 1 130px", minWidth: "0", display: "flex", flexDirection: "column", gap: "5px", padding: "13px 15px", border: "1px solid rgba(232,236,248,0.12)", borderRadius: "8px", background: "rgba(0,0,0,0.175)" }}>
                       {"\r\n                  "}
-                      <span style={{ fontSize: "10px", letterSpacing: ".14em", color: "#94a3c4" }}>
+                      <span className="gm-stat-k" style={{ fontSize: "10px", letterSpacing: ".14em", color: "#c3cbe0" }}>
                         {interp(f?.k)}
                       </span>
                       {"\r\n                  "}
@@ -98,7 +110,7 @@ export default function Lobby({ v }: { v: any }) {
                    at a time.
                 */}
                 {"\r\n              "}
-                <button className="pill scp9 scp4" onClick={v.quickJoinGo} style={css(v.quickJoinStyle)}>{"quick join"}</button>
+                <button className="pill scp9 scp4" onClick={v.quickJoinGo} style={css(v.quickJoinStyle)}>{"Quick join"}</button>
                 {"\r\n              "}
                 {/*
                    "create a room" alone never said what kind. Every room made
@@ -117,7 +129,7 @@ export default function Lobby({ v }: { v: any }) {
                   <>
                     {"\r\n                "}
                     <button className="pill scpa scp6" onClick={v.openCreateRoom} style={{ padding: "12px 20px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.28)", background: "linear-gradient(180deg,rgba(148,163,196,0.05),rgba(0,0,0,0.125))", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1)", color: "#e8ecf8", fontSize: "14px", letterSpacing: ".01em" }}>
-                      {"create a private room"}
+                      {"Create a private room"}
                     </button>
                     {"\r\n              "}
                   </>
@@ -127,13 +139,13 @@ export default function Lobby({ v }: { v: any }) {
                   <>
                     {"\r\n                "}
                     <button className="pill scpa scp6" onClick={v.lobbyConnectGo} style={{ padding: "12px 20px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.28)", background: "linear-gradient(180deg,rgba(148,163,196,0.05),rgba(0,0,0,0.125))", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1)", color: "#e8ecf8", fontSize: "14px", letterSpacing: ".01em" }}>
-                      {"connect a wallet"}
+                      {"Connect a wallet"}
                     </button>
                     {"\r\n              "}
                   </>
                 ) : null}
                 {"\r\n              "}
-                <button className="pill scpa scp6" onClick={v.goTable} style={css(v.myTableStyle)}>{"my table"}</button>
+                <button className="pill scpa scp6" onClick={v.goTable} style={css(v.myTableStyle)}>{"My table"}</button>
                 {"\r\n            "}
               </div>
               {"\r\n          "}
@@ -150,7 +162,7 @@ export default function Lobby({ v }: { v: any }) {
              /api/jackpot is already fetched on this screen.
           */}
           {"\r\n        "}
-          <div style={{ flex: "1 1 280px", minWidth: "0", border: "1px solid rgba(232,236,248,0.12)", borderRadius: "12px", padding: "18px", display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div className="gm-side" style={{ flex: "1 1 280px", minWidth: "0", border: "1px solid rgba(232,236,248,0.12)", borderRadius: "12px", padding: "18px", display: "flex", flexDirection: "column", gap: "12px" }}>
             {"\r\n          "}
             <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#a78bfa" }}>{"TODAY'S JACKPOT"}</span>
             {"\r\n          "}
@@ -191,7 +203,7 @@ export default function Lobby({ v }: { v: any }) {
             </span>
             {"\r\n          "}
             <button className="pill scpa scp6" onClick={v.lobbyJkGo} style={{ marginTop: "auto", padding: "10px 16px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.28)", background: "linear-gradient(180deg,rgba(148,163,196,0.05),rgba(0,0,0,0.125))", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.1)", color: "#e8ecf8", fontSize: "13px" }}>
-              {"how the draw works"}
+              {"How the draw works"}
             </button>
             {"\r\n        "}
           </div>
@@ -295,32 +307,32 @@ export default function Lobby({ v }: { v: any }) {
                   <div>
                     {"\r\n              "}
                     <h2 style={{ fontFamily: "'Inter Tight',system-ui,sans-serif", fontWeight: "600", letterSpacing: "-.03em", fontSize: "26px", margin: "0 0 3px" }}>
-                      {"create a room"}
+                      {"Create a room"}
                     </h2>
                     {"\r\n              "}
                     <div style={{ fontSize: "12px", color: "#94a3c4", marginBottom: "20px" }}>
-                      {"a private table — you share the link and the pin"}
+                      {"A private table, you share the link and the pin"}
                     </div>
                     {"\r\n\r\n              "}
-                    <input value={v.crName ?? ''} onInput={v.crNameInput} placeholder="room name (optional)" maxLength={40} style={{ width: "100%", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa", marginBottom: "16px" }} />
+                    <input value={v.crName ?? ''} onInput={v.crNameInput} placeholder="Room name (optional)" maxLength={40} style={{ width: "100%", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa", marginBottom: "16px" }} />
                     {"\r\n\r\n              "}
-                    <div style={css(v.crFieldLabel)}>{"blinds — small / big ($)"}</div>
+                    <div style={css(v.crFieldLabel)}>{"Blinds, small / big ($)"}</div>
                     {"\r\n              "}
                     <div style={{ display: "flex", gap: "9px", marginBottom: "14px" }}>
                       {"\r\n                "}
-                      <input value={v.crSb ?? ''} onInput={v.crSbInput} inputMode="decimal" placeholder="small blind" style={{ flex: "1", minWidth: "0", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa" }} />
+                      <input value={v.crSb ?? ''} onInput={v.crSbInput} inputMode="decimal" placeholder="Small blind" style={{ flex: "1", minWidth: "0", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa" }} />
                       {"\r\n                "}
-                      <input value={v.crBb ?? ''} onInput={v.crBbInput} inputMode="decimal" placeholder="big blind" style={{ flex: "1", minWidth: "0", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa" }} />
+                      <input value={v.crBb ?? ''} onInput={v.crBbInput} inputMode="decimal" placeholder="Big blind" style={{ flex: "1", minWidth: "0", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa" }} />
                       {"\r\n              "}
                     </div>
                     {"\r\n\r\n              "}
-                    <div style={css(v.crFieldLabel)}>{"buy-in — min / max ($)"}</div>
+                    <div style={css(v.crFieldLabel)}>{"Buy-in, min / max ($)"}</div>
                     {"\r\n              "}
                     <div style={{ display: "flex", gap: "9px", marginBottom: "14px" }}>
                       {"\r\n                "}
-                      <input value={v.crMin ?? ''} onInput={v.crMinInput} inputMode="decimal" placeholder="minimum" style={{ flex: "1", minWidth: "0", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa" }} />
+                      <input value={v.crMin ?? ''} onInput={v.crMinInput} inputMode="decimal" placeholder="Minimum" style={{ flex: "1", minWidth: "0", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa" }} />
                       {"\r\n                "}
-                      <input value={v.crMax ?? ''} onInput={v.crMaxInput} inputMode="decimal" placeholder="maximum" style={{ flex: "1", minWidth: "0", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa" }} />
+                      <input value={v.crMax ?? ''} onInput={v.crMaxInput} inputMode="decimal" placeholder="Maximum" style={{ flex: "1", minWidth: "0", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa" }} />
                       {"\r\n              "}
                     </div>
                     {"\r\n\r\n              "}
@@ -328,7 +340,7 @@ export default function Lobby({ v }: { v: any }) {
                       {"\r\n                "}
                       <div style={{ flex: "1", minWidth: "0" }}>
                         {"\r\n                  "}
-                        <div style={css(v.crFieldLabel)}>{"seats (2–6)"}</div>
+                        <div style={css(v.crFieldLabel)}>{"Seats (2–6)"}</div>
                         {"\r\n                  "}
                         <input value={v.crSeats ?? ''} onInput={v.crSeatsInput} inputMode="numeric" placeholder="6" style={{ width: "100%", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa" }} />
                         {"\r\n                "}
@@ -351,7 +363,7 @@ export default function Lobby({ v }: { v: any }) {
                     <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "14px" }}>
                       {"\r\n                "}
                       <button onClick={v.closeCreateRoom} style={{ fontSize: "13px", color: "#94a3c4", background: "transparent", padding: "13px 8px" }}>
-                        {"cancel"}
+                        {"Cancel"}
                       </button>
                       {"\r\n                "}
                       <button className="pill-flat" onClick={v.createRoom} style={{ flex: "1", padding: "14px", borderRadius: "5px", background: "linear-gradient(180deg,#222c47,#0d1220)", color: "#e8ecf8", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12),0 2px 4px rgba(0,0,0,0.35)", fontSize: "14px", fontWeight: "500" }}>
@@ -371,11 +383,11 @@ export default function Lobby({ v }: { v: any }) {
                   <div>
                     {"\r\n              "}
                     <h2 style={{ fontFamily: "'Inter Tight',system-ui,sans-serif", fontWeight: "600", letterSpacing: "-.03em", fontSize: "26px", margin: "0 0 3px" }}>
-                      {"room ready"}
+                      {"Room ready"}
                     </h2>
                     {"\r\n              "}
                     <div style={{ fontSize: "12px", color: "#94a3c4", marginBottom: "20px" }}>
-                      {"send both to whoever you're playing with"}
+                      {"Send both to whoever you're playing with"}
                     </div>
                     {"\r\n\r\n              "}
                     <div style={{ padding: "16px", borderRadius: "8px", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(10,13,22,0.1)", marginBottom: "12px" }}>
@@ -405,7 +417,7 @@ export default function Lobby({ v }: { v: any }) {
                       </button>
                       {"\r\n                "}
                       <button className="pill-flat" onClick={v.enterCreatedRoom} style={{ flex: "1", padding: "14px", borderRadius: "5px", background: "linear-gradient(180deg,#222c47,#0d1220)", color: "#e8ecf8", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12),0 2px 4px rgba(0,0,0,0.35)", fontSize: "14px", fontWeight: "500" }}>
-                        {"take your seat"}
+                        {"Take your seat"}
                       </button>
                       {"\r\n              "}
                     </div>

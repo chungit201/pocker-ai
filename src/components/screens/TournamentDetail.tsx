@@ -42,7 +42,7 @@ export default function TournamentDetail({ v }: { v: any }) {
             </span>
             {"\r\n          "}
             <span style={{ fontSize: "11px", letterSpacing: ".14em", textTransform: "uppercase", color: "#94a3c4" }}>
-              {"prize pool"}
+              {"Prize pool"}
             </span>
             {"\r\n        "}
           </div>
@@ -107,7 +107,7 @@ export default function TournamentDetail({ v }: { v: any }) {
           <div style={{ borderRadius: "12px", background: "#1a2238", color: "#e8ecf8", border: "1px solid rgba(232,236,248,0.154)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.21),0 2px 6px rgba(0,0,0,0.375)", overflow: "hidden" }}>
             {"\r\n          "}
             <div style={{ padding: "12px 18px", fontSize: "10px", letterSpacing: ".1em", color: "#94a3c4", borderBottom: "1px dashed rgba(232,236,248,0.198)" }}>
-              {"payouts"}
+              {"Payouts"}
             </div>
             {"\r\n          "}
             <div style={{ maxHeight: "280px", overflowY: "auto" }}>
@@ -139,7 +139,7 @@ export default function TournamentDetail({ v }: { v: any }) {
           <div style={{ borderRadius: "12px", background: "#1a2238", color: "#e8ecf8", border: "1px solid rgba(232,236,248,0.154)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.21),0 2px 6px rgba(0,0,0,0.375)", overflow: "hidden" }}>
             {"\r\n          "}
             <div style={{ padding: "12px 18px", fontSize: "10px", letterSpacing: ".1em", color: "#94a3c4", borderBottom: "1px dashed rgba(232,236,248,0.198)" }}>
-              {"blinds"}
+              {"Blinds"}
             </div>
             {"\r\n          "}
             <div style={{ maxHeight: "280px", overflowY: "auto" }}>

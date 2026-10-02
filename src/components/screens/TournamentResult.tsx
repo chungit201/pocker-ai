@@ -29,7 +29,7 @@ export default function TournamentResult({ v }: { v: any }) {
           <>
             {"\r\n        "}
             <div style={{ fontFamily: "'Instrument Serif',serif", fontSize: "28px", color: "#a78bfa", marginBottom: "2px" }}>
-              {"you won"}
+              {"You won"}
             </div>
             {"\r\n      "}
           </>
@@ -64,13 +64,13 @@ export default function TournamentResult({ v }: { v: any }) {
                 {"\r\n          "}
               </div>
               {"\r\n          "}
-              <button className="pill-flat" onClick={v.trWithdrawAction} style={css(v.fundWithdrawStyle)}>{"withdraw"}</button>
+              <button className="pill-flat" onClick={v.trWithdrawAction} style={css(v.fundWithdrawStyle)}>{"Withdraw"}</button>
               {"\r\n        "}
             </div>
             {"\r\n        "}
             <div style={css(v.fundNoteStyle)}>
               {interp(v.fundNote)}
-              <a href={v.fundTxUrl} target="_blank" rel="noopener noreferrer" style={css(v.fundTxStyle)}>{"receipt ↗"}</a>
+              <a href={v.fundTxUrl} target="_blank" rel="noopener noreferrer" style={css(v.fundTxStyle)}>{"Receipt ↗"}</a>
             </div>
             {"\r\n      "}
           </>
@@ -79,14 +79,14 @@ export default function TournamentResult({ v }: { v: any }) {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "22px", marginTop: "32px" }}>
           {"\r\n        "}
           <button className="pill-flat" onClick={v.goTournaments} style={{ padding: "12px 26px", borderRadius: "5px", border: "1px solid rgba(255,255,255,0.165)", background: "linear-gradient(180deg,#8b5cf6,#6d3fd4)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.27),0 1px 3px rgba(0,0,0,0.35)", color: "#f6f3ff", fontSize: "13px", fontWeight: "500", cursor: "pointer" }}>
-            {"back to tournaments"}
+            {"Back to tournaments"}
           </button>
           {"\r\n        "}
           {v.trHasDetail ? (
             <>
               {"\r\n          "}
               <button onClick={v.trViewDetail} style={{ border: "0", background: "none", padding: "0", fontSize: "12px", letterSpacing: ".08em", color: "#94a3c4", cursor: "pointer", textDecoration: "underline" }}>
-                {"view tournament"}
+                {"View tournament"}
               </button>
               {"\r\n        "}
             </>

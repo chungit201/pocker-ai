@@ -17,11 +17,11 @@ export default function Connect({ v }: { v: any }) {
           {"\r\n        "}
           <div style={{ display: "flex", alignItems: "center", gap: "18px", fontSize: "11.5px", letterSpacing: ".2em" }}>
             {"\r\n          "}
-            <span style={css(v.step1Style)}>{"01 wallet"}</span>
+            <span style={css(v.step1Style)}>{"01 Wallet"}</span>
             {"\r\n          "}
             <span style={{ flex: "1", height: "1px", background: "rgba(232,236,248,0.2)" }} />
             {"\r\n          "}
-            <span style={css(v.step2Style)}>{"02 deposit"}</span>
+            <span style={css(v.step2Style)}>{"02 Deposit"}</span>
             {"\r\n        "}
           </div>
           {"\r\n\r\n        "}
@@ -33,11 +33,11 @@ export default function Connect({ v }: { v: any }) {
                 <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
                   {"\r\n              "}
                   <h2 style={{ fontSize: "clamp(30px,4.4vw,42px)", fontWeight: "400", letterSpacing: "-.035em", lineHeight: "1", margin: "0", color: "#e8ecf8" }}>
-                    {"connect a wallet"}
+                    {"Connect a wallet"}
                   </h2>
                   {"\r\n              "}
                   <p style={{ fontSize: "clamp(15px,1.8vw,18px)", fontWeight: "300", lineHeight: "1.55", color: "#94a3c4", maxWidth: "560px", margin: "0", textWrap: "pretty" }}>
-                    {"we never take custody. buy-ins move to the table program, and your seat closes out to your balance the moment you stand up — withdraw to your wallet whenever you like."}
+                    {"We never take custody. Buy-ins move to the table program, and your seat closes out to your balance the moment you stand up, withdraw to your wallet whenever you like."}
                   </p>
                   {"\r\n            "}
                 </div>
@@ -107,7 +107,7 @@ export default function Connect({ v }: { v: any }) {
                       {interp(v.approveLabel)}
                     </span>
                     {"\r\n                "}
-                    <span style={{ color: "#a78bfa" }}>{"waiting"}</span>
+                    <span style={{ color: "#a78bfa" }}>{"Waiting"}</span>
                     {"\r\n              "}
                   </div>
                   {"\r\n              "}
@@ -134,10 +134,10 @@ export default function Connect({ v }: { v: any }) {
                   <div>
                     {"\r\n                "}
                     <h2 style={{ fontFamily: "'Inter Tight',system-ui,sans-serif", fontWeight: "600", letterSpacing: "-.03em", fontSize: "27px", margin: "0 0 2px" }}>
-                      {"add funds"}
+                      {"Add funds"}
                     </h2>
                     {"\r\n                "}
-                    <div style={{ fontSize: "11px", color: "#94a3c4" }}>{"one bankroll funds every table"}</div>
+                    <div style={{ fontSize: "11px", color: "#94a3c4" }}>{"One bankroll funds every table"}</div>
                     {"\r\n              "}
                   </div>
                   {"\r\n              "}
@@ -155,7 +155,7 @@ export default function Connect({ v }: { v: any }) {
                   {"\r\n            "}
                 </div>
                 {"\r\n            "}
-                <div style={{ fontSize: "11px", color: "#94a3c4" }}>{"your bankroll"}</div>
+                <div style={{ fontSize: "11px", color: "#94a3c4" }}>{"Your bankroll"}</div>
                 {"\r\n            "}
                 <div style={{ display: "flex", alignItems: "baseline", gap: "9px", marginBottom: "4px" }}>
                   {"\r\n              "}
@@ -163,7 +163,7 @@ export default function Connect({ v }: { v: any }) {
                     {interp(v.bankrollLabel)}
                   </span>
                   {"\r\n              "}
-                  <span style={{ fontSize: "12px", color: "#94a3c4" }}>{"usdg"}</span>
+                  <span style={{ fontSize: "12px", color: "#94a3c4" }}>{"USDG"}</span>
                   {"\r\n            "}
                 </div>
                 {"\r\n            "}
@@ -183,12 +183,12 @@ export default function Connect({ v }: { v: any }) {
                       {"\r\n                "}
                       <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                         {"\r\n                  "}
-                        <span style={{ fontSize: "12px", color: "#94a3c4", whiteSpace: "nowrap" }}>{"table name"}</span>
+                        <span style={{ fontSize: "12px", color: "#94a3c4", whiteSpace: "nowrap" }}>{"Table name"}</span>
                         {"\r\n                  "}
-                        <input value={v.snDraft ?? ''} onInput={v.snInput} onKeyDown={v.snKey} placeholder="riverrat" maxLength={16} style={{ flex: "1", minWidth: "0", padding: "9px 14px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "13px", caretColor: "#a78bfa" }} />
+                        <input value={v.snDraft ?? ''} onInput={v.snInput} onKeyDown={v.snKey} placeholder="Riverrat" maxLength={16} style={{ flex: "1", minWidth: "0", padding: "9px 14px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "13px", caretColor: "#a78bfa" }} />
                         {"\r\n                  "}
                         <button className="pill-flat" onClick={v.snSave} style={{ flex: "0 0 auto", padding: "9px 20px", borderRadius: "5px", background: "linear-gradient(180deg,#222c47,#0d1220)", color: "#b497f7", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12),0 1px 2px rgba(0,0,0,0.35)", fontSize: "12px" }}>
-                          {"save"}
+                          {"Save"}
                         </button>
                         {"\r\n                "}
                       </div>
@@ -214,11 +214,11 @@ export default function Connect({ v }: { v: any }) {
                       {"\r\n                "}
                       <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "10px" }}>
                         {"\r\n                  "}
-                        <span style={{ fontSize: "12px", color: "#94a3c4" }}>{"deposit"}</span>
+                        <span style={{ fontSize: "12px", color: "#94a3c4" }}>{"Deposit"}</span>
                         {"\r\n                  "}
                         <input value={v.depositDraft ?? ''} onInput={v.depositInput} placeholder="25" inputMode="decimal" style={{ flex: "1", minWidth: "0", padding: "9px 14px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "13px", caretColor: "#a78bfa" }} />
                         {"\r\n                  "}
-                        <span style={{ fontSize: "12px", color: "#94a3c4" }}>{"usdg"}</span>
+                        <span style={{ fontSize: "12px", color: "#94a3c4" }}>{"USDG"}</span>
                         {"\r\n                "}
                       </div>
                       {"\r\n                "}
@@ -255,7 +255,7 @@ export default function Connect({ v }: { v: any }) {
                   <>
                     {"\r\n              "}
                     <button className="pill-flat" onClick={v.doFaucet} style={{ width: "100%", padding: "11px", borderRadius: "5px", border: "1px dashed rgba(232,236,248,0.28)", fontSize: "12px", marginBottom: "18px" }}>
-                      {"get test usdg"}
+                      {"Get test USDG"}
                     </button>
                     {"\r\n            "}
                   </>
@@ -266,7 +266,7 @@ export default function Connect({ v }: { v: any }) {
                 </button>
                 {"\r\n            "}
                 <button onClick={v.backToWallet} style={{ width: "100%", padding: "11px", fontSize: "12px", color: "#94a3c4" }}>
-                  {"use a different wallet"}
+                  {"Use a different wallet"}
                 </button>
                 {"\r\n          "}
               </div>

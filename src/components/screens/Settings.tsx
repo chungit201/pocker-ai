@@ -14,11 +14,11 @@ export default function Settings({ v }: { v: any }) {
       <div className="su-page su-stage" style={{ flex: "1", paddingBottom: "60px" }}>
         {"\r\n      "}
         <h1 style={{ fontWeight: "500", letterSpacing: "-.03em", fontSize: "38px", margin: "0 0 4px", color: "#e8ecf8" }}>
-          {"settings"}
+          {"Settings"}
         </h1>
         {"\r\n      "}
         <p style={{ fontSize: "12px", color: "#94a3c4", margin: "0 0 26px" }}>
-          {"kept in this browser — they follow the screen you play on, not the wallet you play with."}
+          {"Kept in this browser, they follow the screen you play on, not the wallet you play with."}
         </p>
         {"\r\n\r\n      "}
         <div style={{ display: "flex", flexDirection: "column", borderTop: "1px solid rgba(232,236,248,0.16)" }}>
@@ -37,9 +37,9 @@ export default function Settings({ v }: { v: any }) {
             {"\r\n          "}
             <div style={css(v.setSeg)}>
               {"\r\n            "}
-              <button className="scph" onClick={v.unitUsd} style={css(v.unitUsdStyle)}>{"dollars"}</button>
+              <button className="scph" onClick={v.unitUsd} style={css(v.unitUsdStyle)}>{"Dollars"}</button>
               {"\r\n            "}
-              <button className="scph" onClick={v.unitBb} style={css(v.unitBbStyle)}>{"big blinds"}</button>
+              <button className="scph" onClick={v.unitBb} style={css(v.unitBbStyle)}>{"Big blinds"}</button>
               {"\r\n          "}
             </div>
             {"\r\n        "}
@@ -59,9 +59,9 @@ export default function Settings({ v }: { v: any }) {
             {"\r\n          "}
             <div style={css(v.setSeg)}>
               {"\r\n            "}
-              <button className="scph" onClick={v.hotkeysOn} style={css(v.hotkeysOnStyle)}>{"on"}</button>
+              <button className="scph" onClick={v.hotkeysOn} style={css(v.hotkeysOnStyle)}>{"On"}</button>
               {"\r\n            "}
-              <button className="scph" onClick={v.hotkeysOff} style={css(v.hotkeysOffStyle)}>{"off"}</button>
+              <button className="scph" onClick={v.hotkeysOff} style={css(v.hotkeysOffStyle)}>{"Off"}</button>
               {"\r\n          "}
             </div>
             {"\r\n        "}
@@ -81,9 +81,9 @@ export default function Settings({ v }: { v: any }) {
             {"\r\n          "}
             <div style={css(v.setSeg)}>
               {"\r\n            "}
-              <button className="scph" onClick={v.soundOn} style={css(v.soundOnStyle)}>{"on"}</button>
+              <button className="scph" onClick={v.soundOn} style={css(v.soundOnStyle)}>{"On"}</button>
               {"\r\n            "}
-              <button className="scph" onClick={v.soundOff} style={css(v.soundOffStyle)}>{"off"}</button>
+              <button className="scph" onClick={v.soundOff} style={css(v.soundOffStyle)}>{"Off"}</button>
               {"\r\n          "}
             </div>
             {"\r\n        "}

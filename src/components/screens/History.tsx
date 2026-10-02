@@ -22,11 +22,8 @@ export default function History({ v }: { v: any }) {
         {"\r\n      "}
         <div style={{ display: "flex", flexWrap: "wrap", gap: "clamp(12px,21px,18px)", alignItems: "stretch", paddingBottom: "clamp(18px,33px,26px)" }}>
           {"\r\n        "}
-          <div style={{ flex: "1 1 480px", minWidth: "0", position: "relative", borderRadius: "12px", overflow: "hidden", background: "#0a0d16", border: "1px solid rgba(232,236,248,0.08)", display: "flex", flexDirection: "column" }}>
+          <div className="gm-panel" style={{ flex: "1 1 480px", minWidth: "0", position: "relative", borderRadius: "12px", overflow: "hidden", background: "#0a0d16", border: "1px solid rgba(232,236,248,0.08)", display: "flex", flexDirection: "column" }}>
             {"\r\n          "}
-            <div aria-hidden="true" style={css(v.heroTexStyle)} />
-            {"\r\n          "}
-            <div style={{ position: "absolute", inset: "0", pointerEvents: "none", background: "radial-gradient(70% 90% at 8% 20%, rgba(148,163,196,0.05), rgba(0,0,0,0.225) 100%)" }} />
             {"\r\n          "}
             <div style={{ position: "relative", padding: "clamp(22px,42px,34px)", display: "flex", flexDirection: "column", gap: "14px", flex: "1" }}>
               {"\r\n            "}
@@ -49,7 +46,7 @@ export default function History({ v }: { v: any }) {
                 {asArray(v.sessFacts).map((f: any, $index: number) => (
                   <Fragment key={$index}>
                     {"\r\n                "}
-                    <span style={{ flex: "1 1 120px", minWidth: "0", display: "flex", flexDirection: "column", gap: "3px", padding: "11px 13px", border: "1px solid rgba(232,236,248,0.12)", borderRadius: "8px", background: "rgba(0,0,0,0.175)" }}>
+                    <span className="gm-stat" style={{ flex: "1 1 120px", minWidth: "0", display: "flex", flexDirection: "column", gap: "3px", padding: "11px 13px", border: "1px solid rgba(232,236,248,0.12)", borderRadius: "8px", background: "rgba(0,0,0,0.175)" }}>
                       {"\r\n                  "}
                       <span style={{ fontSize: "10px", letterSpacing: ".14em", color: "#94a3c4" }}>
                         {interp(f?.k)}
@@ -74,12 +71,12 @@ export default function History({ v }: { v: any }) {
             {"\r\n        "}
           </div>
           {"\r\n        "}
-          <div style={{ flex: "1 1 260px", minWidth: "0", border: "1px solid rgba(232,236,248,0.12)", borderRadius: "12px", padding: "18px", display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div className="gm-side" style={{ flex: "1 1 260px", minWidth: "0", border: "1px solid rgba(232,236,248,0.12)", borderRadius: "12px", padding: "18px", display: "flex", flexDirection: "column", gap: "12px" }}>
             {"\r\n          "}
             <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#a78bfa" }}>{"PROVABLY FAIR"}</span>
             {"\r\n          "}
             <span style={{ fontSize: "13px", color: "#94a3c4", lineHeight: "1.6" }}>
-              {"Every hand publishes a commitment before the deal and reveals its seed after. The re-shuffle runs in your browser — the deck is rebuilt here, not fetched."}
+              {"Every hand publishes a commitment before the deal and reveals its seed after. The re-shuffle runs in your browser, the deck is rebuilt here, not fetched."}
             </span>
             {"\r\n          "}
             <div style={{ flex: "1", display: "flex", flexDirection: "column", borderTop: "1px solid rgba(232,236,248,0.1)" }}>
@@ -123,10 +120,10 @@ export default function History({ v }: { v: any }) {
           {"\r\n        "}
           <div style={{ display: "grid", gridTemplateColumns: "auto 1fr 1fr auto auto", gap: "14px", padding: "12px 20px", fontSize: "10px", letterSpacing: ".1em", color: "#94a3c4", borderBottom: "1px dashed rgba(232,236,248,0.198)" }}>
             {"\r\n          "}
-            <span>{"hand"}</span>
-            <span>{"you held"}</span>
-            <span>{"board"}</span>
-            <span>{"result"}</span>
+            <span>{"Hand"}</span>
+            <span>{"You held"}</span>
+            <span>{"Board"}</span>
+            <span>{"Result"}</span>
             <span />
             {"\r\n        "}
           </div>
@@ -166,7 +163,7 @@ export default function History({ v }: { v: any }) {
                     {"\r\n                "}
                     <div>
                       {"\r\n                  "}
-                      <div style={{ color: "#94a3c4", marginBottom: "4px" }}>{"commitment"}</div>
+                      <div style={{ color: "#94a3c4", marginBottom: "4px" }}>{"Commitment"}</div>
                       {"\r\n                  "}
                       <div style={{ wordBreak: "break-all", lineHeight: "1.5" }}>
                         {interp(h?.commit)}
@@ -176,7 +173,7 @@ export default function History({ v }: { v: any }) {
                     {"\r\n                "}
                     <div>
                       {"\r\n                  "}
-                      <div style={{ color: "#94a3c4", marginBottom: "4px" }}>{"revealed seed"}</div>
+                      <div style={{ color: "#94a3c4", marginBottom: "4px" }}>{"Revealed seed"}</div>
                       {"\r\n                  "}
                       <div style={{ wordBreak: "break-all", lineHeight: "1.5" }}>
                         {interp(h?.seed)}
@@ -192,7 +189,7 @@ export default function History({ v }: { v: any }) {
                          client seeds below, both of which the browser re-checks.
                       */}
                       {"\r\n                  "}
-                      <div style={{ color: "#94a3c4", margin: "10px 0 4px" }}>{"client seeds"}</div>
+                      <div style={{ color: "#94a3c4", margin: "10px 0 4px" }}>{"Client seeds"}</div>
                       {"\r\n                  "}
                       <div style={{ wordBreak: "break-all", lineHeight: "1.5" }}>
                         {interp(h?.clientSeeds)}
@@ -202,7 +199,7 @@ export default function History({ v }: { v: any }) {
                     {"\r\n                "}
                     <div>
                       {"\r\n                  "}
-                      <div style={{ color: "#94a3c4", marginBottom: "4px" }}>{"showdown"}</div>
+                      <div style={{ color: "#94a3c4", marginBottom: "4px" }}>{"Showdown"}</div>
                       {"\r\n                  "}
                       <div style={{ lineHeight: "1.7" }}>
                         {interp(h?.summary)}
@@ -215,7 +212,7 @@ export default function History({ v }: { v: any }) {
                   <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "16px", flexWrap: "wrap" }}>
                     {"\r\n                "}
                     <button className="pill-flat" onClick={h?.verify} style={{ padding: "9px 18px", borderRadius: "5px", background: "linear-gradient(180deg,#222c47,#0d1220)", color: "#b497f7", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12),0 1px 2px rgba(0,0,0,0.35)", fontSize: "12px" }}>
-                      {"re-shuffle & verify"}
+                      {"Re-shuffle & verify"}
                     </button>
                     {"\r\n                "}
                     <span style={css(h?.verifyHintStyle)}>
@@ -272,15 +269,15 @@ export default function History({ v }: { v: any }) {
         <div style={css(v.historyEmptyStyle)}>
           {"\r\n        "}
           <div style={{ fontWeight: "500", letterSpacing: "-.03em", fontSize: "22px", marginBottom: "8px", color: "#e8ecf8" }}>
-            {"nothing dealt yet"}
+            {"Nothing dealt yet"}
           </div>
           {"\r\n        "}
           <div style={{ fontSize: "12px", color: "#94a3c4", marginBottom: "18px" }}>
-            {"sit down and play a hand — the receipt shows up here the moment the pot ships."}
+            {"Sit down and play a hand, the receipt shows up here the moment the pot ships."}
           </div>
           {"\r\n        "}
           <button className="pill-flat" onClick={v.goTable} style={{ padding: "11px 22px", borderRadius: "5px", background: "linear-gradient(180deg,#8b5cf6,#6d3fd4)", border: "1px solid rgba(255,255,255,0.165)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.27),0 1px 3px rgba(0,0,0,0.35)", color: "#f6f3ff", fontSize: "13px" }}>
-            {"to the table"}
+            {"To the table"}
           </button>
           {"\r\n      "}
         </div>

@@ -25,7 +25,7 @@ export default function Profile({ v }: { v: any }) {
             {"\r\n          "}
             <div style={{ position: "relative", flex: "none" }}>
               {"\r\n            "}
-              <button onClick={v.avatarMenuToggle} title="change avatar" style={css(v.avatarDiscStyle)}>
+              <button onClick={v.avatarMenuToggle} title="Change avatar" style={css(v.avatarDiscStyle)}>
                 {"\r\n              "}
                 <span className="av" data-tier={v.heroTier} style={{ width: "100%", height: "100%" }}>
                   <span style={css(v.heroAvInner)} />
@@ -89,7 +89,7 @@ export default function Profile({ v }: { v: any }) {
                 {v.nickIdle ? (
                   <>
                     {"\r\n                "}
-                    <button onClick={v.nickEdit} title="change your nickname" style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: "0", textAlign: "left" }}>
+                    <button onClick={v.nickEdit} title="Change your nickname" style={{ display: "flex", alignItems: "center", gap: "12px", minWidth: "0", textAlign: "left" }}>
                       {"\r\n                  "}
                       <span style={{ fontSize: "clamp(22px,51px,34px)", letterSpacing: ".02em", color: "#e8ecf8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                         {interp(v.displayName)}
@@ -112,7 +112,7 @@ export default function Profile({ v }: { v: any }) {
                     {"\r\n                "}
                     <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px", minWidth: "0" }}>
                       {"\r\n                  "}
-                      <input value={v.nickDraft ?? ''} onInput={v.nickInput} onKeyDown={v.nickKey} ref={v.nickRef} placeholder="pick a handle" maxLength={16} style={{ flex: "0 1 260px", minWidth: "0", border: "0", borderBottom: "1.5px solid rgba(139,92,246,0.6)", padding: "2px 0 6px", background: "transparent", fontSize: "clamp(20px,45px,30px)", letterSpacing: ".02em", color: "#e8ecf8", caretColor: "#a78bfa" }} />
+                      <input value={v.nickDraft ?? ''} onInput={v.nickInput} onKeyDown={v.nickKey} ref={v.nickRef} placeholder="Pick a handle" maxLength={16} style={{ flex: "0 1 260px", minWidth: "0", border: "0", borderBottom: "1.5px solid rgba(139,92,246,0.6)", padding: "2px 0 6px", background: "transparent", fontSize: "clamp(20px,45px,30px)", letterSpacing: ".02em", color: "#e8ecf8", caretColor: "#a78bfa" }} />
                       {"\r\n                  "}
                       <button onClick={v.nickSave} style={{ fontSize: "11px", letterSpacing: ".16em", color: "#a78bfa" }}>{"SAVE"}</button>
                       {"\r\n                  "}
@@ -159,7 +159,7 @@ export default function Profile({ v }: { v: any }) {
           {"\r\n        "}
           <div style={{ position: "relative", flex: "none" }}>
             {"\r\n          "}
-            <button onClick={v.achMenuToggle} title="see all achievements" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "9px", cursor: "pointer", background: "none", border: "0", padding: "0" }}>
+            <button onClick={v.achMenuToggle} title="See all achievements" style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "9px", cursor: "pointer", background: "none", border: "0", padding: "0" }}>
               {"\r\n            "}
               <span style={{ display: "flex", alignItems: "center", gap: "7px", fontSize: "10px", letterSpacing: ".24em", color: "#a78bfa" }}>
                 {"\r\n              "}
@@ -338,7 +338,7 @@ export default function Profile({ v }: { v: any }) {
             <span>
               {"LEVEL "}
               {interp(v.xpLevel)}
-              {" — "}
+              {" N/A "}
               {interp(v.xpTitleCaps)}
             </span>
             <span style={{ color: "#94a3c4" }}>
@@ -355,7 +355,7 @@ export default function Profile({ v }: { v: any }) {
           {"\r\n        "}
           <div style={{ fontSize: "12.5px", fontVariantNumeric: "tabular-nums", color: "#94a3c4" }}>
             {interp(v.xpWagered)}
-            {" usdg wagered"}
+            {" USDG wagered"}
           </div>
           {"\r\n      "}
         </div>
@@ -405,15 +405,15 @@ export default function Profile({ v }: { v: any }) {
                 {"\r\n            "}
               </div>
               {"\r\n            "}
-              <button className="pill-flat" onClick={v.fundDeposit} style={css(v.fundDepositStyle)}>{"deposit"}</button>
+              <button className="pill-flat" onClick={v.fundDeposit} style={css(v.fundDepositStyle)}>{"Deposit"}</button>
               {"\r\n            "}
-              <button className="pill-flat" onClick={v.fundWithdraw} style={css(v.fundWithdrawStyle)}>{"withdraw"}</button>
+              <button className="pill-flat" onClick={v.fundWithdraw} style={css(v.fundWithdrawStyle)}>{"Withdraw"}</button>
               {"\r\n          "}
             </div>
             {"\r\n          "}
             <div style={css(v.fundNoteStyle)}>
               {interp(v.fundNote)}
-              <a href={v.fundTxUrl} target="_blank" rel="noopener noreferrer" style={css(v.fundTxStyle)}>{"receipt ↗"}</a>
+              <a href={v.fundTxUrl} target="_blank" rel="noopener noreferrer" style={css(v.fundTxStyle)}>{"Receipt ↗"}</a>
             </div>
             {"\r\n        "}
           </div>
@@ -444,7 +444,7 @@ export default function Profile({ v }: { v: any }) {
               {"\r\n            "}
               <span style={{ flex: "1 1 160px", fontSize: "12px", lineHeight: "1.5", color: "#94a3c4" }}>
                 {interp(v.rbNote)}
-                <a href={v.rbTxUrl} target="_blank" rel="noopener noreferrer" style={css(v.rbTxStyle)}>{"receipt ↗"}</a>
+                <a href={v.rbTxUrl} target="_blank" rel="noopener noreferrer" style={css(v.rbTxStyle)}>{"Receipt ↗"}</a>
               </span>
               {"\r\n            "}
               <button className="pill-flat" onClick={v.rbClaim} style={css(v.rbBtnStyle)}>

@@ -156,21 +156,21 @@ function toTokens(units, decimals) {
  *  significant figures is far past what any percentage needs. */
 const ratio = (a, b) => (b > 0n ? Number((a * 1_000_000n) / b) / 1e6 : 0);
 
-const num = (n, dp = 0) => (n === null || n === undefined || !isFinite(n) ? '—'
+const num = (n, dp = 0) => (n === null || n === undefined || !isFinite(n) ? 'N/A'
   : n.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp }));
-const money = (n, dp = 2) => (n === null || n === undefined || !isFinite(n) ? '—' : `$${num(n, dp)}`);
-const pct = (n, dp = 1) => (n === null || n === undefined || !isFinite(n) ? '—' : `${num(n, dp)}%`);
+const money = (n, dp = 2) => (n === null || n === undefined || !isFinite(n) ? 'N/A' : `$${num(n, dp)}`);
+const pct = (n, dp = 1) => (n === null || n === undefined || !isFinite(n) ? 'N/A' : `${num(n, dp)}%`);
 
 /** Big counts read better short; small ones need their digits. */
 function compact(n) {
-  if (n === null || n === undefined || !isFinite(n)) return '—';
+  if (n === null || n === undefined || !isFinite(n)) return 'N/A';
   const a = Math.abs(n);
   if (a >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
   if (a >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
   if (a >= 1e4) return `${Math.round(n / 1e3)}k`;
   return num(n, 0);
 }
-const moneyA = (n) => (n === null || n === undefined || !isFinite(n) ? '—'
+const moneyA = (n) => (n === null || n === undefined || !isFinite(n) ? 'N/A'
   : Math.abs(n) >= 10_000 ? `$${compact(n)}` : money(n, Math.abs(n) >= 1000 ? 0 : 2));
 
 /** A threshold is a number someone has to meet exactly, so it is never
@@ -194,7 +194,7 @@ function dur(ms) {
 function ago(at, now) {
   if (!at) return null;
   const s = Math.max(0, Math.round((now - at) / 1000));
-  if (s < 45) return 'just now';
+  if (s < 45) return 'Just now';
   if (s < 5400) return `${Math.round(s / 60)} min ago`;
   return `${Math.round(s / 3600)}h ago`;
 }
@@ -213,7 +213,7 @@ const lockAdj = (seconds) => {
 /** The ticker as the site writes it. The contract's symbol is `SUITED`; the
  *  dollar sign is part of the name everywhere it is spoken. */
 const ticker = (symbol) => (symbol && symbol.startsWith('$') ? symbol : `$${symbol || 'SUITED'}`);
-const short = (a) => (a && a.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a || '—');
+const short = (a) => (a && a.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a || 'N/A');
 
 /** A daily countdown, in the shape the jackpot timer uses: `5d 04:12:03`. */
 function clock(ms) {
@@ -591,48 +591,9 @@ function relockTiers(v, p) {
 
 /* ── hero ─────────────────────────────────────────────────────────────────── */
 
-/** The brass guilloché behind the hero — generated, because the brief allows no
- *  images and a banknote pattern is a few hundred bytes of sine waves. */
-function guilloche(w) {
-  const paths = [];
-  const cx = w * 0.8;
-  const cy = 140;
-  const R = 132;
-  for (let k = 0; k < 6; k++) {
-    const rr = R * (0.55 + k * 0.08);
-    const amp = R * 0.15;
-    const lobes = 11 + k * 2;
-    const phase = k * 0.5;
-    let p = '';
-    for (let i = 0; i <= 200; i++) {
-      const th = (i / 200) * Math.PI * 2;
-      const r = rr + amp * Math.cos(lobes * th + phase);
-      p += `${i ? 'L' : 'M'}${(cx + r * Math.cos(th)).toFixed(1)} ${(cy + r * Math.sin(th) * 0.86).toFixed(1)}`;
-    }
-    paths.push(`${p}Z`);
-  }
-  for (let j = 0; j < 15; j++) {
-    const y0 = 10 + j * 19;
-    let p = '';
-    for (let i = 0; i <= 90; i++) {
-      const x = (i / 90) * w;
-      p += `${i ? 'L' : 'M'}${x.toFixed(1)} ${(y0 + 8 * Math.sin(x / 61 + j * 0.55) + 4 * Math.sin(x / 24 + j)).toFixed(1)}`;
-    }
-    paths.push(p);
-  }
-  return paths.join(' ');
-}
-
 function heroSection(v) {
   const wrap = el('div', `position:relative;border-radius:12px;overflow:hidden;background:${CARD};border:1px solid ${HAIR_SOFT}`);
-  const W = 1120;
-  const svg = svgEl('svg', {
-    viewBox: `0 0 ${W} 280`, width: '100%', height: '100%', preserveAspectRatio: 'xMidYMid slice',
-    'aria-hidden': 'true', style: 'position:absolute;inset:0;pointer-events:none',
-  });
-  svg.appendChild(svgEl('path', { d: guilloche(W), fill: 'none', stroke: BRASS, 'stroke-width': '.55', opacity: '.14' }));
-  wrap.appendChild(svg);
-  wrap.appendChild(el('div', 'position:absolute;inset:0;pointer-events:none;background:radial-gradient(70% 90% at 8% 20%, rgba(148,163,196,0.05), rgba(0,0,0,0.225) 100%)'));
+  wrap.className = 'gm-panel'; // the table-felt card every hero wears (globals.css)
 
   const body = el('div', 'position:relative;padding:clamp(26px,54px,46px) clamp(22px,51px,44px)');
   const eyebrowRow = el('div', 'display:flex;align-items:center;gap:9px;margin-bottom:clamp(14px,24px,20px)');
@@ -643,9 +604,9 @@ function heroSection(v) {
   // Each clause is added only when it is TRUE, so the eyebrow is never wrong,
   // just shorter: "staking" alone until there is a day to count.
   const dayN = v.days.length ? Math.floor((Date.now() - v.days[0].ms) / DAY_MS) + 1 : null;
-  const eyebrow = ['staking',
+  const eyebrow = ['Staking',
     dayN ? `day ${dayN}` : null,
-    v.paused ? 'new locks paused' : v.rate ? 'rewards streaming' : v.fundedAll ? 'first payments dripping' : null,
+    v.paused ? 'New locks paused' : v.rate ? 'Rewards streaming' : v.fundedAll ? 'First payments dripping' : null,
   ].filter(Boolean).join(' · ');
   eyebrowRow.appendChild(text('span', EYEBROW_M, eyebrow));
   body.appendChild(eyebrowRow);
@@ -663,7 +624,7 @@ function heroSection(v) {
     // freshness to report, so the line is simply absent rather than claiming
     // a read that has not happened.
     fresh.textContent = v.live
-      ? (v.readAt ? `live from the contract · updated ${ago(v.readAt, now)}` : 'live from the contract')
+      ? (v.readAt ? `Live from the contract · updated ${ago(v.readAt, now)}` : 'Live from the contract')
       : '';
   };
   setFresh(Date.now());
@@ -704,8 +665,8 @@ function tilesRow(v, d) {
     v.locked === null ? null : `${compact(v.locked)} ${v.symbol}`,
     v.supplyPct === null ? null : `${pct(v.supplyPct)} of supply`,
   ].filter(Boolean).join(' · ');
-  wrap.appendChild(tile('total value locked',
-    v.tvlUsd === null ? (v.locked === null ? '—' : compact(v.locked)) : `$${compact(v.tvlUsd)}`,
+  wrap.appendChild(tile('Total value locked',
+    v.tvlUsd === null ? (v.locked === null ? 'N/A' : compact(v.locked)) : `$${compact(v.tvlUsd)}`,
     v.locked === null ? `${v.symbol} locked · share of supply` : supplyLine).node);
 
   // 2 — the rate, TRAILING, at the longest lock. No price on chain means no
@@ -713,29 +674,29 @@ function tilesRow(v, d) {
   const top = v.rate && v.rate.perTier && v.rate.perTier.length ? v.rate.perTier[v.rate.perTier.length - 1] : null;
   const longest = v.tiers.length ? lockAdj(v.tiers[v.tiers.length - 1].duration) : '30-day';
   wrap.appendChild(tile('apr',
-    top === null ? '—' : top.pct === null ? money(usd(top.perTokenYear) * 100_000, 0) : `up to ${pct(top.pct)}`,
+    top === null ? 'N/A' : top.pct === null ? money(usd(top.perTokenYear) * 100_000, 0) : `Up to ${pct(top.pct)}`,
     top === null
-      ? (v.weight <= 0 ? 'nobody is staked yet, so there is no pool rate'
-        : 'a rate opens after two days of payments')
+      ? (v.weight <= 0 ? 'Nobody is staked yet, so there is no pool rate'
+        : 'A rate opens after two days of payments')
       : top.pct === null
-        ? `per 100k at ${boostLabel(top.boostBps)} · no token price on chain yet`
+        ? `Per 100k at ${boostLabel(top.boostBps)} · no token price on chain yet`
         : `${longest} lock · trailing ${v.rate.days} days`,
     top === null ? PAPER : BRASS).node);
 
   // 3 — what has actually been paid.
-  wrap.appendChild(tile('paid to stakers',
-    v.fundedAll === null ? '—' : money(v.fundedAll, 0),
-    v.fundedAll === null ? 'all time, in USDG'
-      : v.paidWeek > 0 ? `${money(v.paidWeek, 0)} in the last 7 days` : 'all time, in USDG').node);
+  wrap.appendChild(tile('Paid to stakers',
+    v.fundedAll === null ? 'N/A' : money(v.fundedAll, 0),
+    v.fundedAll === null ? 'All time, in USDG'
+      : v.paidWeek > 0 ? `${money(v.paidWeek, 0)} in the last 7 days` : 'All time, in USDG').node);
 
   // 4 — the next sweep, counted down. The keeper's own next run when it has
   //     reported one; otherwise the same midnight it will pick.
   const place = zoneLabel(v.sweepZone);
   const routed = !!(v.router && v.router.destinationOk !== false);
-  const t = tile('next sweep', v.sweepAt ? clock(v.sweepAt - Date.now()) : '—',
-    !v.router ? `daily, at midnight ${place} — once the router is live`
-        : !routed ? `daily, at midnight ${place} — the vault is not pointed at the router`
-          : `rake is swept daily, at midnight ${place}`,
+  const t = tile('Next sweep', v.sweepAt ? clock(v.sweepAt - Date.now()) : 'N/A',
+    !v.router ? `Daily, at midnight ${place}, once the router is live`
+        : !routed ? `Daily, at midnight ${place}, the vault is not pointed at the router`
+          : `Rake is swept daily, at midnight ${place}`,
     v.sweepAt ? BRASS : PAPER);
   if (v.sweepAt) {
     tickers.push((now) => {
@@ -758,11 +719,11 @@ function tilesRow(v, d) {
   const bb = (d && d.buyback) || null;
   const burnt = bb ? toTokens(bb.totals.burnt, v.decimals) : null;
   const burntPct = burnt && v.supply ? (burnt / v.supply) * 100 : null;
-  wrap.appendChild(tile('tokens burnt',
-    burnt === null ? '\u2014' : `${compact(burnt)} ${v.symbol}`,
-    !bb ? 'the buy wall is not running yet'
+  wrap.appendChild(tile('Tokens burnt',
+    burnt === null ? 'N/A' : `${compact(burnt)} ${v.symbol}`,
+    !bb ? 'The buy wall is not running yet'
       : burntPct !== null ? `${pct(burntPct, burntPct < 1 ? 3 : 1)} of supply, bought back and burnt`
-        : 'nothing burnt yet',
+        : 'Nothing burnt yet',
     burnt ? BRASS : PAPER).node);
 
   return wrap;
@@ -776,7 +737,7 @@ function stakeCard(v, me) {
   const card = el('div', `flex:1 1 570px;min-width:0;border-radius:12px;background:${P_PANEL};color:${P_INK};`
     + `border:1px solid rgba(232,236,248,0.154);box-shadow:inset 0 1px 0 rgba(255,255,255,0.21),0 2px 6px rgba(0,0,0,0.375);overflow:hidden`);
   const head = el('div', `padding:11px 18px 9px;border-bottom:1px solid ${P_HAIR}`);
-  head.appendChild(pLabel('open a position'));
+  head.appendChild(pLabel('Open a position'));
   card.appendChild(head);
 
   const cols = el('div', 'display:flex;flex-wrap:wrap');
@@ -792,7 +753,7 @@ function stakeCard(v, me) {
      the input under the cursor and drop focus after the first character. */
   const amountBox = el('div', 'display:flex;flex-direction:column;gap:6px');
   const lab = el('label', `font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${P_LAB}`);
-  lab.textContent = 'amount to lock';
+  lab.textContent = 'Amount to lock';
   lab.setAttribute('for', 'stk-amount');
   amountBox.appendChild(lab);
 
@@ -846,7 +807,7 @@ function stakeCard(v, me) {
   /* ── the lock length ────────────────────────────────────────────────────
      A click, not a keystroke — safe to repaint for. */
   const tierBox = el('div', 'display:flex;flex-direction:column;gap:6px');
-  tierBox.appendChild(pLabel('lock length'));
+  tierBox.appendChild(pLabel('Lock length'));
   // The groove the four tiers sit in: a faint lift, not a fill. It was a cream
   // wash on a cream plate; the hue of cream is the hue of brass, which is how
   // it briefly became a 55% violet block.
@@ -874,12 +835,12 @@ function stakeCard(v, me) {
     'The multiplier divides the pool, it never grows it.'));
   left.appendChild(tierBox);
   left.appendChild(text('span', `margin-top:auto;padding-top:10px;border-top:1px solid ${P_HAIR};font-size:11.5px;color:${P_SUB};line-height:1.5`,
-    'No early exit. A lock runs to its end — you can extend it, never shorten it.'));
+    'No early exit. A lock runs to its end, you can extend it, never shorten it.'));
 
   /* ── what it would earn ─────────────────────────────────────────────────── */
-  right.appendChild(pLabel('you would earn'));
+  right.appendChild(pLabel('You would earn'));
   const estBox = el('div', 'display:flex;flex-direction:column;gap:1px');
-  const estBig = text('span', `font-family:${SERIF};${NUM};font-size:clamp(24px,38px,30px);line-height:1;color:${P_INK}`, '—');
+  const estBig = text('span', `font-family:${SERIF};${NUM};font-size:clamp(24px,38px,30px);line-height:1;color:${P_INK}`, 'N/A');
   const estUnit = text('span', `font-size:12.5px;color:${P_SUB}`, '');
   estBox.appendChild(estBig);
   estBox.appendChild(estUnit);
@@ -890,7 +851,7 @@ function stakeCard(v, me) {
   for (let i = 0; i < 6; i++) {
     const r = el('div', 'display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px solid rgba(232,236,248,0.099)');
     const k = text('span', `font-size:12.5px;color:${P_SUB}`, '');
-    const val = text('span', `font-family:${SERIF};${NUM};font-size:15px;color:${P_INK};text-align:right`, '—');
+    const val = text('span', `font-family:${SERIF};${NUM};font-size:15px;color:${P_INK};text-align:right`, 'N/A');
     r.appendChild(k);
     r.appendChild(val);
     rows.appendChild(r);
@@ -959,27 +920,27 @@ function stakeCard(v, me) {
     const hasRate = e.perYear !== null && tokens > 0;
 
     balLine.textContent = v.balanceUnits === null
-      ? (me && me.address ? 'reading your balance…' : 'connect to see your balance')
-      : `you hold ${exact(toTokens(v.balanceUnits, v.decimals))} ${v.symbol}`;
+      ? (me && me.address ? 'Reading your balance…' : 'Connect to see your balance')
+      : `You hold ${exact(toTokens(v.balanceUnits, v.decimals))} ${v.symbol}`;
     balLine.style.color = overBalance ? P_BAD : P_SUB;
     usdLine.textContent = tokens && v.price ? `≈ ${money(tokens * v.price)}` : '';
-    errLine.textContent = notANumber ? 'that is not a number'
-      : belowFloor ? `the contract's floor is ${exact(toTokens(minBase, v.decimals))} ${v.symbol}`
+    errLine.textContent = notANumber ? 'That is not a number'
+      : belowFloor ? `The contract's floor is ${exact(toTokens(minBase, v.decimals))} ${v.symbol}`
         : '';
 
-    estBig.textContent = hasRate ? money(e.perWeek, 2) : '—';
+    estBig.textContent = hasRate ? money(e.perWeek, 2) : 'N/A';
     estBig.style.color = hasRate ? P_INK : P_SUB;
     estUnit.textContent = hasRate ? `USDG per week, at ${boostLabel(e.tier ? e.tier.boostBps : 10_000)}`
-      : v.potYear !== null ? 'enter an amount to see the estimate'
-        : 'a rate opens after two days of payments';
+      : v.potYear !== null ? 'Enter an amount to see the estimate'
+        : 'A rate opens after two days of payments';
 
     const cells = [
-      ['per day', hasRate ? money(e.perDay, 2) : '—', P_INK],
-      [`over the ${e.tier ? Math.round(e.tier.duration / 86_400) : 30}-day lock`, hasRate ? money(e.overLock, 2) : '—', P_INK],
-      ['per year', hasRate ? money(e.perYear, 0) : '—', P_INK],
-      [`apr at ${boostLabel(e.tier ? e.tier.boostBps : 10_000)}`, e.apr === null ? '—' : pct(e.apr), e.apr === null ? P_SUB : BURNT],
-      ['your weight', tokens ? compact(e.w) : '—', P_INK],
-      ['share of the pool', tokens ? pct(e.share * 100, e.share < 0.01 ? 2 : 1) : '—', P_INK],
+      ['Per day', hasRate ? money(e.perDay, 2) : 'N/A', P_INK],
+      [`Over the ${e.tier ? Math.round(e.tier.duration / 86_400) : 30}-day lock`, hasRate ? money(e.overLock, 2) : 'N/A', P_INK],
+      ['Per year', hasRate ? money(e.perYear, 0) : 'N/A', P_INK],
+      [`APR at ${boostLabel(e.tier ? e.tier.boostBps : 10_000)}`, e.apr === null ? 'N/A' : pct(e.apr), e.apr === null ? P_SUB : BURNT],
+      ['Your weight', tokens ? compact(e.w) : 'N/A', P_INK],
+      ['Share of the pool', tokens ? pct(e.share * 100, e.share < 0.01 ? 2 : 1) : 'N/A', P_INK],
     ];
     cells.forEach(([k, val, tone], i) => {
       rowCells[i].k.textContent = k;
@@ -1019,7 +980,7 @@ function stakeCard(v, me) {
     // contract would refuse it.
     let label = `lock ${tokens ? exact(tokens) : ''} ${v.symbol} for ${e.tier ? Math.round(e.tier.duration / 86_400) : 30} days`.replace(/\s+/g, ' ');
     let ok = true;
-    if (v.paused) { label = 'new locks are paused'; ok = false; } else if (!me || !me.address) { label = 'connect a wallet to lock'; } else if (me.busy) { label = 'confirm in your wallet…'; ok = false; } else if (v.positions.length >= 32) { label = 'you hold the maximum 32 positions'; ok = false; } else if (notANumber) { label = 'that is not a number'; ok = false; } else if (!amount || amount <= 0n) { label = 'enter an amount to lock'; ok = false; } else if (showMin && amount < minBase) { label = `lock at least ${exact(toTokens(minBase, v.decimals))} ${v.symbol}`; ok = false; } else if (belowFloor) { label = 'that rounds to nothing'; ok = false; } else if (overBalance) { label = `not enough ${v.symbol}`; ok = false; } else if (!v.live) { label = 'not open yet'; ok = false; }
+    if (v.paused) { label = 'New locks are paused'; ok = false; } else if (!me || !me.address) { label = 'Connect a wallet to lock'; } else if (me.busy) { label = 'Confirm in your wallet…'; ok = false; } else if (v.positions.length >= 32) { label = 'You hold the maximum 32 positions'; ok = false; } else if (notANumber) { label = 'That is not a number'; ok = false; } else if (!amount || amount <= 0n) { label = 'Enter an amount to lock'; ok = false; } else if (showMin && amount < minBase) { label = `Lock at least ${exact(toTokens(minBase, v.decimals))} ${v.symbol}`; ok = false; } else if (belowFloor) { label = 'That rounds to nothing'; ok = false; } else if (overBalance) { label = `Not enough ${v.symbol}`; ok = false; } else if (!v.live) { label = 'Not open yet'; ok = false; }
     lock.textContent = label;
     lock.disabled = !ok;
     lock.style.cursor = ok ? 'pointer' : 'not-allowed';
@@ -1049,13 +1010,13 @@ function kvRow(k, value, tone?) {
 
 function connectCard(me) {
   const box = el('div', `border:1px solid ${HAIR};border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:14px`);
-  box.appendChild(text('span', EYEBROW, 'your stake'));
+  box.appendChild(text('span', EYEBROW, 'Your stake'));
   box.appendChild(text('span', `font-family:${SERIF};font-size:27px;line-height:1.12;color:${PAPER}`,
     'Connect to see what you can claim.'));
   box.appendChild(text('span', `font-size:13px;color:${MUTED};line-height:1.55`,
     'Your balance, your locks and your claimable USDG are read straight from the contract. '
     + 'Nobody but you can move your principal.'));
-  const b = plate('connect a wallet', () => me && me.connect && me.connect(), { kind: 'paper', wide: true, size: 14.5 });
+  const b = plate('Connect a wallet', () => me && me.connect && me.connect(), { kind: 'paper', wide: true, size: 14.5 });
   b.style.marginTop = '2px';
   box.appendChild(b);
   return box;
@@ -1063,11 +1024,11 @@ function connectCard(me) {
 
 function claimCard(v, me) {
   const box = el('div', `border:1px solid ${HAIR};border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:13px`);
-  box.appendChild(text('span', EYEBROW, 'claimable now'));
+  box.appendChild(text('span', EYEBROW, 'Claimable now'));
 
   const earned = me.earned === null || me.earned === undefined ? null : big(me.earned);
   const line = el('div', 'display:flex;align-items:baseline;gap:2px;flex-wrap:wrap');
-  const head = text('span', `font-family:${SERIF};${NUM};font-size:clamp(32px,56px,44px);line-height:1;color:${earned ? BRASS : MUTED}`, '—');
+  const head = text('span', `font-family:${SERIF};${NUM};font-size:clamp(32px,56px,44px);line-height:1;color:${earned ? BRASS : MUTED}`, 'N/A');
   const tail = text('span', `font-family:${SERIF};${NUM};font-size:20px;line-height:1;color:${MUTED}`, '');
   line.appendChild(head);
   line.appendChild(tail);
@@ -1096,7 +1057,7 @@ function claimCard(v, me) {
     { kind: earned && earned > 0n ? 'paper' : 'outline', wide: true, size: 14.5 });
 
   const paint = (now) => {
-    if (base === null) { head.textContent = '—'; tail.textContent = ''; return; }
+    if (base === null) { head.textContent = 'N/A'; tail.textContent = ''; return; }
     const grown = grownAt(now);
     head.textContent = money(Math.floor(grown * 100) / 100, 2);
     tail.textContent = String(Math.floor((grown * 1e6) % 1e4)).padStart(4, '0');
@@ -1109,8 +1070,8 @@ function claimCard(v, me) {
     claimBtn.style.cursor = ready ? 'pointer' : 'not-allowed';
     claimBtn.style.opacity = ready ? '1' : '0.45';
     claimBtn.textContent = me.busy ? 'working…'
-      : grown < 0.01 ? 'nothing to claim yet'
-        : base > 0 ? `claim ${money(base)} USDG` : 'claim what you have earned';
+      : grown < 0.01 ? 'Nothing to claim yet'
+        : base > 0 ? `claim ${money(base)} USDG` : 'Claim what you have earned';
   };
   paint(readAt);
   if (base !== null && perSecond > 0) tickers.push(paint);
@@ -1119,13 +1080,13 @@ function claimCard(v, me) {
   const rows = el('div', 'display:flex;flex-direction:column;border-top:1px solid rgba(232,236,248,0.1)');
   const totalTokens = v.positions.reduce((a, p) => a + p.tokens, 0);
   const nextUp = v.positions.filter((p) => p.live).sort((a, b) => a.end - b.end)[0] || null;
-  rows.appendChild(kvRow('total locked', v.positions.length ? `${compact(totalTokens)} ${v.symbol}` : '—'));
-  rows.appendChild(kvRow('earning weight',
+  rows.appendChild(kvRow('Total locked', v.positions.length ? `${compact(totalTokens)} ${v.symbol}` : 'N/A'));
+  rows.appendChild(kvRow('Earning weight',
     v.myWeightUnits > 0n
       ? `${compact(toTokens(v.myWeightUnits, v.decimals))} · ${pct(ratio(v.myWeightUnits, v.weightUnits) * 100, 2)} of pool`
-      : '—',
+      : 'N/A',
     v.myWeightUnits > 0n ? BRASS : MUTED));
-  const nextCell = kvRow('next unlock', nextUp ? dur(nextUp.end - v.chainNow) : v.positions.length ? 'all ended' : '—');
+  const nextCell = kvRow('Next unlock', nextUp ? dur(nextUp.end - v.chainNow) : v.positions.length ? 'All ended' : 'N/A');
   rows.appendChild(nextCell);
   if (nextUp) {
     const node = nextCell.lastChild;
@@ -1138,7 +1099,7 @@ function claimCard(v, me) {
     nudge.appendChild(text('span', `font-size:13px;color:${INK};line-height:1.45`,
       `${v.ended.length} lock${v.ended.length === 1 ? ' has' : 's have'} ended and stopped earning.`));
     const a = text('a', `font-size:12.5px;color:${BRASS};text-decoration:none;border-bottom:1px solid rgba(139,92,246,0.35);cursor:pointer`,
-      'see your positions');
+      'See your positions');
     a.addEventListener('click', (e) => {
       e.preventDefault();
       const target = document.getElementById('stk-positions');
@@ -1160,13 +1121,13 @@ function claimCard(v, me) {
  *  effective rate is computed here rather than asserted. */
 function sourcesCard(v) {
   const box = el('div', `flex:1 1 auto;border:1px solid ${HAIR};border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:12px`);
-  box.appendChild(text('span', EYEBROW, 'where rewards come from'));
+  box.appendChild(text('span', EYEBROW, 'Where rewards come from'));
   const sweepLine = text('span', `font-size:13px;color:${MUTED};line-height:1.55`, '');
   const setSweepLine = (now) => {
     const place = zoneLabel(v.sweepZone);
     sweepLine.textContent = 'USDG is paid to stakers out of what the tables and the token actually earn. '
       + `Rake is swept once a day, at midnight ${place}`
-      + (v.sweepAt ? ` — next in ${dur(v.sweepAt - now)}` : '')
+      + (v.sweepAt ? `, next in ${dur(v.sweepAt - now)}` : '')
       + '; creator fees are split as they are collected.';
   };
   setSweepLine(Date.now());
@@ -1182,14 +1143,14 @@ function sourcesCard(v) {
     l.appendChild(text('span', `font-size:14px;color:${INK}`, name));
     l.appendChild(text('span', `font-size:12px;color:${MUTED}`, note));
     const rr = el('span', 'display:flex;align-items:baseline;gap:7px;flex:none');
-    rr.appendChild(text('span', `font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${MUTED}`, 'stakers cut'));
+    rr.appendChild(text('span', `font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${MUTED}`, 'Stakers cut'));
     rr.appendChild(text('span', `font-family:${SERIF};${NUM};font-size:17px;color:${BRASS}`, share));
     r.appendChild(l);
     r.appendChild(rr);
     return r;
   };
-  rows.appendChild(stream('net rake', 'the room’s take, after rakeback', `${(rakeBps / 100).toFixed(0)}%`));
-  rows.appendChild(stream('creator fees', 'the token’s own trading fee', `${(feeBps / 100).toFixed(0)}%`));
+  rows.appendChild(stream('Net rake', 'The room’s take, after rakeback', `${(rakeBps / 100).toFixed(0)}%`));
+  rows.appendChild(stream('Creator fees', 'The token’s own trading fee', `${(feeBps / 100).toFixed(0)}%`));
   box.appendChild(rows);
 
   // Rakeback comes out before the split, so the stakers' cut of GROSS rake is
@@ -1215,8 +1176,8 @@ function positionsSection(v, me) {
   const wrap = el('div', 'display:flex;flex-direction:column;gap:11px;padding-top:clamp(6px,15px,12px)');
   wrap.id = 'stk-positions';
   const head = el('div', 'display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap');
-  head.appendChild(text('span', EYEBROW, 'your positions'));
-  head.appendChild(text('span', `font-size:12.5px;color:${MUTED}`, 'one claim pays everything you have earned across all of them'));
+  head.appendChild(text('span', EYEBROW, 'Your positions'));
+  head.appendChild(text('span', `font-size:12.5px;color:${MUTED}`, 'One claim pays everything you have earned across all of them'));
   wrap.appendChild(head);
 
   for (const p of v.positions) {
@@ -1244,16 +1205,16 @@ function positionsSection(v, me) {
     mid.appendChild(when);
     const paintRow = (now) => {
       status.textContent = p.live ? 'locked, earning' : `ended ${dur(now - p.end)} ago · not earning`;
-      when.textContent = p.live ? `unlocks in ${dur(p.end - now)} · ${utcWhen(p.end)}` : `unlocked ${utcWhen(p.end)}`;
+      when.textContent = p.live ? `Unlocks in ${dur(p.end - now)} · ${utcWhen(p.end)}` : `unlocked ${utcWhen(p.end)}`;
     };
     paintRow(v.chainNow);
     tickers.push(paintRow);
     row.appendChild(mid);
 
     const shareBox = el('div', 'flex:0 1 112px;min-width:0;display:flex;flex-direction:column;gap:3px');
-    shareBox.appendChild(text('span', `font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${MUTED}`, 'share of pool'));
+    shareBox.appendChild(text('span', `font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${MUTED}`, 'Share of pool'));
     shareBox.appendChild(text('span', `font-family:${SERIF};${NUM};font-size:18px;color:${p.live ? BRASS : MUTED}`,
-      p.share === null ? '—' : pct(p.share, 2)));
+      p.share === null ? 'N/A' : pct(p.share, 2)));
     row.appendChild(shareBox);
 
     const acts = el('div', 'flex:0 0 auto;display:flex;gap:8px;flex-wrap:wrap');
@@ -1264,7 +1225,7 @@ function positionsSection(v, me) {
         { kind: 'outline', size: 13.5, disabled: !!me.busy }));
     }
     if (!v.paused && relockTiers(v, p).length) {
-      const label = p.live ? 'extend' : 'relock';
+      const label = p.live ? 'Extend' : 'Relock';
       acts.appendChild(plate(label, () => {
         ui.sheet = { kind: p.live ? 'extend' : 'relock', pos: p, pickTier: null, phase: 'review' };
         repaint();
@@ -1506,20 +1467,20 @@ function chartsRow(v) {
     : [];
 
   wrap.appendChild(chartCard({
-    eyebrow: 'total value locked',
-    head: isUsd ? moneyA(v.tvlUsd) : v.locked === null ? '—' : `${compact(v.locked)} ${v.symbol}`,
+    eyebrow: 'Total value locked',
+    head: isUsd ? moneyA(v.tvlUsd) : v.locked === null ? 'N/A' : `${compact(v.locked)} ${v.symbol}`,
     change: tvlDelta === null ? '' : `${tvlDelta >= 0 ? '+' : ''}${pct(tvlDelta)} over ${ui.range}d`,
     changeTone: tvlDelta === null ? MUTED : tvlDelta >= 0 ? WIN : LOSS,
     chips: unitChips,
     node: chart({
       points: tvlPoints, kind: 'line', area: true, color: BRASS, empty,
       axis: (val) => (isUsd ? `$${compact(val)}` : compact(val)),
-      tip: (p) => (p.v === null ? 'no price that day' : isUsd ? moneyA(p.v) : `${compact(p.v)} ${v.symbol}`),
-      tipSub: (p) => (p.day.apr1 === null ? 'no rate that day' : `${pct(p.day.apr1)} apr at 1×`),
+      tip: (p) => (p.v === null ? 'No price that day' : isUsd ? moneyA(p.v) : `${compact(p.v)} ${v.symbol}`),
+      tipSub: (p) => (p.day.apr1 === null ? 'No rate that day' : `${pct(p.day.apr1)} APR at 1×`),
       aria: `Total value locked over the last ${ui.range} days.`,
     }),
     footChips: rangeChips,
-    foot: isUsd ? `${v.symbol} locked × that day’s price` : 'tokens locked, price aside',
+    foot: isUsd ? `${v.symbol} locked × that day’s price` : 'Tokens locked, price aside',
   }));
 
   /* ── what it paid ───────────────────────────────────────────────────────── */
@@ -1547,8 +1508,8 @@ function chartsRow(v) {
     .concat(paidMode ? [] : [chip('log', ui.log, () => { ui.log = !ui.log; repaint(); })]);
 
   wrap.appendChild(chartCard({
-    eyebrow: paidMode ? 'usdg paid in per day · latest' : `apr at ${boostLabel(v.tiers[aprTierIndex] ? v.tiers[aprTierIndex].boostBps : 10_000)} · latest day`,
-    head: paidMode ? money(paidLast, 0) : aprNow === null ? '—' : pct(aprNow),
+    eyebrow: paidMode ? 'USDG paid in per day · latest' : `APR at ${boostLabel(v.tiers[aprTierIndex] ? v.tiers[aprTierIndex].boostBps : 10_000)} · latest day`,
+    head: paidMode ? money(paidLast, 0) : aprNow === null ? 'N/A' : pct(aprNow),
     change: paidMode
       ? (paidFirst && paidLast !== null ? `${paidLast - paidFirst.paid >= 0 ? '+' : ''}${money(paidLast - paidFirst.paid, 0)} over ${ui.range}d` : '')
       : aprDelta === null ? '' : `${aprDelta >= 0 ? '+' : ''}${pct(aprDelta)} over ${ui.range}d`,
@@ -1560,15 +1521,15 @@ function chartsRow(v) {
       points: aprPoints, kind: paidMode ? 'bars' : 'line', area: false, log: !paidMode && ui.log,
       color: paidMode ? BRASS : WIN, empty, markUnpriced: !paidMode,
       axis: (val) => (paidMode ? `$${compact(val)}` : `${num(val, aprTop < 8 ? 1 : 0)}%`),
-      tip: (p) => (p.v === null ? 'no price that day' : paidMode ? money(p.v, 2) : pct(p.v)),
-      tipSub: (p) => (p.day.tvl === null ? 'no price that day' : `${moneyA(p.day.tvl)} locked`),
+      tip: (p) => (p.v === null ? 'No price that day' : paidMode ? money(p.v, 2) : pct(p.v)),
+      tipSub: (p) => (p.day.tvl === null ? 'No price that day' : `${moneyA(p.day.tvl)} locked`),
       aria: paidMode ? `USDG paid in per day over the last ${ui.range} days.`
         : `APR at ${boostLabel(v.tiers[aprTierIndex] ? v.tiers[aprTierIndex].boostBps : 10_000)} over the last ${ui.range} days.`,
     }),
     footChips: modeChips,
     // Said precisely: this is money PAID INTO the pool that day, which is what
     // the contract then streams out over the following week.
-    foot: paidMode ? 'what was paid into the pool that day' : 'what was paid in that day, annualised at that day’s price',
+    foot: paidMode ? 'What was paid into the pool that day' : 'What was paid in that day, annualised at that day’s price',
   }));
   return wrap;
 }
@@ -1579,7 +1540,7 @@ function chartsRow(v) {
    linked to the chain, so "we burnt X" is something to click, not to trust. */
 
 const txLink = (explorer, hash, label) => {
-  if (!hash) return text('span', `color:${MUTED}`, '—');
+  if (!hash) return text('span', `color:${MUTED}`, 'N/A');
   if (!explorer) return text('span', `font-size:11.5px;color:${MUTED};${NUM}`, short(hash));
   const a = text('a', `font-size:11.5px;color:${BRASS};text-decoration:none;border-bottom:1px solid rgba(139,92,246,0.3);${NUM}`, label);
   a.href = `${explorer.replace(/\/$/, '')}/tx/${hash}`;
@@ -1617,7 +1578,7 @@ function receiptStrip(mine) {
     + `border:1px solid rgba(139,92,246,0.32);border-radius:8px;background:rgba(139,92,246,0.05)`);
   wrap.appendChild(text('span', `font-size:13.5px;color:${PAPER}`, r.label));
   const a = text('a', `font-size:12.5px;color:${BRASS};text-decoration:none;`
-    + 'border-bottom:1px solid rgba(139,92,246,0.35)', 'read the transaction \u2197');
+    + 'border-bottom:1px solid rgba(139,92,246,0.35)', 'Read the transaction \u2197');
   a.href = r.explorer;
   a.target = '_blank';
   a.rel = 'noopener noreferrer';
@@ -1630,15 +1591,15 @@ function buybackSection(v, d) {
   const box = el('div', `border:1px solid ${HAIR};border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:14px`);
   const head = el('div', 'display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap');
   const left = el('div', 'display:flex;flex-direction:column;gap:5px;min-width:0');
-  left.appendChild(text('span', EYEBROW, 'buyback & burn'));
+  left.appendChild(text('span', EYEBROW, 'Buyback & burn'));
   const burntTokens = bb ? toTokens(bb.totals.burnt, v.decimals) : null;
   const line = el('div', 'display:flex;align-items:baseline;gap:10px;flex-wrap:wrap');
   line.appendChild(text('span', `font-family:${SERIF};${NUM};font-size:clamp(27px,44px,34px);line-height:1;color:${PAPER}`,
-    burntTokens === null ? '—' : `${compact(burntTokens)} ${v.symbol}`));
+    burntTokens === null ? 'N/A' : `${compact(burntTokens)} ${v.symbol}`));
   line.appendChild(text('span', `font-size:13px;color:${MUTED}`, 'burnt'));
   left.appendChild(line);
   left.appendChild(text('span', `font-size:12.5px;color:${MUTED}`,
-    !bb ? 'nothing burnt yet'
+    !bb ? 'Nothing burnt yet'
       : [
         `${money(usd(bb.totals.spent), 0)} spent across ${bb.totals.runs} day${bb.totals.runs === 1 ? '' : 's'}`,
         // Early burns are a sliver of supply, and "0.0%" would read as nothing.
@@ -1647,7 +1608,7 @@ function buybackSection(v, d) {
   head.appendChild(left);
   if (bb && bb.nextRun) {
     const nextBox = el('div', 'display:flex;flex-direction:column;gap:3px;align-items:flex-end');
-    nextBox.appendChild(text('span', `font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${MUTED}`, 'next buyback'));
+    nextBox.appendChild(text('span', `font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${MUTED}`, 'Next buyback'));
     const clockNode = text('span', `font-family:${SERIF};${NUM};font-size:20px;color:${BRASS}`, clock(bb.nextRun - Date.now()));
     tickers.push((now) => { clockNode.textContent = clock(bb.nextRun - now); });
     nextBox.appendChild(clockNode);
@@ -1656,8 +1617,8 @@ function buybackSection(v, d) {
   box.appendChild(head);
 
   box.appendChild(text('span', `font-size:13px;color:${MUTED};line-height:1.55`,
-    `10% of every creator fee is set aside for this. Once a day, at midnight New York, all of it — every dollar that `
-    + `arrived that day — is spent on ${v.symbol} at market in ${bb ? bb.window.clips : 15} buys spread over `
+    `10% of every creator fee is set aside for this. Once a day, at midnight New York, all of it, every dollar that `
+    + `arrived that day, is spent on ${v.symbol} at market in ${bb ? bb.window.clips : 15} buys spread over `
     + `${bb ? bb.window.minutes : 15} minutes, and every token bought is burnt as it lands.`));
   const how = text('a', `align-self:flex-start;font-size:12.5px;color:${BRASS};text-decoration:none;border-bottom:1px solid rgba(139,92,246,0.3)`,
     'How the buyback works ↗');
@@ -1687,7 +1648,7 @@ function buybackSection(v, d) {
         const r = el('div', `display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:11.5px;color:${MUTED};${NUM}`);
         r.appendChild(text('span', `min-width:18px;color:${MUTED}`, String(c.n + 1)));
         r.appendChild(text('span', `min-width:64px;color:${INK}`, money(usd(c.usdgIn))));
-        r.appendChild(text('span', 'min-width:110px', c.received ? `→ ${compact(toTokens(c.received, v.decimals))} ${v.symbol}` : c.error ? 'failed, absorbed' : '—'));
+        r.appendChild(text('span', 'min-width:110px', c.received ? `→ ${compact(toTokens(c.received, v.decimals))} ${v.symbol}` : c.error ? 'Failed, absorbed' : 'N/A'));
         r.appendChild(txLink(bb.explorer, c.buyTx, 'buy'));
         r.appendChild(txLink(bb.explorer, c.burnTx, 'burn'));
         detail.appendChild(r);
@@ -1711,12 +1672,12 @@ function buybackSection(v, d) {
 function rulesSection(v, mine) {
   const wrap = el('div', `display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;margin-top:28px;border-top:1px solid ${HAIR};padding-top:40px`);
   const l = el('div', 'flex:1 1 250px;min-width:0;display:flex;flex-direction:column;gap:11px');
-  l.appendChild(text('span', EYEBROW, 'house rules'));
+  l.appendChild(text('span', EYEBROW, 'House rules'));
   l.appendChild(text('h2', `margin:0;font-family:${SERIF};font-weight:400;font-size:clamp(25px,41px,32px);line-height:1.1;color:${PAPER}`,
     'What you agree to when you lock'));
   l.appendChild(text('p', `margin:0;font-size:12.5px;color:${MUTED};line-height:1.6`,
     v.fromPlan
-      ? 'Fixed when the contract is deployed — none of it is a setting anyone can change afterwards.'
+      ? 'Fixed when the contract is deployed, none of it is a setting anyone can change afterwards.'
       : 'Every line here is read from the deployed contract, which is the only copy that can matter.'));
   // The long version lives in the docs; the addresses stay HERE, because this
   // is a money page and "go and find the contract yourself" is not a
@@ -1737,7 +1698,7 @@ function rulesSection(v, mine) {
 
   const minLine = hasMinimum(v.terms.minStake, v.decimals)
     ? `The minimum is ${exact(toTokens(v.terms.minStake, v.decimals))} ${v.symbol} per position.`
-    : 'There is no minimum — a single token is a position, and it earns its share of one token’s weight.';
+    : 'There is no minimum, a single token is a position, and it earns its share of one token’s weight.';
   const faqs = [
     ['Is there a minimum?', minLine],
     ['Can I exit early?', 'No. A lock runs to its end. You can extend it, never shorten it.'],
@@ -1747,7 +1708,7 @@ function rulesSection(v, mine) {
       + 'Unlocks round up to the next midnight UTC, and one wallet can hold 32 positions.'],
     [v.rate ? 'Why is the APR trailing?' : 'Why is there no APR yet?',
       v.rate
-        ? `It is a record, not a forecast — what was actually paid in over the last ${v.rate.days} days, annualised.`
+        ? `It is a record, not a forecast, what was actually paid in over the last ${v.rate.days} days, annualised.`
         : 'A rate here is only ever a record of what was really paid. Until two days of payments exist there is nothing to annualise, so the page shows none.'],
     ['Can the house touch my tokens?', 'No. Only you can move a position, and only once it unlocks. Withdrawing and claiming are never pausable.'],
   ];
@@ -1784,8 +1745,8 @@ function sheetFor(v, me) {
   const needsApproval = s.kind === 'lock' && me.allowance !== null && me.allowance !== undefined
     && big(me.allowance) < s.amount;
 
-  let eyebrow = s.phase === 'sent' && needsApproval ? 'two wallet prompts'
-    : s.phase === 'sent' ? 'one wallet prompt' : 'review';
+  let eyebrow = s.phase === 'sent' && needsApproval ? 'Two wallet prompts'
+    : s.phase === 'sent' ? 'One wallet prompt' : 'review';
   let title = '';
   let rows = [];
   let note = '';
@@ -1797,10 +1758,10 @@ function sheetFor(v, me) {
 
     rows = [
       ['amount', `${exact(s.tokens)} ${v.symbol}`, INK],
-      ['lock length', `${Math.round((est.tier ? est.tier.duration : 0) / 86_400)} days · ${boostLabel(est.tier ? est.tier.boostBps : 10_000)}`, INK],
+      ['Lock length', `${Math.round((est.tier ? est.tier.duration : 0) / 86_400)} days · ${boostLabel(est.tier ? est.tier.boostBps : 10_000)}`, INK],
       ['unlocks', localWhen(est.end), INK],
       ['', utcWhen(est.end), MUTED],
-      ['estimated', est.perWeek === null ? '—' : `${money(est.perWeek, 2)}/wk`, BRASS],
+      ['estimated', est.perWeek === null ? 'N/A' : `${money(est.perWeek, 2)}/wk`, BRASS],
     ];
     note = 'No early exit. A lock runs to its end. You can extend it but never shorten it.';
     primary = `lock ${exact(s.tokens)} ${v.symbol}`;
@@ -1808,7 +1769,7 @@ function sheetFor(v, me) {
     title = `Claim ${money(usd(earned))} USDG`;
     rows = [
       ['across', `${v.positions.length} position${v.positions.length === 1 ? '' : 's'}`, INK],
-      ['paid in', 'USDG', INK],
+      ['Paid in', 'USDG', INK],
     ];
     note = 'One claim pays everything you have earned across every position. Your principal stays locked.';
     primary = `claim ${money(usd(earned))} USDG`;
@@ -1816,7 +1777,7 @@ function sheetFor(v, me) {
     title = `Withdraw ${exact(pos.tokens)} ${v.symbol}`;
     rows = [
       ['unlocked', utcWhen(pos.end), INK],
-      ['rewards earned', 'kept, claim any time', INK],
+      ['Rewards earned', 'Kept, claim any time', INK],
     ];
     note = 'The tokens return to your wallet. Rewards earned up to the unlock are kept and stay claimable.';
     primary = `withdraw ${exact(pos.tokens)} ${v.symbol}`;
@@ -1826,11 +1787,11 @@ function sheetFor(v, me) {
     title = `${extending ? 'Extend' : 'Relock'} ${exact(pos.tokens)} ${v.symbol}`;
     rows = [[extending ? 'unlocks' : 'ended', utcWhen(pos.end), MUTED]];
     note = extending
-      ? 'Relocking restarts the clock from now — it does not add to the old end. Only tiers that unlock no '
+      ? 'Relocking restarts the clock from now, it does not add to the old end. Only tiers that unlock no '
         + 'earlier than this one, at no lower a multiplier, are offered: the contract refuses the rest.'
       : 'The position starts again from now, at the tier you pick.';
     primary = s.pickTier === null ? ''
-      : `${extending ? 'extend to' : 'relock for'} ${Math.round(v.tiers[s.pickTier].duration / 86_400)} days`;
+      : `${extending ? 'Extend to' : 'Relock for'} ${Math.round(v.tiers[s.pickTier].duration / 86_400)} days`;
   }
 
   const head = el('div', `padding:20px 22px 15px;border-bottom:1px solid rgba(232,236,248,0.1);display:flex;flex-direction:column;gap:7px`);
@@ -1868,7 +1829,7 @@ function sheetFor(v, me) {
       l.appendChild(text('span', `font-size:12px;color:${MUTED};${NUM}`, `unlocks ${utcWhen(end)}`));
       b.appendChild(l);
       b.appendChild(text('span', `font-family:${SERIF};${NUM};font-size:16px;color:${BRASS};text-align:right`,
-        alt.perWeek === null ? '—' : `${money(alt.perWeek, 2)}/wk`));
+        alt.perWeek === null ? 'N/A' : `${money(alt.perWeek, 2)}/wk`));
       b.addEventListener('click', () => { ui.sheet = { ...s, pickTier: i }; repaint(); });
       body.appendChild(b);
     });
@@ -1878,9 +1839,9 @@ function sheetFor(v, me) {
   if (s.phase === 'sent') {
     const reported = me.steps || {};
     const names = s.kind === 'lock'
-      ? [['approve', 'allow the contract to take $SUITED'], ['stake', 'lock your $SUITED']]
+      ? [['approve', 'Allow the contract to take $SUITED'], ['stake', 'Lock your $SUITED']]
       : [[s.kind === 'extend' ? 'relock' : s.kind, {
-        claim: 'claim your USDG', relock: 'relock your position', withdraw: 'withdraw your $SUITED',
+        claim: 'Claim your USDG', relock: 'Relock your position', withdraw: 'Withdraw your $SUITED',
       }[s.kind === 'extend' ? 'relock' : s.kind]]];
     const shown = names.filter(([key]) =>
       key !== 'approve' || (reported.approve !== 'skipped' && (needsApproval || reported.approve)));
@@ -1897,9 +1858,9 @@ function sheetFor(v, me) {
       const mid = el('span', 'display:flex;flex-direction:column;gap:1px;min-width:0;flex:1');
       mid.appendChild(text('span', `font-size:14px;color:${INK}`, label));
       mid.appendChild(text('span', `font-size:12px;color:${done ? WIN : MUTED}`,
-        status === 'done' ? 'done' : status === 'skipped' ? 'already allowed'
-          : status === 'wallet' ? 'waiting for your wallet…'
-            : status === 'confirming' ? 'confirming on chain…' : 'waiting'));
+        status === 'done' ? 'done' : status === 'skipped' ? 'Already allowed'
+          : status === 'wallet' ? 'Waiting for your wallet…'
+            : status === 'confirming' ? 'Confirming on chain…' : 'waiting'));
       r.appendChild(mid);
       if (active) {
         const t = el('span', 'position:relative;width:34px;height:2px;background:rgba(232,236,248,0.14);overflow:hidden;flex:none');
@@ -1932,7 +1893,7 @@ function sheetFor(v, me) {
     else me.relock(pos.id, s.pickTier);
   };
   if (primary && (s.phase !== 'sent' || failed)) {
-    const b = plate(failed ? 'try again' : primary, run, { kind: 'paper', size: 14.5, disabled: !!me.busy });
+    const b = plate(failed ? 'Try again' : primary, run, { kind: 'paper', size: 14.5, disabled: !!me.busy });
     b.style.flex = '1 1 190px';
     footer.appendChild(b);
   }

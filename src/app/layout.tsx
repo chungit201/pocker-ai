@@ -11,7 +11,7 @@ import './globals.css';
  * exactly as it was, because it carries every money figure on the felt and must
  * not depend on a CDN being reachable. */
 export const metadata: Metadata = {
-  title: 'suited — onchain hold’em',
+  title: 'Suited · onchain hold’em',
   description: 'Onchain no-limit hold’em. Provably fair, settled on chain.',
 };
 

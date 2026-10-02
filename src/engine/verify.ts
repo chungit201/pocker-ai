@@ -219,23 +219,23 @@ export function verifyHand(proof) {
       commit: {
         ok: commitOk,
         detail: commitOk
-          ? 'the revealed seed hashes to the commitment published before the deal'
-          : 'the revealed seed does NOT hash to the published commitment',
+          ? 'The revealed seed hashes to the commitment published before the deal'
+          : 'The revealed seed does NOT hash to the published commitment',
       },
       board: {
         ok: boardOk,
         detail: boardOk
           ? board.length
             ? `all ${board.length} board cards came from the committed deck`
-            : 'no board to check — the hand ended before the flop'
-          : `board does not match: expected ${expectedBoard.join(' ')}, shown ${board.join(' ')}`,
+            : 'No board to check, the hand ended before the flop'
+          : `Board does not match: expected ${expectedBoard.join(' ')}, shown ${board.join(' ')}`,
       },
       holeCards: {
         ok: holeOk,
         detail: holeOk
           ? shown
             ? `${shown} revealed hand${shown === 1 ? '' : 's'} matched the deck`
-            : 'no cards were shown down — nothing to check'
+            : 'No cards were shown down, nothing to check'
           : problems.join('; '),
       },
     },
