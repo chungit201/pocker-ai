@@ -255,7 +255,7 @@ export default function Connect({ v }: { v: any }) {
                   <>
                     {"\r\n              "}
                     <button className="pill-flat" onClick={v.doFaucet} style={{ width: "100%", padding: "11px", borderRadius: "5px", border: "1px dashed rgba(232,236,248,0.28)", fontSize: "12px", marginBottom: "18px" }}>
-                      {"Get test USDG"}
+                      {interp(v.faucetLabel)}
                     </button>
                     {"\r\n            "}
                   </>

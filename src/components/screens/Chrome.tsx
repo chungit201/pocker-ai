@@ -282,6 +282,12 @@ export default function Chrome({ v }: { v: any }) {
                     {"\r\n                "}
                     <button onClick={v.goDeposit} style={{ width: "100%", textAlign: "left", padding: "11px 18px" }}>{"Deposit"}</button>
                     {"\r\n                "}
+                    {v.faucetOn ? (
+                      <>
+                        <button onClick={v.menuFaucet} style={{ width: "100%", textAlign: "left", padding: "11px 18px" }}>{interp(v.faucetLabel)}</button>
+                        {"\r\n                "}
+                      </>
+                    ) : null}
                     <button onClick={v.goProfile} style={{ width: "100%", textAlign: "left", padding: "11px 18px" }}>{"Profile"}</button>
                     {"\r\n                "}
                     {/*

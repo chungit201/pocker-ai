@@ -55,6 +55,10 @@ export type SolanaBridge = {
   /** signMessage, returned base58-encoded — which is how the gateway will
    *  receive it and how Solana tooling conventionally writes signatures. */
   signMessage(message: string): Promise<string>;
+  /** Sign a transaction the gateway built (base64 wire format) and hand back
+   *  the signed one, also base64. The wallet asks the person to approve it;
+   *  sending it is the caller's job. */
+  signTransaction(base64: string): Promise<string>;
   address(): string | null;
   disconnect(): Promise<void>;
 };

@@ -889,6 +889,7 @@ export default class SuitedApp extends React.Component<any, any> {
   declare _resuming: any;
   declare _seatConfirmedAt: any;
   declare _sessionDead: any;
+  declare _walletChain: any;
   declare _srvSittingOut: any;
   declare _stakingPainted: any;
   declare _tDue: any;
@@ -1520,6 +1521,16 @@ export default class SuitedApp extends React.Component<any, any> {
       // A fresh session re-arms sessionDead's latch, or the NEXT expiry would
       // be swallowed for the lifetime of the page.
       if (w.address) this._sessionDead = false;
+      // The funding path depends on which chain the session is on: a Solana
+      // wallet is funded through /api/sol, not the EVM contract /api/chain
+      // describes. Ask again when that changes, so the deposit screen follows.
+      const walletChain = w.chain || null;
+      if (walletChain !== (this._walletChain || null)) {
+        this._walletChain = walletChain;
+        if (this.server && this.wallet && this.wallet.chainInfo) {
+          this.wallet.chainInfo().then((chain) => this.setState({ chain })).catch(() => {});
+        }
+      }
       this.detectUnlocks(w);
       this.setState({
         balance: w.balance, walletBalance: w.walletBalance, avatar: w.avatar, wagered: w.wagered,
@@ -2978,9 +2989,9 @@ export default class SuitedApp extends React.Component<any, any> {
   connectChains() {
     const all = this.R?.wallet ? this.R.wallet.detectProviders() : [];
     const has = (chain) => all.some((w) => this.chainOf(w.id) === chain && w.detected);
-    // EVM first when both or neither are installed: it is the chain the
-    // gateway can actually verify a signature on today.
-    const resolved = this.state.connectChain ?? (has('evm') || !has('solana') ? 'evm' : 'solana');
+    // Solana is the default: it is the chain deposits and withdrawals run on. The
+    // Ethereum tab is still one click away.
+    const resolved = this.state.connectChain ?? 'solana';
     return { all, resolved, has };
   }
 
@@ -4162,14 +4173,14 @@ export default class SuitedApp extends React.Component<any, any> {
     const amount = Number(this.state.depositDraft);
     const min = this.state.chain && this.state.chain.minDeposit ? this.state.chain.minDeposit / 1e6 : 1;
     if (!Number.isFinite(amount) || amount < min) {
-      this.toast(`Minimum deposit is ${fmt(min)} usdg`, 'bad');
+      this.toast(`Minimum deposit is ${fmt(min)} ${this.tokenSymbol().toLowerCase()}`, 'bad');
       return;
     }
     this.setState({ depositing: true });
     this.wallet.deposit(amount)
       .then(({ balance }) => {
         this.setState({ depositing: false, depositDraft: '', screen: 'lobby' }, this.onResize);
-        this.toast(`deposited ${fmt(amount)} USDG · bankroll ${fmt(balance)}`, 'ok');
+        this.toast(`deposited ${fmt(amount)} ${this.tokenSymbol()} · bankroll ${fmt(balance)}`, 'ok');
         this.sfx('seat');
       })
       .catch((e) => {
@@ -4178,10 +4189,15 @@ export default class SuitedApp extends React.Component<any, any> {
       });
   };
 
+  /** The token this deployment funds with: USDC on the Solana path, USDG on the EVM one. */
+  tokenSymbol = () => (this.state.chain && this.state.chain.symbol) || 'USDG';
+
   doFaucet = () => {
     if (!this.wallet || !this.wallet.faucet) return;
+    const onChain = !!(this.state.chain && this.state.chain.kind === 'solana');
+    if (onChain) this.toast('Approve in your wallet, then the test tokens arrive', 'ok');
     this.wallet.faucet()
-      .then((b) => this.toast(`Test USDG added · bankroll ${fmt(b)}`, 'ok'))
+      .then((b) => this.toast(onChain ? `Test ${this.tokenSymbol()} sent to your wallet — deposit it to play` : `Test USDG added · bankroll ${fmt(b)}`, 'ok'))
       .catch((e) => this.toast(String((e && e.message) || e), 'bad'));
   };
 
@@ -4664,7 +4680,7 @@ export default class SuitedApp extends React.Component<any, any> {
       // at a zero bankroll reasonably concludes the site is broken.
       walletAvailLabel: st.walletBalance == null
         ? 'Held by the table program'
-        : `${fmt(st.walletBalance)} USDG in your wallet, ready to deposit`,
+        : `${fmt(st.walletBalance)} ${this.tokenSymbol()} in your wallet, ready to deposit`,
       /* ── sign-up name ──────────────────────────────────────────────
          Seats show real identities now, so the funding step asks for a
          name once. Skippable — until chosen, every surface shows the
@@ -4681,7 +4697,9 @@ export default class SuitedApp extends React.Component<any, any> {
       toLobbyLabel: st.balance > 0 ? 'Choose a table \u2192' : 'Browse tables \u2192',
       toLobbyStyle: `width:100%;padding:13px;border-radius:999px;background:${CTA};color:${CTA_INK};font-size:14px;font-weight:500`,
       depositOn: !this.server || !!(st.chain && st.chain.enabled),
-      faucetOn: !!this.server && !(st.chain && st.chain.enabled),
+      faucetOn: !!this.server && (!(st.chain && st.chain.enabled) || !!(st.chain && st.chain.kind === 'solana' && st.chain.faucet)),
+      faucetLabel: `Faucet ${this.tokenSymbol()}`,
+      menuFaucet: () => { this.setState({ walletMenu: false }); this.doFaucet(); },
       isSeatScreen: st.screen === 'seat',
       depositDraft: st.depositDraft,
       depositInput: (e) => this.setState({ depositDraft: e.target.value.replace(/[^0-9.]/g, '') }),
@@ -4692,7 +4710,7 @@ export default class SuitedApp extends React.Component<any, any> {
       doFaucet: this.doFaucet,
       depositBtnLabel: st.depositing ? 'Confirm in your wallet\u2026' : 'Deposit',
       depositBtnStyle: `width:100%;padding:11px;border-radius:999px;background:${st.depositing ? 'rgba(232,236,248,0.28)' : CTA};color:${CTA_INK};font-size:13px;font-weight:500`,
-      depositNote: `Minimum ${fmt(depMin)} USDG \u00b7 goes to the table program, not to us`,
+      depositNote: `Minimum ${fmt(depMin)} ${this.tokenSymbol()} \u00b7 goes to the table program, not to us`,
       seatLabel: 'First open seat',
       sitAmountLabel: sitAmount > 0 ? fmt(sitAmount) : 'N/A',
       sitBbLabel: sitTable.bb > 0 ? `${Math.round(sitAmount / sitTable.bb)} big blinds` : '',

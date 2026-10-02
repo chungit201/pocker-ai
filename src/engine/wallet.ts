@@ -269,7 +269,7 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
     stopEvmWatch?.();
     token = null;
     persist();
-    st = { ...st, address: null, label: null, evmProviderId: null, balance: 0, walletBalance: null };
+    st = { ...st, address: null, label: null, evmProviderId: null, chain: null, balance: 0, walletBalance: null };
     publish();
   };
 
@@ -359,6 +359,15 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
   async function walletTokens() {
     const info = await chainInfo().catch(() => null);
     if (!info || !info.enabled || !st.address) return null;
+    if (info.kind === 'solana') {
+      try {
+        const cfg = await solConfig();
+        const r = await solRpc(cfg, 'getTokenAccountsByOwner', [st.address, { mint: cfg.mint }, { encoding: 'jsonParsed' }]);
+        return (r.value || []).reduce((n, a) => n + Number(a.account.data.parsed.info.tokenAmount.uiAmount || 0), 0);
+      } catch {
+        return null;
+      }
+    }
     if (info.kind === 'evm') {
       try {
         return Number(await evmTokenBalance(info, st.address)) / 1e6;
@@ -497,7 +506,109 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
     return { signature: hash, explorer: evmExplorerTx(info, hash) };
   }
 
+  /* ── Solana funding ───────────────────────────────────────────────────────
+     A Solana wallet funds the bankroll through the gateway's /api/sol/*, which
+     is a different shape from the EVM contract path above: the gateway builds
+     the transaction, the wallet only signs it, and the gateway's scanner credits
+     the bankroll once the transfer is final. Nothing here touches the EVM code. */
+  const isSolAddress = (a) => !!a && !String(a).startsWith('0x');
+  /** A Solana session is one whose key is not a 0x address. Read from the token
+   *  as well as `st`, so a reload (which keeps only the token) still knows. */
+  const isSolSession = () => st.chain === 'solana' || (!!token && isSolAddress(tokenPubkey(token)));
+  let solCfg = null;
+  async function solConfig() {
+    if (!solCfg) solCfg = await api('/api/sol/config');
+    return solCfg;
+  }
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const solExplorerTx = (cfg, sig) =>
+    `https://explorer.solana.com/tx/${sig}${cfg.cluster && cfg.cluster !== 'mainnet-beta' ? `?cluster=${cfg.cluster}` : ''}`;
+
+  /** One JSON-RPC call to the cluster the gateway named for browsers. */
+  async function solRpc(cfg, method, params) {
+    const res = await fetch(cfg.rpcUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
+    });
+    const out = await res.json().catch(() => ({}));
+    if (out.error) throw new Error(out.error.message || 'the Solana network refused that');
+    return out.result;
+  }
+
+  /** The Solana wallet that signed in, connected and still the same account.
+   *  The wallet adapter does not reconnect by itself after a reload. */
+  async function solWallet() {
+    const sol = requireSolana();
+    if (sol.address() !== st.address) {
+      await sol.connect(st.label);
+      if (sol.address() !== st.address) {
+        throw new Error('switch your wallet back to the account you signed in with');
+      }
+    }
+    return sol;
+  }
+
+  /** Sign what the gateway built, then send it to the network. Returns the signature. */
+  async function solSignAndSend(cfg, base64) {
+    const sol = await solWallet();
+    const signed = await sol.signTransaction(base64);
+    try {
+      return await solRpc(cfg, 'sendTransaction', [signed, { encoding: 'base64', preflightCommitment: 'confirmed' }]);
+    } catch (err) {
+      const m = String((err && err.message) || err);
+      if (/no record of a prior credit|insufficient lamports|insufficient funds for fee/i.test(m)) {
+        throw new Error('this wallet has no SOL to pay the network fee — get some test SOL first');
+      }
+      throw err;
+    }
+  }
+
+  /** Wait until the network reports the transaction at `level`, or give up. */
+  async function solConfirm(cfg, signature, level = 'confirmed', ms = 60_000) {
+    const rank = { processed: 1, confirmed: 2, finalized: 3 };
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      const r = await solRpc(cfg, 'getSignatureStatuses', [[signature]]).catch(() => null);
+      const s = r && r.value && r.value[0];
+      if (s && s.err) throw new Error('the transaction failed on the network');
+      if (s && rank[s.confirmationStatus] >= rank[level]) return;
+      await sleep(1500);
+    }
+    throw new Error('the network is slow to confirm that transaction — check again in a minute');
+  }
+
+  /** A request the gateway queued answers 202 {jobId}; wait for its result. */
+  async function solJob(jobId, ms = 90_000) {
+    const end = Date.now() + ms;
+    while (Date.now() < end) {
+      const j = await api(`/api/sol/jobs/${jobId}`);
+      if (j.status === 'done') return j.result;
+      if (j.status === 'failed') throw new Error(j.error || 'that request failed');
+      await sleep(1000);
+    }
+    throw new Error('the server is busy — try again in a moment');
+  }
+
+  /** Create the wallet's token account if it has none. It is the wallet that
+   *  pays the rent, so this is a transaction the person has to approve. */
+  async function solEnsureTokenAccount(cfg) {
+    const r = await api('/api/sol/token-account', { method: 'POST' });
+    if (!r.transaction) return;
+    const sig = await solSignAndSend(cfg, r.transaction);
+    await solConfirm(cfg, sig, 'finalized');
+  }
+
   async function chainInfo() {
+    if (isSolSession()) {
+      const c = await solConfig().catch(() => null);
+      if (c && c.enabled) {
+        return {
+          enabled: true, kind: 'solana', symbol: c.symbol, cluster: c.cluster, mint: c.mint,
+          minDeposit: c.minDeposit, minWithdraw: c.minWithdraw, faucet: !!c.faucet, paused: c.paused,
+        };
+      }
+    }
     if (!chainCache) {
       chainCache = await api('/api/chain');
     }
@@ -535,12 +646,12 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
         const walletName = name.slice('solana:'.length);
         const sol = requireSolana();
         const address = await sol.connect(walletName);
-        const challenge = await api('/api/auth/challenge', {
+        const challenge = await api('/api/auth/sol/challenge', {
           method: 'POST',
           body: JSON.stringify({ pubkey: address, chain: 'solana' }),
         });
         const signature = await sol.signMessage(challenge.message);
-        const out = await api('/api/auth/verify', {
+        const out = await api('/api/auth/sol/verify', {
           method: 'POST',
           body: JSON.stringify({
             pubkey: address, nonce: challenge.nonce, signature, chain: 'solana',
@@ -764,6 +875,35 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
       if (micro < info.minDeposit) {
         throw new Error(`minimum deposit is ${info.minDeposit / 1e6} USDG`);
       }
+      if (info.kind === 'solana') {
+        const cfg = await solConfig();
+        const walletBefore = st.walletBalance;
+        // The gateway opens a request and builds the transaction for it. When its
+        // queue is busy it answers 202 first, and the transaction comes after.
+        let dep = await api('/api/sol/deposits', { method: 'POST', body: JSON.stringify({ amount: micro }) });
+        if (!dep.transaction) {
+          const made = await solJob(dep.jobId);
+          dep = await api(`/api/sol/deposits/${made.id}/transaction`, { method: 'POST' });
+        }
+        const signature = await solSignAndSend(cfg, dep.transaction);
+        // The gateway credits the bankroll once the transfer is final (about
+        // fifteen seconds). Telling it the signature only lets it look sooner.
+        let credited = false;
+        for (let i = 0; i < 60 && !credited; i++) {
+          await sleep(2000);
+          if (i % 4 === 1) api(`/api/sol/deposits/${dep.id}/submit`, { method: 'POST', body: JSON.stringify({ signature }) }).catch(() => {});
+          const v = await api(`/api/sol/deposits/${dep.id}`).catch(() => null);
+          if (!v) continue;
+          if (v.status === 'credited') credited = true;
+          else if (v.status === 'expired' || v.status === 'failed') {
+            throw new Error('that deposit was not credited in time — if the transfer went through, support can match it from the signature ' + signature);
+          }
+        }
+        await refresh().catch(() => {});
+        await settleWallet(walletBefore);
+        if (!credited) throw new Error('deposit sent, still confirming — your bankroll updates by itself in a minute');
+        return { signature, balance: st.balance, explorer: solExplorerTx(cfg, signature) };
+      }
       // A wrong-token deposit is the single most confusing failure on this
       // page: the wallet holds "USDG", the site wants "USDG", and the chain
       // rejects it because they are different mints. Name both.
@@ -821,6 +961,34 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
       if (!info.enabled) throw new Error('withdrawals are not enabled on this server');
       const micro = Math.round(amount * 1e6);
       const walletBefore = st.walletBalance;
+      if (info.kind === 'solana') {
+        const cfg = await solConfig();
+        if (micro < info.minWithdraw) throw new Error(`minimum withdrawal is ${info.minWithdraw / 1e6} ${info.symbol}`);
+        // Pays out to this wallet's own token account, which must exist.
+        await solEnsureTokenAccount(cfg);
+        let w = await api('/api/sol/withdrawals', { method: 'POST', body: JSON.stringify({ amount: micro }) });
+        if (!w.id) w = await solJob(w.jobId);
+        // The gateway's worker sends it; wait for the transfer to land.
+        let last = w;
+        for (let i = 0; i < 60; i++) {
+          if (last.status === 'review') {
+            await refresh().catch(() => {});
+            throw new Error('that withdrawal is larger than the automatic limit and is waiting for approval');
+          }
+          if (last.status === 'confirmed') break;
+          if (last.status === 'failed' || last.status === 'rejected') {
+            await refresh().catch(() => {});
+            throw new Error('the withdrawal could not be sent, so your balance was returned');
+          }
+          await sleep(2000);
+          const list = await api('/api/sol/withdrawals').catch(() => null);
+          last = (list && list.withdrawals.find((x) => x.id === w.id)) || last;
+        }
+        await refresh().catch(() => {});
+        await settleWallet(walletBefore);
+        if (last.status !== 'confirmed') throw new Error('withdrawal requested, still sending — it lands in your wallet shortly');
+        return { signature: last.signature, balance: st.balance, explorer: last.signature ? solExplorerTx(cfg, last.signature) : null };
+      }
       if (info.kind === 'evm') {
         const provider = providerRef || evmProviderFor(st.evmProviderId ?? st.label ?? 'injected');
         if (!provider) throw new Error('connect a wallet to withdraw');
@@ -974,6 +1142,16 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
       publish();
     },
     async faucet() {
+      if (isSolSession()) {
+        // Test tokens minted on chain into this wallet (not the bankroll); deposit
+        // them to play. The wallet needs its token account first.
+        const cfg = await solConfig();
+        const walletBefore = st.walletBalance;
+        await solEnsureTokenAccount(cfg);
+        await api('/api/sol/faucet', { method: 'POST' });
+        await settleWallet(walletBefore);
+        return st.balance;
+      }
       const out = await api('/api/faucet', { method: 'POST' });
       st = { ...st, balance: out.balance / 1e6 };
       publish();

@@ -16,6 +16,7 @@ import { useAccount, useConnect, useDisconnect, useSignMessage } from 'wagmi';
 import { useConnectModal } from '@rainbow-me/rainbowkit';
 import { useWallet } from '@solana/wallet-adapter-react';
 import bs58 from 'bs58';
+import { VersionedTransaction } from '@solana/web3.js';
 
 import { bridge } from './bridge';
 
@@ -32,6 +33,13 @@ function waitFor<T>(read: () => T | null | undefined, timeoutMs: number, onTimeo
     tick();
   });
 }
+
+const b64ToBytes = (b64: string) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+const bytesToB64 = (bytes: Uint8Array) => {
+  let s = '';
+  for (const b of bytes) s += String.fromCharCode(b);
+  return btoa(s);
+};
 
 /** A wagmi connector as the connect screen wants it. */
 const row = (c: { id: string; name: string; icon?: string }) => ({
@@ -138,6 +146,12 @@ export default function WalletBridge() {
         if (!l.signMessage) throw new Error('this wallet cannot sign messages');
         const sig = await l.signMessage(new TextEncoder().encode(message));
         return bs58.encode(sig);
+      },
+      async signTransaction(base64) {
+        const l = latest.current.solana;
+        if (!l.signTransaction) throw new Error('this wallet cannot sign transactions');
+        const signed = await l.signTransaction(VersionedTransaction.deserialize(b64ToBytes(base64)));
+        return bytesToB64(signed.serialize());
       },
       address: () => latest.current.solana.publicKey?.toBase58() ?? null,
       async disconnect() { await latest.current.solana.disconnect(); },
