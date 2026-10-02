@@ -71,7 +71,9 @@ export default function Chrome({ v }: { v: any }) {
              gap on its right, and the two never matched.
           */}
           {"\r\n        "}
-          <div style={{ display: "flex", alignItems: "center", minWidth: "0" }}>
+          {/* `su-nav-links`: on a phone this whole row goes, and the burger at
+              the far end of the bar opens the drawer that carries it instead. */}
+          <div className="su-nav-links" style={{ display: "flex", alignItems: "center", minWidth: "0" }}>
             {"\r\n        "}
             {/*
                Every item carries the transparent border, not just the active one,
@@ -319,6 +321,18 @@ export default function Chrome({ v }: { v: any }) {
               {"\r\n        "}
             </>
           ) : null}
+          {/*
+             The phone's nav. Shown only where the tab row is hidden (globals.css),
+             it asks for the drawer with the same `suited:menu` event the table's
+             own menu button sends — one drawer, so the two can never drift.
+             Dispatched here rather than imported from TableDrawer, which already
+             imports this file for its icons.
+          */}
+          <button className="su-burger" onClick={() => window.dispatchEvent(new Event('suited:menu'))} aria-label="Menu" title="Menu">
+            <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+              <path d="M3 5h12M3 9h12M3 13h12" style={{ fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" }} />
+            </svg>
+          </button>
           {"\r\n      "}
         </div>
         {"\r\n    "}

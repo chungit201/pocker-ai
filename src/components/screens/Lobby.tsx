@@ -39,7 +39,7 @@ export default function Lobby({ v }: { v: any }) {
               </div>
             </div>
             {"\r\n          "}
-            <div style={{ position: "relative", padding: "clamp(22px,42px,34px)", display: "flex", flexDirection: "column", gap: "16px", flex: "1" }}>
+            <div className="lb-hero-in" style={{ position: "relative", padding: "clamp(22px,42px,34px)", display: "flex", flexDirection: "column", gap: "16px", flex: "1" }}>
               {"\r\n            "}
               {/*
                  People, not tables. Tables are spawned on demand, so a table
@@ -72,7 +72,7 @@ export default function Lobby({ v }: { v: any }) {
                 {interp(v.lobbyLine)}
               </span>
               {"\r\n            "}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "10px", paddingTop: "4px" }}>
+              <div className="lb-facts" style={{ display: "flex", flexWrap: "wrap", gap: "10px", paddingTop: "4px" }}>
                 {"\r\n              "}
                 {asArray(v.lobbyFacts).map((f: any, $index: number) => (
                   <Fragment key={$index}>
@@ -87,7 +87,7 @@ export default function Lobby({ v }: { v: any }) {
                         {interp(f?.v)}
                       </span>
                       {"\r\n                  "}
-                      <span style={{ fontSize: "11.5px", color: "#94a3c4" }}>
+                      <span className="gm-stat-sub" style={{ fontSize: "11.5px", color: "#94a3c4" }}>
                         {interp(f?.sub)}
                       </span>
                       {"\r\n                "}
@@ -98,7 +98,7 @@ export default function Lobby({ v }: { v: any }) {
                 {"\r\n            "}
               </div>
               {"\r\n            "}
-              <div style={{ marginTop: "auto", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px", paddingTop: "8px" }}>
+              <div className="lb-actions" style={{ marginTop: "auto", display: "flex", flexWrap: "wrap", alignItems: "center", gap: "12px", paddingTop: "8px" }}>
                 {"\r\n              "}
                 {/*
                    The page's one filled action, and the only button here that

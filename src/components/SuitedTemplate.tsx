@@ -95,7 +95,10 @@ export default function SuitedTemplate({ v }: { v: any }) {
         {/* ── the table ───────────────────────────────────────────────────── */}
         {"\r\n  "}
         {v.isTable ? <Table v={v} /> : null}
-        {v.isTable ? <TableDrawer v={v} /> : null}
+        {/* The drawer is the table's menu, and on a phone every other page's
+            too — the nav bar's burger opens it (screens/Chrome). Only the
+            table gets its floating button; elsewhere the bar is the way in. */}
+        {v.isTable || v.chromeOn ? <TableDrawer v={v} floating={v.isTable} /> : null}
         {"\r\n\r\n  "}
         {/* ── hand history ────────────────────────────────────────────────── */}
         {"\r\n  "}

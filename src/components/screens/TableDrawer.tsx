@@ -18,7 +18,7 @@ import { NavIcon } from './Chrome';
 /** Opens the table drawer from anywhere on the table screen. */
 export const openTableMenu = () => window.dispatchEvent(new Event('suited:menu'));
 
-export default function TableDrawer({ v }: { v: any }) {
+export default function TableDrawer({ v, floating = true }: { v: any; floating?: boolean }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -38,7 +38,10 @@ export default function TableDrawer({ v }: { v: any }) {
   // leaves a drawer hanging over the next screen's first frame.
   const act = (fn: any) => (e: any) => { setOpen(false); if (fn) fn(e); };
 
+  // Off the table the drawer is the phone's nav, so a seat you hold is the
+  // first place it offers to go — as the tab row does on a wide screen.
   const nav: [string, string, any][] = [
+    ...(!floating && v.hasTable ? [['table', 'Table', v.goTable] as [string, string, any]] : []),
     ['lobby', 'Lobby', v.goLobby],
     ['tournaments', 'Tournaments', v.goTournaments],
     ['leaderboard', 'Leaderboard', v.goLeader],
@@ -50,16 +53,18 @@ export default function TableDrawer({ v }: { v: any }) {
 
   return (
     <>
-      <button
-        className={'td-toggle' + (open || v.railOpen ? ' td-toggle--open' : '')}
-        onClick={() => setOpen((o) => !o)}
-        aria-label={open ? 'Close menu' : 'Open menu'}
-        aria-expanded={open}
-      >
-        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
-          <path d="M3 5h12M3 9h12M3 13h12" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' }} />
-        </svg>
-      </button>
+      {floating ? (
+        <button
+          className={'td-toggle' + (open || v.railOpen ? ' td-toggle--open' : '')}
+          onClick={() => setOpen((o) => !o)}
+          aria-label={open ? 'Close menu' : 'Open menu'}
+          aria-expanded={open}
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+            <path d="M3 5h12M3 9h12M3 13h12" style={{ fill: 'none', stroke: 'currentColor', strokeWidth: 1.7, strokeLinecap: 'round' }} />
+          </svg>
+        </button>
+      ) : null}
 
       <div className={'td-scrim' + (open ? ' td-scrim--open' : '')} onClick={() => setOpen(false)} aria-hidden="true" />
 
@@ -133,7 +138,11 @@ export default function TableDrawer({ v }: { v: any }) {
           ) : null}
 
           {/* The skin, picked where it can be seen: the drawer stays open, so
-              each tap repaints the table behind the scrim. */}
+              each tap repaints the table behind the scrim. Only on the table —
+              off it there is nothing behind the scrim to repaint, and the two
+              pickers live in Settings. */}
+          {floating ? (
+          <>
           <div className="td-group">
             <div className="td-label">Table style</div>
             <div className="td-styles">
@@ -157,6 +166,8 @@ export default function TableDrawer({ v }: { v: any }) {
               ))}
             </div>
           </div>
+          </>
+          ) : null}
 
           <div className="td-group">
             <div className="td-label">Go to</div>

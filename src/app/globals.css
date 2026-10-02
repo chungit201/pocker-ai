@@ -848,6 +848,49 @@ html, body { height: 100%; margin: 0 }
 .td-item--two small { font-size: 12px; color: #94a3c4; }
 .td-item--danger > span { color: #f2676b; }
 .td-item--muted { color: #94a3c4; }
+/* ── the nav on a phone: a burger, and the drawer behind it ─────────────────
+   Four tabs and `more` do not fit beside the mark and the account under about
+   940px — the row scrolled sideways with a tab cut off, which nobody finds —
+   and 940 is where the stage stops scaling (see `.su-stage`), so above it the
+   bar still fits by proportion.
+   There the links go and one button stands in for them: it opens the same
+   drawer the table uses (screens/TableDrawer), which already carries every
+   destination. */
+.su-burger { display: none; flex: none; width: 36px; height: 36px; border-radius: 11px; align-items: center; justify-content: center;
+  color: #e8ecf8; background: rgba(18,16,44,0.72); border: 1px solid rgba(167,139,250,0.35);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.08); transition: background .16s ease, border-color .16s ease; }
+.su-burger:hover { background: rgba(139,92,246,0.28); border-color: rgba(196,181,253,0.7); }
+@media (max-width: 940px) {
+  .su-nav-links { display: none !important; }
+  .su-burger { display: flex; }
+  .su-nav { gap: 10px !important; }
+  .su-nav > div:last-child { gap: 10px !important; }
+}
+@media (max-width: 600px) { .su-nav { padding: 0 16px !important; } }
+
+/* ── every page on a phone: a phone's gutter ────────────────────────────────
+   44px a side was drawn for a 1512px canvas; at 390px it is a quarter of the
+   screen spent on margins. Staking reads the same property, so it follows. */
+@media (max-width: 600px) {
+  :root { --su-gutter: 16px; }
+  .su-page { padding-top: 22px; }
+}
+
+/* ── the lobby on a phone ───────────────────────────────────────────────────
+   The hero's padding comes in with the gutter; the three figures sit in one
+   row as small chips instead of three full-width cards stacked (each loses its
+   caption line, which the label already says); and the two ways in share a
+   row, so the stakes are on the first screen rather than the third. */
+@media (max-width: 600px) {
+  .lb-hero-in { padding: 22px 18px 20px !important; gap: 14px !important; }
+  .lb-facts { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px !important; }
+  .lb-facts .gm-stat { padding: 10px 10px 11px !important; gap: 6px !important; }
+  .lb-facts .gm-stat-k { font-size: 9px !important; letter-spacing: .08em !important; gap: 5px; white-space: nowrap; }
+  .lb-facts .gm-stat-k::before { width: 9px; height: 9px; }
+  .lb-facts .gm-stat-sub { display: none; }
+  .lb-actions > button { flex: 1 1 0; min-width: 0; padding-left: 10px !important; padding-right: 10px !important; text-align: center; white-space: nowrap; }
+}
+
 /* ── the table on a phone held upright: turn it ─────────────────────────────
    Over everything on the screen, the drawer's button included — there is
    nothing on the felt to reach until the phone is turned. */
