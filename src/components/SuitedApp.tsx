@@ -61,51 +61,6 @@ const SCALE_MIN = 0.55, SCALE_MAX = 1.35;
    desktop window renders at s = 1 and today's tuning is preserved exactly. The
    floor keeps a small window legible; the ceiling stops a large monitor from
    making the type absurd. */
-/* The moving felt's two bands of engraving.
- *
- * One tile is 1600 units wide, the band is two tiles (3200) and drifts -50%, so
- * the seam is invisible only if every sine completes WHOLE cycles per tile —
- * hence 3 and 8. They are not arbitrary divisors: tune them to something that
- * does not divide evenly and the loop visibly jumps once per pass.
- *
- * Built once, here, at module scope: these are tens of KB of path data and
- * rebuilding them on a render would be the most expensive thing on the page. */
-const waveTile = (rows, amp, seed) => {
-  const W = 1600, H = 1000, gap = H / rows, P = [];
-  for (let j = 0; j < rows; j++) {
-    const y = gap / 2 + j * gap;
-    let d = '';
-    for (let i = 0; i <= 160; i++) {
-      const x = (i / 80) * W;
-      const dy = amp * Math.sin((2 * Math.PI * 3 * x) / W + j * 0.5 + seed)
-               + amp * 0.42 * Math.sin((2 * Math.PI * 8 * x) / W + j + seed);
-      d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + (y + dy).toFixed(1);
-    }
-    P.push(d);
-  }
-  return P.join(' ');
-};
-/* Each band as a background image rather than SVG in the DOM.
- *
- * The runtime parses this page's template with `innerHTML` before it has any
- * values, so a hole inside a path's `d` is parsed as the literal string
- * "{{ bgFar }}" — which SVG rejects and reports to the console on every load.
- * No gating helps: it happens at parse time, not at render. A hole inside
- * `style` is never validated. It also rasterises once as an image instead of
- * living as vector DOM, which is the cheaper of the two to composite.
- *
- * The stroke travels inside the image, so its width is an argument here rather
- * than a CSS rule outside. */
-const bandStyle = (rows, amp, seed, width) => {
-  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3200 1000" preserveAspectRatio="none">'
-    + `<path d="${waveTile(rows, amp, seed)}" fill="none" stroke="#a78bfa" stroke-width="${width}"/></svg>`;
-  /* encodeURIComponent, not a hand-rolled swap of # and quotes: the path data
-     carries spaces and commas too, and a URI that is merely mostly-escaped
-     fails as ERR_INVALID_URL with nothing drawn and no useful message. */
-  return `background-image:url("data:image/svg+xml,${encodeURIComponent(svg)}");background-size:100% 100%`;
-};
-const BG_FAR = bandStyle(28, 9, 1.3, 1.4);
-const BG_NEAR = bandStyle(20, 12, 0, 0.8);
 
 const STAGE = { w: 1512, h: 850 };
 const STAGE_MIN = 0.62, STAGE_MAX = 1.6;
@@ -1244,7 +1199,7 @@ export default class SuitedApp extends React.Component<any, any> {
   demoCommit = (() => {
     const quad = () => Math.floor(Math.random() * 0x10000).toString(16).padStart(4, '0');
     const [a, b, c, d] = [quad(), quad(), quad(), quad()];
-    return { back: `${a}·${b}`, front: `${c}·${d}`, strip: `commitment ${a}·${b}·${c}` };
+    return { back: `${a}·${b}`, front: `${c}·${d}`, strip: `${a}·${b}·${c}` };
   })();
 
   cardRef = (el) => { this.cardEl = el; this.syncCard(); };
@@ -4418,7 +4373,6 @@ export default class SuitedApp extends React.Component<any, any> {
       // Without it that layer escapes to the root stacking context, paints
       // behind the body's own fill, and simply is not there.
       rootStyle: `${scr === 'table' || scr === 'docs' ? 'height:100vh' : 'min-height:100vh'};display:flex;flex-direction:column;background:${FELT};position:relative;z-index:0;overflow:hidden`,
-      bgFar: BG_FAR, bgNear: BG_NEAR,
       // One word decides whether the landing page mentions the token at all —
       // `TOKEN_CA` in engine/token.js, the same value the docs page reads.
       caOn: !!CA, ca: CA, caBuyHref: `https://fomo.family/tokens/robinhood/${CA}`,
@@ -4760,17 +4714,17 @@ export default class SuitedApp extends React.Component<any, any> {
       /* ── landing stats ───────────────────────────────────────────────
          Real numbers or nothing. A page whose whole claim is that the money
          is verifiable cannot open with invented figures.                  */
-      statHands: sstat ? Number(sstat.handsDealt).toLocaleString() : '—',
-      statHandsSub: sstat ? `${Number(sstat.handsThisWeek).toLocaleString()} today` : 'run a gateway to see live numbers',
-      statInPlay: sstat ? fmt(sstat.inPlay / 1e6) : '—',
+      statHands: sstat ? Number(sstat.handsDealt).toLocaleString() : 'N/A',
+      statHandsSub: sstat ? `${Number(sstat.handsThisWeek).toLocaleString()} today` : 'Run a gateway to see live numbers',
+      statInPlay: sstat ? fmt(sstat.inPlay / 1e6) : 'N/A',
       statTablesSub: sstat
         ? `${sstat.seated} seated across ${sstat.liveTables} live ${sstat.liveTables === 1 ? 'table' : 'tables'}`
-        : 'chips in front of players',
+        : 'Chips in front of players',
       statCustody: sstat && sstat.custodied != null ? fmt(sstat.custodied / 1e6) : '—',
       statCustodySub: sstat && sstat.chain ? 'held by the table program' : 'not connected to a chain',
       statRake: sstat ? fmt(sstat.rake / 1e6) : '—',
-      statJackpot: sstat ? fmt((sstat.jackpot || 0) / 1e6) : '—',
-      statJackpotSub: sstat ? 'rolls daily 00:00 utc' : 'daily prize pool',
+      statJackpot: sstat ? fmt((sstat.jackpot || 0) / 1e6) : 'N/A',
+      statJackpotSub: sstat ? 'Rolls daily at 00:00 UTC' : 'Daily prize pool',
 
       /* ── leaderboard ─────────────────────────────────────────────── */
       lbBlurb: st.lbView === 'jackpot'

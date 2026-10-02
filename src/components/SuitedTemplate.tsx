@@ -27,6 +27,7 @@ import CloseRoomModal from './screens/CloseRoomModal';
 import Connect from './screens/Connect';
 import Docs from './screens/Docs';
 import History from './screens/History';
+import Backdrop from './screens/Backdrop';
 import Landing from './screens/Landing';
 import Leaderboard from './screens/Leaderboard';
 import Lobby from './screens/Lobby';
@@ -55,20 +56,8 @@ export default function SuitedTemplate({ v }: { v: any }) {
       */}
       <div style={css(v.rootStyle)}>
         {"\r\n  "}
-        {/*
-           Decorative and inert: aria-hidden, no pointer events, nothing reads it.
-           Mounted here rather than per screen so the drift survives navigation.
-        */}
-        {"\r\n  "}
-        <div className="felt-bg" aria-hidden="true">
-          {"\r\n    "}
-          <div className="felt-band felt-band--far" style={css(v.bgFar)} />
-          {"\r\n    "}
-          <div className="felt-band felt-band--near" style={css(v.bgNear)} />
-          {"\r\n    "}
-          <div className="felt-vignette" />
-          {"\r\n  "}
-        </div>
+        {/* The shared background. See screens/Backdrop. */}
+        <Backdrop />
         {"\r\n\r\n  "}
         {/* ── nav ─────────────────────────────────────────────────────────── */}
         {"\r\n  "}
