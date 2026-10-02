@@ -34,7 +34,7 @@ import {
    component inside the React providers publishes — see src/wallet/bridge.ts
    for why it has to work that way. */
 import { bridge, requireEvm, requireSolana } from '@/wallet/bridge';
-import { WALLET_CATALOGUE, isAlreadyFound, installUrl, catalogueIcon } from './wallet-catalogue';
+import { WALLET_CATALOGUE, isAlreadyFound, installUrl, catalogueIcon, isMobileBrowser, mobileOpenUrl } from './wallet-catalogue';
 
 // Re-exported so the page and the staking renderer can build explorer links
 // without importing the EVM layer directly — and, more to the point, without
@@ -66,7 +66,7 @@ export function detectProviders() {
      where a detected wallet announced nothing, and the connect screen falls
      back to the two letters in `short`. Either way nothing is fetched from a
      third party. */
-  const rows: { id: string; label: string; short: string; icon: string | null; detected: boolean; install?: string | null }[] = [];
+  const rows: { id: string; label: string; short: string; icon: string | null; detected: boolean; install?: string | null; open?: string | null }[] = [];
 
   let solana: { name: string; icon: string; ready: boolean }[] = [];
   try { solana = bridge.solana?.wallets() ?? []; } catch { /* providers not mounted */ }
@@ -109,9 +109,23 @@ export function detectProviders() {
 
      Already-installed wallets are filtered out so nothing is listed twice —
      see `isAlreadyFound` for why that match is on rdns before name. */
-  const found = rows.map((r) => ({ id: r.id.replace(/^(evm|solana):/, ''), name: r.label.replace(/\s·\s(evm|solana)$/, '') }));
+  /* Per chain, because a wallet can be present on one and not the other: an
+     older MetaMask announces itself for EVM only, and matching its EVM row
+     against the Solana catalogue would hide the Solana row that says so. */
+  const found = rows.map((r) => ({
+    chain: r.id.startsWith('solana:') ? 'solana' : 'evm',
+    id: r.id.replace(/^(evm|solana):/, ''),
+    name: r.label.replace(/\s·\s(evm|solana)$/, ''),
+  }));
+  const phone = isMobileBrowser();
   for (const entry of WALLET_CATALOGUE) {
-    if (isAlreadyFound(entry, found)) continue;
+    if (isAlreadyFound(entry, found.filter((f) => f.chain === entry.chain))) continue;
+    /* On a phone the row's job changes: there is nothing to install into this
+       browser, so it reopens the site inside the wallet's app instead (see
+       `mobile` in the catalogue). A wallet whose app cannot do that has no
+       way in from here at all, and a row that can only apologise is left out. */
+    const open = mobileOpenUrl(entry);
+    if (phone && !open) continue;
     rows.push({
       id: entry.chain === 'solana' ? `solana:${entry.name}` : `evm:${entry.id}`,
       label: entry.name,
@@ -125,6 +139,7 @@ export function detectProviders() {
          appears — knowing the wallet exists is worth something — but it offers
          no download it cannot honour. */
       install: installUrl(entry),
+      open,
     });
   }
 

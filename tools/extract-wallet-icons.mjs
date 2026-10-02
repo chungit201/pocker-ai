@@ -31,6 +31,8 @@ const WANTED = {
   okxWallet: 'okx',
   phantomWallet: 'phantom',
   backpackWallet: 'backpack',
+  binanceWallet: 'binance',
+  bitgetWallet: 'bitget',
 };
 
 if (!existsSync(DIST)) {

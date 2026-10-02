@@ -3135,7 +3135,11 @@ export default class SuitedApp extends React.Component<any, any> {
          install row — so this explains what those rows are rather than
          apologising for an empty panel. */
       chainEmpty: !this.walletRowsForChain().some((w) => w.detected),
-      chainEmptyNote: resolved === 'solana'
+      // On a phone the rows open the wallet's app instead (see openInApp), and
+      // "install it" would be advice nobody can follow.
+      chainEmptyNote: this.walletRowsForChain().some((w) => w.open)
+        ? 'A phone browser cannot hold a wallet. Pick yours below and this page reopens inside its app, where you connect as usual.'
+        : resolved === 'solana'
         ? 'No Solana wallet in this browser yet. Pick one below to install it, this list fills itself once it is ready.'
         : 'No Ethereum wallet in this browser yet. Pick one below to install it, this list fills itself once it is ready.',
       chainEmptyStyle: `padding:22px 18px;font-size:14px;line-height:1.55;color:${MUTED};`
@@ -3184,6 +3188,19 @@ export default class SuitedApp extends React.Component<any, any> {
     }
     window.open(row.install, '_blank', 'noopener,noreferrer');
     this.toast(`Opening the Chrome Web Store · ${row.label}`, 'ok');
+  };
+
+  /* The same row on a phone. No extension can ever land in this browser, so
+     the way in is the wallet app's own: its universal link reopens this site
+     inside the app, where the wallet is injected and the connect screen finds
+     it like any desktop extension. A plain navigation in the tap's own turn —
+     a universal link opened any other way (a new tab, a timer) is one the OS
+     declines to hand to the app. Without the app installed the same link is
+     the wallet's own page, which is where its download is. */
+  openInApp = (row) => () => {
+    this.sfx('ui');
+    this.toast(`Opening ${row.label}…`, 'ok');
+    window.location.href = row.open;
   };
 
   /* ── funding ────────────────────────────────────────────────────────────
@@ -4771,8 +4788,8 @@ export default class SuitedApp extends React.Component<any, any> {
              * Chrome Web Store would be absurd — and it would make the demo
              * unreachable, since no row would ever be DETECTED in a browser
              * with no extension, which is exactly the browser the demo is for. */
-            state: usable ? 'DETECTED' : (w.install ? 'INSTALL' : 'NOT FOUND'),
-            pick: usable ? this.pickWallet(w.id, short) : this.openInstall(w),
+            state: usable ? 'DETECTED' : w.open ? 'OPEN APP' : (w.install ? 'INSTALL' : 'NOT FOUND'),
+            pick: usable ? this.pickWallet(w.id, short) : w.open ? this.openInApp(w) : this.openInstall(w),
             rowStyle: `display:flex;align-items:center;gap:20px;width:100%;text-align:left;padding:22px ${usable ? '4px' : '18px'};border-top:1px solid rgba(232,236,248,0.14);border-bottom:1px solid rgba(232,236,248,0.14);margin-bottom:-1px;${usable ? 'background:rgba(232,236,248,0.05);' : ''}cursor:pointer`,
             // `position:relative` so the icon can sit over the letters.
             badgeStyle: `position:relative;display:flex;align-items:center;justify-content:center;flex:none;width:34px;height:34px;border-radius:50%;overflow:hidden;font-size:13px;letter-spacing:.04em;${usable ? `background:${PAPER};color:${ON_FILL};margin-left:14px` : `border:1px solid rgba(232,236,248,0.28);color:${MUTED}`}`,

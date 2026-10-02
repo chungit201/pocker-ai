@@ -38,20 +38,79 @@ export interface CatalogueWallet {
   /** EIP-6963 rdns, where the wallet has one. The strongest match we get. */
   rdns?: string;
   chromeStore: string;
+  /**
+   * On a phone: the wallet app's own "open this page in my browser" link.
+   *
+   * A phone has no extensions, so a mobile browser discovers no wallet and
+   * never will. What every one of these apps does have is a browser of its
+   * own, in which the wallet IS injected — so the way in is to reopen this
+   * page there, where the ordinary connect works as it does on a desktop.
+   * `url` is the page to open and `origin` who is asking; each is the app's
+   * documented universal link, so a phone without the app lands on its
+   * install page instead of a dead scheme. Absent where the app has no such
+   * link at all (Rabby), and that wallet is simply not offered on a phone.
+   */
+  mobile?: (url: string, origin: string) => string;
 }
 
 /** Where the extracted marks live. One file per catalogue id. */
 const ICON = (id: string) => `/wallets/${id}.svg`;
 
-export const WALLET_CATALOGUE: CatalogueWallet[] = [
-  { id: 'metamask', name: 'MetaMask', chain: 'evm', rdns: 'io.metamask', chromeStore: 'https://chromewebstore.google.com/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn' },
-  { id: 'rabby', name: 'Rabby Wallet', chain: 'evm', rdns: 'io.rabby', chromeStore: 'https://chromewebstore.google.com/detail/rabby-wallet/acmacodkjbdgmoleebolmdjonilkdbch' },
-  { id: 'coinbase', name: 'Coinbase Wallet', chain: 'evm', rdns: 'com.coinbase.wallet', chromeStore: 'https://chromewebstore.google.com/detail/coinbase-wallet-extension/hnfanknocfeofbddgcijnmhnfnkdnaad' },
-  { id: 'okx', name: 'OKX Wallet', chain: 'evm', rdns: 'com.okex.wallet', chromeStore: 'https://chromewebstore.google.com/detail/okx-wallet/mcohilncbfahbmgdjkbpemcciiolgcge' },
+const enc = encodeURIComponent;
 
-  { id: 'phantom', name: 'Phantom', chain: 'solana', rdns: 'app.phantom', chromeStore: 'https://chromewebstore.google.com/detail/phantom/bfnaelmomeimhlpmgjnjophhpkkoljpa' },
-  { id: 'solflare', name: 'Solflare', chain: 'solana', chromeStore: 'https://chromewebstore.google.com/detail/solflare-wallet/bhhhlbepdkbapadjdnnojkbgioiodbic' },
-  { id: 'backpack', name: 'Backpack', chain: 'solana', rdns: 'app.backpack.mobile', chromeStore: 'https://chromewebstore.google.com/detail/backpack/aflkmfhebedbjioipglgcbcmnbpgliof' },
+/* The store pages and app links of the wallets that sign on BOTH chains — one
+   extension, one app, listed once per chain below. */
+const METAMASK_STORE = 'https://chromewebstore.google.com/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn';
+const OKX_STORE = 'https://chromewebstore.google.com/detail/okx-wallet/mcohilncbfahbmgdjkbpemcciiolgcge';
+// Takes the address bare, with no scheme: link.metamask.io/dapp/example.com/path
+const metamaskApp = (url: string) => `https://link.metamask.io/dapp/${url.replace(/^https?:\/\//, '')}`;
+// OKX's universal link wraps its own scheme, so both layers are encoded.
+const okxApp = (url: string) => `https://www.okx.com/download?deeplink=${enc(`okx://wallet/dapp/url?dappUrl=${enc(url)}`)}`;
+
+export const WALLET_CATALOGUE: CatalogueWallet[] = [
+  { id: 'metamask', name: 'MetaMask', chain: 'evm', rdns: 'io.metamask', chromeStore: METAMASK_STORE, mobile: metamaskApp },
+  { id: 'rabby', name: 'Rabby Wallet', chain: 'evm', rdns: 'io.rabby', chromeStore: 'https://chromewebstore.google.com/detail/rabby-wallet/acmacodkjbdgmoleebolmdjonilkdbch' },
+  {
+    id: 'coinbase', name: 'Coinbase Wallet', chain: 'evm', rdns: 'com.coinbase.wallet',
+    chromeStore: 'https://chromewebstore.google.com/detail/coinbase-wallet-extension/hnfanknocfeofbddgcijnmhnfnkdnaad',
+    mobile: (url) => `https://go.cb-w.com/dapp?cb_url=${enc(url)}`,
+  },
+  { id: 'okx', name: 'OKX Wallet', chain: 'evm', rdns: 'com.okex.wallet', chromeStore: OKX_STORE, mobile: okxApp },
+
+  /* Solana, in the order the connect screen lists them. `name` is what each
+     one announces over the Wallet Standard, which is what a detected wallet is
+     matched on — so an installed one is never also offered as a download. */
+  {
+    id: 'phantom', name: 'Phantom', chain: 'solana', rdns: 'app.phantom',
+    chromeStore: 'https://chromewebstore.google.com/detail/phantom/bfnaelmomeimhlpmgjnjophhpkkoljpa',
+    mobile: (url, origin) => `https://phantom.app/ul/browse/${enc(url)}?ref=${enc(origin)}`,
+  },
+  {
+    id: 'binance', name: 'Binance Wallet', chain: 'solana',
+    chromeStore: 'https://chromewebstore.google.com/detail/binance-wallet/cadiboklkpojfamcoggejbbdjcoiljjk',
+    /* The one app here with no documented "open this page" link — its only
+       published deep link is the WalletConnect pairing. So this is the
+       wallet's own page, which opens the app (or its download) and leaves the
+       visitor to reach this site from the app's browser themselves. */
+    mobile: () => 'https://www.binance.com/en/web3wallet',
+  },
+  {
+    id: 'bitget', name: 'Bitget Wallet', chain: 'solana',
+    chromeStore: 'https://chromewebstore.google.com/detail/bitget-wallet/jiidiaalihmmhddjgbnbgdfflelocpak',
+    mobile: (url) => `https://bkcode.vip?action=dapp&url=${enc(url)}`,
+  },
+  { id: 'metamask', name: 'MetaMask', chain: 'solana', chromeStore: METAMASK_STORE, mobile: metamaskApp },
+  { id: 'okx', name: 'OKX Wallet', chain: 'solana', chromeStore: OKX_STORE, mobile: okxApp },
+  {
+    id: 'solflare', name: 'Solflare', chain: 'solana',
+    chromeStore: 'https://chromewebstore.google.com/detail/solflare-wallet/bhhhlbepdkbapadjdnnojkbgioiodbic',
+    mobile: (url, origin) => `https://solflare.com/ul/v1/browse/${enc(url)}?ref=${enc(origin)}`,
+  },
+  {
+    id: 'backpack', name: 'Backpack', chain: 'solana', rdns: 'app.backpack.mobile',
+    chromeStore: 'https://chromewebstore.google.com/detail/backpack/aflkmfhebedbjioipglgcbcmnbpgliof',
+    mobile: (url, origin) => `https://backpack.app/ul/v1/browse/${enc(url)}?ref=${enc(origin)}`,
+  },
 ];
 
 /* Names arrive spelled differently from every source: wagmi says "MetaMask",
@@ -90,5 +149,33 @@ export function catalogueIcon(entry: CatalogueWallet): string {
 
 export function installUrl(entry: CatalogueWallet): string | null {
   if (typeof navigator === 'undefined') return null;
+  // Chrome on a phone says "Chrome" too, and installs nothing from that store.
+  if (isMobileBrowser()) return null;
   return /chrome|chromium|crios|edg\//i.test(navigator.userAgent) ? entry.chromeStore : null;
+}
+
+/**
+ * A phone or a tablet — a browser that cannot hold a wallet extension.
+ *
+ * iPadOS calls itself a Mac in the user agent; the touch points give it away.
+ * False server-side, like `installUrl`: nothing renders a link before we know
+ * what is asking.
+ */
+export function isMobileBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  return /android|iphone|ipad|ipod/i.test(ua) || (/macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+}
+
+/**
+ * The link that reopens this site inside the wallet's own app, or null — off a
+ * phone, or for a wallet whose app has no such link.
+ *
+ * It opens the connect screen rather than whatever page this is: the visitor
+ * arrives in a browser that has never seen them, and signing in is the one
+ * thing they came across to do.
+ */
+export function mobileOpenUrl(entry: CatalogueWallet): string | null {
+  if (!entry.mobile || !isMobileBrowser() || typeof location === 'undefined') return null;
+  return entry.mobile(`${location.origin}/connect`, location.origin);
 }
