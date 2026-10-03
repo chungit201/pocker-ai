@@ -293,6 +293,32 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
     persist();
     st = { ...st, address: null, label: null, evmProviderId: null, chain: null, balance: 0, walletBalance: null };
     publish();
+    forgetWallet();
+  };
+
+  /* Signing out used to end only OUR session; the wallet's own connection to
+     the page lived on. Harmless with an extension, which the next sign-in
+     simply asks again — but a WalletConnect pairing is a live session with
+     one particular app, and the library also remembers that app as "the
+     wallet" for this site. So on a phone, sign out of Binance and the next
+     tap on WalletConnect did not offer a list at all: the old session was
+     still there, and every request deep-linked straight back into Binance.
+     Ending the session and forgetting the choice is what makes the next
+     sign-in a fresh one, with the wallet picked again. */
+  const forgetWallet = () => {
+    try { bridge.solana?.disconnect().catch(() => {}); } catch { /* not mounted */ }
+    try { bridge.evm?.disconnect().catch(() => {}); } catch { /* not mounted */ }
+    const s = store();
+    if (!s) return;
+    try {
+      // WalletConnect's own note of which app to deep-link, and AppKit's
+      // memory of the last wallet: both are what re-opened Binance unasked.
+      for (const k of [
+        'WALLETCONNECT_DEEPLINK_CHOICE',
+        '@appkit/recent_wallets', '@appkit/wallet_id', '@appkit/wallet_name', '@appkit/solana_wallet',
+        '@appkit/connections', '@appkit/connection_status', '@appkit/connected_namespaces',
+      ]) s.removeItem(k);
+    } catch { /* storage blocked — the session was still ended above */ }
   };
 
   /* `tokenLive` above only ever runs on the boot resume, so a 12h TTL that

@@ -16,7 +16,6 @@
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { WagmiProvider, createConfig, http } from 'wagmi';
-import { reconnect } from 'wagmi/actions';
 import { injected, walletConnect } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
@@ -77,7 +76,14 @@ const WC_SOLANA_NETWORK = /devnet/i.test(SOLANA_RPC) ? WalletAdapterNetwork.Devn
 
 const queryClient = new QueryClient();
 
-export default function WalletProviders({ children }: { children: ReactNode }) {
+/* The Solana half, a component of its own so that loading the WalletConnect
+   adapter re-renders only this and not the EVM providers above it. That is
+   not tidiness: wagmi's hydration runs its reconnect on every render of its
+   provider, so a re-render from here, mid sign-in, re-entered the connector
+   bookkeeping and the account vanished from under the bridge — the row said
+   "connector already connected" and nothing signed in. Kept below WagmiProvider,
+   a state change here cannot reach it. */
+function SolanaProviders({ children }: { children: ReactNode }) {
   /* Installed wallets need no adapter — Wallet Standard discovery fills the
      list. WalletConnect is the one that does, and it is loaded here rather
      than imported: it brings its dialog's whole UI kit with it, which has no
@@ -117,15 +123,18 @@ export default function WalletProviders({ children }: { children: ReactNode }) {
     return () => { gone = true; };
   }, []);
 
-  /* Reconnecting a returning EVM wallet, after the first paint rather than
-     during it. Left to WagmiProvider it runs inside its own render, and with
-     a WalletConnect connector in the list that is a state change landing in
-     the bridge mid-render — React's "cannot update a component while
-     rendering a different component". Same reconnect, one commit later. */
-  useEffect(() => { void reconnect(wagmiConfig); }, []);
-
   return (
-    <WagmiProvider config={wagmiConfig} reconnectOnMount={false}>
+    <ConnectionProvider endpoint={SOLANA_RPC}>
+      <WalletProvider wallets={solanaWallets} autoConnect={false}>
+        {children}
+      </WalletProvider>
+    </ConnectionProvider>
+  );
+}
+
+export default function WalletProviders({ children }: { children: ReactNode }) {
+  return (
+    <WagmiProvider config={wagmiConfig}>
       <QueryClientProvider client={queryClient}>
         <RainbowKitProvider
           theme={darkTheme({
@@ -135,12 +144,10 @@ export default function WalletProviders({ children }: { children: ReactNode }) {
           })}
           modalSize="compact"
         >
-          <ConnectionProvider endpoint={SOLANA_RPC}>
-            <WalletProvider wallets={solanaWallets} autoConnect={false}>
-              <WalletBridge />
-              {children}
-            </WalletProvider>
-          </ConnectionProvider>
+          <SolanaProviders>
+            <WalletBridge />
+            {children}
+          </SolanaProviders>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>
