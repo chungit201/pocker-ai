@@ -581,6 +581,18 @@ const AV_GROUPS = [
 const XP_A = 56, XP_P = 2.2;
 const xpThreshold = (L) => Math.round(XP_A * Math.pow(L, XP_P));
 const XP_TITLES: [number, string][] = [[50, 'Mythic'], [40, 'Legend'], [30, 'Whale'], [25, 'Crusher'], [20, 'River rat'], [15, 'Shark'], [10, 'Reg'], [5, 'Grinder'], [0, 'Fish']];
+/* The level as the gateway states it (`/api/me.level`), with the bar between
+   that level and the next drawn from the curve above — the same curve the
+   gateway uses, so the two agree; where they ever did not, its figure is the
+   one shown, because it is the one that unlocks the level avatars. */
+const xpAt = (level, w, title) => {
+  const prev = xpThreshold(level), next = xpThreshold(level + 1);
+  return {
+    level, prev, next,
+    pct: Math.round(((Math.max(0, w) - prev) / Math.max(1, next - prev)) * 100),
+    title: title || (XP_TITLES.find((t) => level >= t[0]) || [0, 'Fish'])[1],
+  };
+};
 const xpFor = (w) => {
   const v = Math.max(0, w);
   const level = Math.max(1, Math.floor(Math.pow(v / XP_A, 1 / XP_P)));
@@ -3554,8 +3566,9 @@ export default class SuitedApp extends React.Component<any, any> {
   claimRakeback = () => {
     const token = this.wallet && this.wallet.token && this.wallet.token();
     if (!token || this.state.rbBusy) return;
-    // Rakeback now redeems as one signed transaction straight to the wallet
-    // (prepare -> sign -> submit), handled by the wallet like a withdrawal.
+    // On an EVM deployment rakeback redeems as one signed transaction to the
+    // wallet (prepare -> sign -> submit); everywhere else the gateway moves it
+    // into the bankroll (`toBankroll`). The wallet layer decides which.
     if (!this.wallet.redeemRakeback) { this.toast('Rakeback redemption is not available here', 'bad'); return; }
     this.setState({ rbBusy: true, rbTx: null });
     this.wallet.redeemRakeback()
@@ -3563,7 +3576,9 @@ export default class SuitedApp extends React.Component<any, any> {
         this.setState({ rbBusy: false, rbTx: (r && r.explorer) || null });
         this.wallet.refresh && this.wallet.refresh();
         this.loadRakeback();
-        this.toast(`redeemed ${fmt(r.redeemed / 1e6)} USDC rakeback`, 'ok');
+        this.toast(r.toBankroll
+          ? `${fmt(r.redeemed / 1e6)} USDC rakeback added to your bankroll`
+          : `redeemed ${fmt(r.redeemed / 1e6)} USDC rakeback`, 'ok');
         this.sfx('chips');
       })
       .catch((e) => { this.setState({ rbBusy: false, rbTx: null }); this.toast(String((e && e.message) || e), 'bad'); });
@@ -5789,15 +5804,16 @@ export default class SuitedApp extends React.Component<any, any> {
     /* ── profile: xp from volume wagered, preset avatars ──────────────
        Lifetime volume comes from /api/rakeback, which is the same number the
        tier and the rate are derived from — so the level a player sees and the
-       rakeback they are paid can never disagree. A gateway that does not serve
-       /api/rakeback (the deployed one answers 404) leaves `st.rb` null, and the
-       level would then sit at 1 for ever — so the volume /api/me reports with
-       the play stats stands in for it. `st.wagered` is the offline demo's own
-       figure and is only used when there is neither. */
+       rakeback they are paid can never disagree. A gateway without
+       /api/rakeback leaves `st.rb` null, and the level would then sit at 1
+       for ever — so the volume /api/me reports with the play stats stands in
+       for it. `st.wagered` is the offline demo's own figure and is only used
+       when there is neither. */
     const wagered = st.rb ? st.rb.lifetimeVolume / 1e6
       : ps && ps.volume != null ? ps.volume / 1e6
       : st.wagered;
-    const xp = xpFor(wagered);
+    const srvLevel = st.level && st.level.level > 0 ? st.level : null;
+    const xp = srvLevel ? xpAt(srvLevel.level, wagered, srvLevel.title) : xpFor(wagered);
     vals.xpLevel = xp.level;
     vals.xpTitle = xp.title;
     vals.xpNext = `${fmt(Math.max(0, xp.next - wagered))} to level ${xp.level + 1}`;
@@ -5971,7 +5987,12 @@ export default class SuitedApp extends React.Component<any, any> {
       // A locked disc does not get to shimmer: the motion is the reward.
       tier: locked ? '' : avTier(a.id),
       title: locked ? `${a.name}: ${a.condition || 'locked'}` : a.name,
-      pick: () => { if (locked) return; this.wallet ? this.wallet.setAvatar(a.id) : this.setState({ avatar: a.id }); },
+      // The gateway has the last word on what may be worn (see wallet.setAvatar).
+      pick: () => {
+        if (locked) return;
+        if (!this.wallet) { this.setState({ avatar: a.id }); return; }
+        this.wallet.setAvatar(a.id).catch((e) => { this.toast(String((e && e.message) || e), 'bad'); this.sfx('error'); });
+      },
       style: `position:relative;display:flex;align-items:center;justify-content:center;width:54px;height:54px;box-sizing:border-box;border:0;padding:0;background:none;border-radius:50%;`
         + (locked ? 'cursor:not-allowed;' : 'cursor:pointer;')
         + (a.id === myAvId ? `outline:2px solid ${ACC};outline-offset:3px;` : ''),

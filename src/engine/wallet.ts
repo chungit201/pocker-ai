@@ -1052,8 +1052,7 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
      */
     async redeemRakeback() {
       const info = await chainInfo();
-      if (!info.enabled) throw new Error('rakeback redemption is not enabled on this server');
-      if (info.kind === 'evm') {
+      if (info.enabled && info.kind === 'evm') {
         const provider = providerRef || evmProviderFor(st.evmProviderId ?? st.label ?? 'injected');
         if (!provider) throw new Error('connect a wallet to claim');
         await ensureChain(provider, info);
@@ -1072,6 +1071,16 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
         await refresh().catch(() => {});
         return { signature: hash, redeemed: out.redeemed ?? prep.amount, explorer: evmExplorerTx(info, hash) };
       }
+      /* Everywhere else — a Solana session, a guest — rakeback is a ledger
+         balance the gateway moves into the bankroll on request (Poker-BE,
+         rule-rakeback §3.3): no transaction to sign, no receipt to link, and
+         the money is in the bankroll at once. The gateway answers 400 below
+         the minimum and locks the account row, so a double click cannot be
+         paid twice. `toBankroll` tells the page which of the two happened. */
+      const out = await api('/api/rakeback/claim', { method: 'POST' });
+      if (typeof out.balance === 'number') { st = { ...st, balance: out.balance / 1e6 }; publish(); }
+      await refresh().catch(() => {});
+      return { signature: null, redeemed: out.claimed ?? 0, explorer: null, toBankroll: true };
     },
 
     /** This wallet's own claimable jackpot voucher (the most recent unclaimed
@@ -1232,12 +1241,20 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
       }
     },
     async setAvatar(id) {
+      const before = st.avatar;
       st = { ...st, avatar: id };  // optimistic — reflect the pick immediately
       publish();
-      // Persist server-side; the ledger re-checks ownership. A failure keeps the
-      // optimistic pick, and the next refresh reconciles to the stored value.
-      try { await api('/api/avatar', { method: 'POST', body: JSON.stringify({ id }) }); }
-      catch (e) { /* best effort */ }
+      /* Persist server-side. The gateway is the judge of what this account may
+         wear — an unearned achievement or a prestige portrait above its level
+         comes back 403 with the reason — so a refusal puts the old face back
+         and is thrown for the picker to show. */
+      try {
+        await api('/api/avatar', { method: 'POST', body: JSON.stringify({ id }) });
+      } catch (e) {
+        st = { ...st, avatar: before };
+        publish();
+        throw e;
+      }
     },
 
     /**
