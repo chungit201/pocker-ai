@@ -42,6 +42,22 @@ const rows = files.map((f) => {
   </tr>`;
 }).join('\n');
 
+/* Anything in tools/out/ is an alternative take from gen-variant.mjs — a
+   candidate for a cue that is wrong in a direction rather than broken. Listed
+   separately so it is never confused with what ships, and next to it so the
+   two can be compared without hunting for files. */
+let alts = [];
+try {
+  alts = readdirSync('tools/out').filter((f) => f.endsWith('.mp3')).sort();
+} catch { /* nothing generated yet */ }
+
+const altRows = alts.map((f) => `  <tr>
+    <td class="n">${f.replace(/\.mp3$/, '')}</td>
+    <td class="m">—</td>
+    <td class="s">${(statSync(join('tools/out', f)).size / 1024).toFixed(1)} KB</td>
+    <td><audio controls preload="none" src="./${f}"></audio></td>
+  </tr>`).join('\n');
+
 mkdirSync('tools/out', { recursive: true });
 writeFileSync(OUT, `<!doctype html>
 <meta charset="utf-8">
@@ -64,7 +80,14 @@ scale, so quiet voices will sound louder here than in play.</p>
 <tr><td class="n"><b>name</b></td><td class="m"><b>mix</b></td><td class="s"><b>size</b></td><td></td></tr>
 ${rows}
 </table>
+${alts.length ? `<h2 style="margin:36px 0 4px;font-weight:600">alternatives</h2>
+<p>Candidate takes from <code>tools/gen-variant.mjs</code>, not shipping. Promote
+one by putting its prompt into <code>tools/gen-sounds.mjs</code> and rerunning
+that, so the prompt stays next to the sound it made.</p>
+<table>
+${altRows}
+</table>` : ''}
 `);
 
-console.log(`${files.length} clips → ${OUT}`);
+console.log(`${files.length} clips${alts.length ? ` + ${alts.length} alternative(s)` : ''} → ${OUT}`);
 console.log('open it in a browser to listen to the set.');

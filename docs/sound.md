@@ -87,19 +87,46 @@ explicitly or the model will do the opposite:
 - **Short.** A card landing is 300 ms in life.
 - **No music**, unless it is a win cue.
 
-And one that cost a round of regeneration: **the model takes loudness adjectives
-literally.** The first pass described the card and error sounds as "soft",
+And two that cost a round of regeneration each, because the model takes
+adjectives literally in both directions:
+
+**Loudness.** The first pass described the card and error sounds as "soft",
 "muffled" and "resigned" and got exactly that — peaks of 0.03 to 0.14. Rewriting
 them as "crisp", "loud", "close and prominent" took `deal` from 0.142 to 1.0 and
 `fold` from 0.095 to 0.491. `hover` and `lose` are still quiet on purpose.
+
+**Brightness.** The win cues were written as "bright rising bells" with "a light
+shimmer" and were reported as painful to listen to. They measured 0.56, 0.50 and
+0.61 of their energy above 2 kHz — which is where the ear is most sensitive, and
+so where "piercing" comes from. Turning them down would not have helped; a quiet
+shrill sound is still shrill. Naming the register ("low", "mellow", "wooden",
+"felt mallets") and listing what to avoid ("no bells, no chimes, no shimmer, no
+bright high frequencies, no cymbals") brought them to 0.02, 0.12 and 0.05.
+
+`probe-sound.mjs` reports both bands for this reason: above 4 kHz is hiss and
+clatter, which chips and card stock are supposed to have, while above 2 kHz is
+what makes a cue hurt. A chime can sit low on the first and high on the second.
 
 The error cue resisted three attempts and stayed near 0.02 whatever it was asked
 for; it is carried by the normalisation instead. Not every sound is worth a
 fourth try.
 
+## Alternatives
+
+`tools/gen-variant.mjs` writes a candidate take into `tools/out/` without
+touching the set, and the sound sheet lists whatever is there underneath the
+shipping clips. It exists for the case where a cue is wrong in a *direction* —
+too bright, too long, too cheerful — where hearing two side by side settles in
+one pass what guessing settles in four.
+
+Promote one by moving its prompt into `tools/gen-sounds.mjs` and rerunning
+that, rather than by copying the mp3. The prompt is the only record of how the
+sound was made, and a clip whose prompt lives nowhere cannot be regenerated or
+adjusted later.
+
 ## What has not been checked
 
-Whether it sounds *good*. Every assertion here is about decoding, duration and
-level — no tool can tell you the chip click sounds like a chip.
-`tools/sound-sheet.mjs` writes a page with a play button for every clip, which
-is the only way to answer that.
+Whether it sounds *good*. Every assertion here is about decoding, duration,
+level and spectrum — no tool can tell you the chip click sounds like a chip, or
+that a win cue feels like winning. `tools/sound-sheet.mjs` writes a page with a
+play button for every clip, which is the only way to answer that.

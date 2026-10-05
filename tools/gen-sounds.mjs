@@ -74,9 +74,14 @@ const SOUNDS = {
   alert: [`A clear attention chime of three rising bell notes, clean and bright, no reverb tail.`, 1.5, 0.5],
 
   /* ── outcomes ──────────────────────────────────────────────────────────── */
-  win: [`A short bright rising four-note chime of victory with a light shimmer. Clean, warm, no drums.`, 2.0, 0.45],
-  potwin: [`A warm triumphant chord swell with clay poker chips being raked in across felt underneath it.`, 2.5, 0.5],
-  bigwin: [`A big celebratory jackpot fanfare: bright rising bells, a warm low swell, and a long cascade of poker chips pouring down.`, 3.5, 0.5],
+  /* Warm and low, not bright. The first take was a 'bright chime with a light
+     shimmer' and it was exactly that: 56% of its energy above 2 kHz, which is
+     where the ear is most sensitive and where 'piercing' comes from. Bells and
+     shimmer are named as things to avoid, and the register is stated outright,
+     because asking for 'warm' alone did not move it. */
+  win: [`A soft warm rising three-note motif on a low mellow wooden instrument struck with felt mallets. Rounded and gentle, muted, dark and understated. No bells, no chimes, no shimmer, no bright high frequencies, no cymbals, no drums.`, 1.4, 0.55],
+  potwin: [`A warm mellow rising chord swell on low strings and soft wooden tones, gentle and rounded, with a few soft clay poker chips settling underneath. Calm and satisfying, dark and smooth. No bells, no chimes, no shimmer, no bright high frequencies, no cymbals, no drums.`, 2.2, 0.55],
+  bigwin: [`A warm generous celebratory swell on low brass and mellow wooden tones, rising slowly, with a soft muffled cascade of clay poker chips underneath. Rich, rounded and dark. No bells, no chimes, no shimmer, no bright high frequencies, no cymbals, no drums.`, 3.0, 0.55],
   lose: [`A soft low descending two-note tone, quiet and deflating. No drums, no reverb tail.`, 1.2, 0.5],
   badbeat: [`A hollow descending four-note tone, dark and disappointed, fading out. No drums.`, 1.6, 0.5],
 };

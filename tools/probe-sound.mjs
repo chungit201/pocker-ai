@@ -51,10 +51,35 @@ const out = await page.evaluate(async (list) => {
         for (let j = i; j < i + win; j++) sum += d[j] * d[j];
         floor = Math.min(floor, Math.sqrt(sum / win));
       }
+      /* Brightness: how much of the clip's energy sits above 4 kHz.
+       *
+       * "Too shrill" is a spectral complaint, not a loudness one — turning a
+       * piercing clip down leaves it piercing and quiet. This renders the clip
+       * twice through an OfflineAudioContext, once flat and once high-passed,
+       * and reports the ratio, so "gentler" can be checked rather than
+       * asserted. Roughly: under 0.2 is warm, over 0.5 is bright. */
+      const rms = (ch) => { let s = 0; for (let i = 0; i < ch.length; i++) s += ch[i] * ch[i]; return Math.sqrt(s / ch.length); };
+      const band = async (hz) => {
+        const off = new OfflineAudioContext(1, buf.length, buf.sampleRate);
+        const s1 = off.createBufferSource(); s1.buffer = buf;
+        const hp = off.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = hz; hp.Q.value = 0.7;
+        s1.connect(hp); hp.connect(off.destination); s1.start();
+        return rms((await off.startRendering()).getChannelData(0));
+      };
+      const all = rms(d);
+      /* Two bands, because they answer different questions. Above 4 kHz is
+         hiss and clatter — chips and card stock live there and are meant to.
+         Above 2 kHz is where the ear is most sensitive and where "piercing"
+         actually comes from, so a chime can score low at 4 k and still be
+         painful. The win cue was exactly that case. */
+      const high = await band(4000);
+      const mid = await band(2000);
       rows.push({
         name, type, seconds: +buf.duration.toFixed(2),
         peak: +peak.toFixed(3), lead: +lead.toFixed(3),
         floor: +(floor === Infinity ? 0 : floor).toFixed(5),
+        bright: +(all > 0 ? high / all : 0).toFixed(2),
+        pierce: +(all > 0 ? mid / all : 0).toFixed(2),
       });
     } catch (e) {
       rows.push({ name, err: e.message.slice(0, 60) });
@@ -65,7 +90,7 @@ const out = await page.evaluate(async (list) => {
 }, names);
 
 let bad = 0;
-console.log('name        served         dur   peak   lead-in     floor');
+console.log('name        served         dur   peak   lead-in     floor  >4kHz  >2kHz');
 for (const r of out) {
   if (r.err) { console.log(`${r.name.padEnd(11)} FAIL ${r.err}`); bad++; continue; }
   /* A clip under 0.02 peak is silence with a dither on top; the player would
@@ -76,7 +101,7 @@ for (const r of out) {
   const lateStart = r.lead > r.seconds * 0.5;
   const flag = silent ? '  SILENT' : lateStart ? '  MOSTLY SILENT' : '';
   if (silent || lateStart) bad++;
-  console.log(`${r.name.padEnd(11)} ${(r.type || '?').padEnd(14)} ${String(r.seconds).padStart(5)} ${String(r.peak).padStart(6)} ${String(r.lead).padStart(8)} ${String(r.floor).padStart(8)}${flag}`);
+  console.log(`${r.name.padEnd(11)} ${(r.type || '?').padEnd(14)} ${String(r.seconds).padStart(5)} ${String(r.peak).padStart(6)} ${String(r.lead).padStart(8)} ${String(r.floor).padStart(8)} ${String(r.bright).padStart(6)} ${String(r.pierce).padStart(6)}${flag}`);
 }
 
 const leads = out.filter((r) => !r.err).map((r) => r.lead);
