@@ -145,6 +145,8 @@ export function createRemoteAdapter(cfg) {
         folded: s.folded,
         allIn: s.allIn,
         sittingOut: s.sittingOut,
+        // The server's note that this (own) seat closes when the hand ends; absent for other seats.
+        pendingLeave: s.pendingLeave === true,
         empty: s.empty,
         hasActed: s.hasActed,
         lastAction: s.lastAction,

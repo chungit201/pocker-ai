@@ -866,7 +866,7 @@ export default function Table({ v }: { v: any }) {
                 <button className="pill-flat tb-btn" onClick={v.sitUp} style={css(v.sitUpStyle)}>
                   {interp(v.sitUpLabel)}
                 </button>
-                <button className="pill-flat tb-btn" onClick={v.leaveTable} style={css(v.leaveStyle)}>{"Leave"}</button>
+                <button className="pill-flat tb-btn" onClick={v.leaveTable} style={css(v.leaveStyle)}>{interp(v.leaveLabel)}</button>
               </div>
               {"\r\n        "}
             </div>

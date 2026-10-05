@@ -251,10 +251,12 @@ export function createTable(cfg) {
           emit('uncalled', { seat: top.idx, amount: back });
         }
       }
+      // Bets move into the pot before the event goes out: potTotal is pot + bets, so emitting first showed it doubled.
+      const from = st.seats.filter((s) => s.bet > 0).map((s) => ({ seat: s.idx, amount: s.bet }));
       st.pot += st.bets;
-      emit('street:collect', { pot: st.pot, from: st.seats.filter((s) => s.bet > 0).map((s) => ({ seat: s.idx, amount: s.bet })) });
       st.bets = 0;
       st.seats.forEach((s) => { s.bet = 0; });
+      emit('street:collect', { pot: st.pot, from });
     }
   }
 

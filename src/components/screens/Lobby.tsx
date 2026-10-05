@@ -433,6 +433,38 @@ export default function Lobby({ v }: { v: any }) {
           {"\r\n    "}
         </>
       ) : null}
+      {"\r\n\r\n    "}
+      {/*
+         Pick a table: shown by a stake's Join once anyone is seated there (an empty stake just takes
+         the first table). Same paper dialog as the room form above.
+      */}
+      {v.tablePickOn ? (
+        <div onClick={v.closeTablePick} style={{ position: "absolute", inset: "0", zIndex: "80", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", background: "rgba(0,0,0,0.72)" }}>
+          <div onClick={v.tpStop} style={{ width: "100%", maxWidth: "520px", maxHeight: "86%", overflowY: "auto", padding: "28px", borderRadius: "12px", background: "#1a2238", color: "#e8ecf8", border: "1px solid rgba(232,236,248,0.154)" }}>
+            <h2 style={{ fontFamily: "'Inter Tight',system-ui,sans-serif", fontWeight: "600", letterSpacing: "-.03em", fontSize: "26px", margin: "0 0 3px" }}>
+              {interp(v.tablePickTitle)}
+            </h2>
+            <div style={{ fontSize: "12px", color: "#94a3c4", marginBottom: "18px" }}>{interp(v.tablePickSub)}</div>
+            <div style={{ display: "flex", gap: "14px", fontSize: "10px", letterSpacing: ".14em", color: "#94a3c4", padding: "0 15px 8px" }}>
+              <span style={{ flex: "1" }}>{"TABLE"}</span>
+              <span style={{ minWidth: "74px" }}>{"STATUS"}</span>
+              <span style={{ minWidth: "44px", textAlign: "right" }}>{"SEATS"}</span>
+              <span style={{ minWidth: "58px", textAlign: "right" }}>{"AVG POT"}</span>
+            </div>
+            {asArray(v.tablePickRows).map((r: any, $index: number) => (
+              <button key={$index} onClick={r.join} style={css(r.style)}>
+                <span style={{ flex: "1", minWidth: "0", fontSize: "15px", fontWeight: "600" }}>{interp(r.name)}</span>
+                <span style={{ fontSize: "12px", color: "#94a3c4", minWidth: "74px" }}>{interp(r.note)}</span>
+                <span style={{ fontSize: "12px", color: "#94a3c4", minWidth: "44px", textAlign: "right" }}>{interp(r.seated)}</span>
+                <span style={{ fontSize: "12px", color: "#a78bfa", minWidth: "58px", textAlign: "right" }}>{interp(r.pot)}</span>
+              </button>
+            ))}
+            <div style={{ display: "flex", justifyContent: "flex-end", margin: "6px 2px 0" }}>
+              <button onClick={v.closeTablePick} style={{ fontSize: "13px", color: "#94a3c4", background: "transparent", border: "0", cursor: "pointer" }}>{"Cancel"}</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
       {"\r\n  "}
     </>
   );

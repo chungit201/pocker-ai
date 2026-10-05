@@ -1018,6 +1018,9 @@ export default class SuitedApp extends React.Component<any, any> {
   declare _achReadyAt: any;
   declare _crownHand: any;
   declare _crownIds: any;
+  declare _leaveAmount: any;
+  declare _quickSitBusy: any;
+  declare _refundTimer: any;
   declare _docsMounted: any;
   declare _docsRenderedSlug: any;
   declare _docsSpy: any;
@@ -1269,6 +1272,7 @@ export default class SuitedApp extends React.Component<any, any> {
     // survives a refresh (a host re-entering via the pin screen is told isHost).
     hostRoom: null, closeRoomOn: false, roomClosing: false, closeRoomMsg: '', closeRoomBad: false,
     createRoomOn: false, createdRoom: null, crCopied: false,
+    tablePick: null,      // stake id whose tables are on offer (the "pick a table" dialog), or null
     crName: '', crSb: '', crBb: '', crMin: '', crMax: '', crSeats: '6', crPin: '',
     crMsg: '', crBad: false, crBusy: false,
     // null means "not chosen yet", which defaults to the table maximum the
@@ -1298,6 +1302,7 @@ export default class SuitedApp extends React.Component<any, any> {
     volume: this.props.volume ?? 0.15,
     preAction: null,
     sittingOut: false,
+    leaving: false,       // Leave pressed mid-hand: the server folds the seat and closes it when the hand ends
     avatar: 'index-as',
     wagered: 42000,
     nick: null,
@@ -1553,8 +1558,10 @@ export default class SuitedApp extends React.Component<any, any> {
     if (this.state.screen === 'staking') { this.paintStaking(); this.loadStaking(); }
   }
 
-  componentDidUpdate(prev) {
+  componentDidUpdate(prev, prevState) {
     const p = this.props;
+    // The table picker belongs to the lobby: walking to another screen with it open must not bring it back later.
+    if (this.state.tablePick && prevState && prevState.screen !== this.state.screen && this.state.screen !== 'lobby') this.setState({ tablePick: null });
     if (prev.soundDefault !== p.soundDefault) {
       const muted = !(p.soundDefault ?? true);
       this.setState({ muted });
@@ -1611,6 +1618,7 @@ export default class SuitedApp extends React.Component<any, any> {
     clearInterval(this.tNowTimer); this.tNowTimer = null;
     clearInterval(this.tSessTimer); this.tSessTimer = null;
     clearTimeout(this.tMineTimer); this.tMineTimer = null;
+    clearTimeout(this._refundTimer);
     this.adapter && this.adapter.destroy();
     this.teardownField();
     this.teardownCard();
@@ -1775,7 +1783,7 @@ export default class SuitedApp extends React.Component<any, any> {
     // answers that. `_resuming` is the note to reconcile `seated` to it once.
     this._resuming = !!(opts && opts.resume);
     this._srvSittingOut = null;
-    if (this.adapter) { this.unsub && this.unsub(); this.adapter.destroy(); this.adapter = null; }
+    if (this.adapter) { if (this.state.leaving) this.watchRefund(); this.unsub && this.unsub(); this.adapter.destroy(); this.adapter = null; }
     this.clearTimers();
     clearInterval(this.tickTimer);
     const heroStack = clamp((opts && opts.buyIn) || tbl.max, tbl.min, tbl.max);
@@ -1862,7 +1870,7 @@ export default class SuitedApp extends React.Component<any, any> {
         });
     this.unsub = this.adapter.subscribe(this.onEvent);
     this.setState({
-      session: { tableId }, seated: true, sittingOut: false, screen: 'table',
+      session: { tableId }, seated: true, sittingOut: false, leaving: false, screen: 'table',
       table: null, log: [], secsLeft: null, preAction: null,
       chat: [], chatDraft: '', chatUnread: false,
       fx: { arrived: {}, flipped: {}, peel: null, fly: null, celebrate: null, callout: null, winHide: false },
@@ -1870,12 +1878,47 @@ export default class SuitedApp extends React.Component<any, any> {
     this.adapter.start();
   }
 
+  /* A seat still closing when its socket is dropped (another table opened, or the table was closed):
+     nothing will announce the refund, so ask for the balance until it shows up (two minutes at most). */
+  watchRefund() {
+    const amount = this._leaveAmount || 0;
+    this._leaveAmount = 0;
+    if (!amount || !this.wallet || !this.wallet.cashOut) return;
+    const before = this.state.balance;
+    const tableId = this.state.session ? this.state.session.tableId : null;
+    clearTimeout(this._refundTimer);
+    const stop = Date.now() + 120_000;
+    const tick = () => {
+      this.wallet.cashOut({ tableId, amount }).catch(() => {}).then(() => {
+        if (this.state.balance >= before + amount - 1e-6) { this.toast(`Seat closed \u00b7 ${fmt(amount)} USDC back in your wallet`, 'ok'); return; }
+        if (Date.now() < stop) this._refundTimer = setTimeout(tick, 4000);
+      });
+    };
+    this._refundTimer = setTimeout(tick, 4000);
+  }
+
+  /* The server has closed a seat that was waiting on its hand: back to the lobby with the chips. */
+  finishLeave() {
+    const amount = this._leaveAmount || 0;
+    const tableId = this.state.session ? this.state.session.tableId : null;
+    this._leaveAmount = 0;
+    this.sfx('seat');
+    if (this.wallet && this.wallet.cashOut) this.wallet.cashOut({ tableId, amount });
+    // Only the felt moves to the lobby: someone who already walked to another screen stays where they are.
+    const onFelt = this.state.screen === 'table' || this.state.screen === 'seat';
+    this.setState(
+      { leaving: false, seated: false, sittingOut: false, ...(onFelt ? { screen: 'lobby' } : {}) },
+      () => { this.onResize(); this.syncTitle(this.state.table); },
+    );
+    this.toast(`Seat closed \u00b7 ${fmt(amount)} USDC back in your wallet`, 'ok');
+  }
+
   closeTable() {
-    if (this.adapter) { this.unsub && this.unsub(); this.adapter.destroy(); this.adapter = null; }
+    if (this.adapter) { if (this.state.leaving) this.watchRefund(); this.unsub && this.unsub(); this.adapter.destroy(); this.adapter = null; }
     this.clearTimers();
     clearInterval(this.tickTimer);
     this.setState(
-      { session: null, seated: false, sittingOut: false, table: null, log: [], secsLeft: null, screen: 'lobby' },
+      { session: null, seated: false, sittingOut: false, leaving: false, table: null, log: [], secsLeft: null, screen: 'lobby' },
       () => { this.onResize(); this.syncTitle(null); },
     );
   }
@@ -1891,15 +1934,41 @@ export default class SuitedApp extends React.Component<any, any> {
    * choice. Preferring the fullest table with a seat free also concentrates
    * players instead of scattering them across empty felt.
    */
-  quickSit = (stakeId) => {
-    const at = ROOMS_ALL().filter((r) => r.stake === stakeId && r.open);
-    if (!at.length) return this.toast('No open seat at that stake', 'bad');
+  quickSit = async (stakeId, choose = true) => {
+    /* The lobby's counts are as old as its last refresh (a tab left open says "Nobody yet" while a
+       table fills up), so the decision below, take a table or offer the choice, is made on counts
+       read now. Capped at two seconds so a slow answer cannot hold the Join button hostage. */
+    if (this.server && !this._quickSitBusy) {
+      this._quickSitBusy = true;
+      try { await Promise.race([this.loadLobby(), new Promise((r) => setTimeout(r, 2000))]); } catch { /* the cached list will do */ }
+      this._quickSitBusy = false;
+    } else if (this._quickSitBusy) return;   // a second press while the first is still asking
+    // The table whose seat is still closing is not one to sit at yet.
+    const closing = this.state.leaving && this.state.session ? this.state.session.tableId : null;
+    const here = ROOMS_ALL().filter((r) => r.stake === stakeId);
+    const at = here.filter((r) => r.open && r.id !== closing);
+    if (!at.length) {
+      const waiting = closing && (roomById(closing) || {}).stake === stakeId;
+      return this.toast(waiting ? 'Your seat is still closing \u00b7 try again in a moment' : 'No open seat at that stake', waiting ? 'warn' : 'bad');
+    }
+    /* Nobody is playing at this stake (every table empty): there is nothing to choose between, so take
+       the first open one. Once anyone is seated the player gets to pick, with the counts in view. A
+       "Quick join" press never asks. Offline there are no live counts, so it picks too. */
+    const anyone = !!LIVE_ROOMS && here.some((r) => r.seated > 0);
+    if (choose && anyone) {
+      this.setState({ tablePick: stakeId });
+      return;
+    }
     const target = at.slice().sort((a, b) => b.seated - a.seated)[0];
     this.sitAt(target.id);
   };
 
   sitAt = (tableId) => {
     const tbl = tableById(tableId);
+    if (this.state.leaving && this.state.session && this.state.session.tableId === tbl.id) {
+      this.toast('Your seat is still closing \u00b7 try again in a moment', 'warn');
+      return;
+    }
     this.setState({ pendingTable: tbl.id });
     if (!this.state.wallet) { this.setState({ screen: 'connect', connectStep: 0 }); return; }
     if (this.state.balance < tbl.min) {
@@ -1948,6 +2017,12 @@ export default class SuitedApp extends React.Component<any, any> {
          moment the client has no intent to defend. */
       const heroSeat = holdsSeat ? (t.seats || [])[0] : null;
       if (heroSeat && !!heroSeat.sittingOut !== this.state.sittingOut) patch.sittingOut = !!heroSeat.sittingOut;
+      if (heroSeat && heroSeat.pendingLeave) {
+        // Left before the refresh and the hand has not ended yet: say so, and let "sit down" take it back.
+        patch.leaving = true;
+        this._leaveAmount = heroSeat.stack || 0;
+        this.toast('You left this table \u00b7 press sit down to stay', 'warn');
+      }
       if (Object.keys(patch).length) this.setState(patch);
     }
 
@@ -2140,6 +2215,8 @@ export default class SuitedApp extends React.Component<any, any> {
       if (t.heroIdx != null) {
         this._seatConfirmedAt = Date.now();
         if (!this.state.seated) seatPatch.seated = true;
+      } else if (this.state.leaving) {
+        this.finishLeave();    // the hand is booked and the server has closed the seat: the chips are back
       } else if (this.state.seated && Date.now() - (this._seatConfirmedAt || 0) > SEAT_LOST_MS) {
         seatPatch.seated = false;
       }
@@ -2248,7 +2325,9 @@ export default class SuitedApp extends React.Component<any, any> {
   routePath() {
     const s = this.state;
     if (s.screen === 'table' || s.screen === 'seat') {
-      const id = (s.session && s.session.tableId) || s.pendingTable;
+      // On the buy-in screen the URL names the table being sat at, not the one a closing seat still
+      // holds: a refresh there must reopen the table on offer.
+      const id = s.screen === 'seat' ? (s.pendingTable || (s.session && s.session.tableId)) : ((s.session && s.session.tableId) || s.pendingTable);
       return id ? `/table/${id}` : '/lobby';
     }
     // The join screen owns the bare `/<slug>` — the shareable link itself.
@@ -3327,9 +3406,9 @@ export default class SuitedApp extends React.Component<any, any> {
      Ranked by net, not volume: volume rewards churn, and this table decides
      who gets rake back.                                                     */
 
-  loadLobby = () => {
+  loadLobby = (): Promise<void> | undefined => {
     if (!this.server) return;
-    fetch(`${this.server}/api/lobby`)
+    return fetch(`${this.server}/api/lobby`)
       .then(this.okJson)
       .then((body) => {
         const stakeOfId = (id) => String(id).split('-')[0];
@@ -3338,6 +3417,7 @@ export default class SuitedApp extends React.Component<any, any> {
           stake: stakeOfId(t.id),
           name: t.name,
           seated: t.seated,
+          maxSeats: t.maxSeats,
           open: t.seated < t.maxSeats,
           speed: 'normal',
           // Null is carried through rather than flattened to 0. "No average
@@ -5443,7 +5523,7 @@ export default class SuitedApp extends React.Component<any, any> {
        `attach` has set `conn.tableId`.
        That player holds no seat and has their money back, so the lobby owes
        them a "join", not a "back to your table". */
-    const seatedStake = (st.seated && st.session) ? ((roomById(st.session.tableId) || {}).stake || null) : null;
+    const seatedStake = (st.seated && st.session && !st.leaving) ? ((roomById(st.session.tableId) || {}).stake || null) : null;
 
     /* The hero's one number. Seated players when anyone is playing, because
        that is the only figure that answers "is there a game"; today's hands
@@ -5676,12 +5756,42 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.lobbyConnectGo = () => this.setState({ connectReturn: 'lobby' }, () => this.go('connect')());
     vals.quickJoinGo = () => {
       if (!qjPick) { this.toast('Every table is full right now, try again in a moment', 'bad'); return; }
-      this.quickSit(qjPick.id);
+      this.quickSit(qjPick.id, false);
     };
+
+    /* The "pick a table" dialog: the tables at one stake, busiest first, with who is sitting and what a
+       pot looks like. A full table, or the one whose seat is still closing, is listed but cannot be taken. */
+    const tpStake = STAKES.find((x) => x.id === st.tablePick) || null;
+    vals.tablePickOn = !!tpStake;
+    vals.tablePickTitle = 'Pick a table';
+    vals.tablePickSub = tpStake ? `${stakes(tpStake)} \u00b7 nlh 6-max \u00b7 ${usd(tpStake.min)}\u2013${usd(tpStake.max)} buy-in` : '';
+    vals.closeTablePick = () => this.setState({ tablePick: null });
+    vals.tpStop = (e) => { if (e && e.stopPropagation) e.stopPropagation(); };
+    vals.tablePickRows = !tpStake ? [] : ROOMS_ALL()
+      .filter((r) => r.stake === tpStake.id)
+      .slice()
+      .sort((a, b) => (b.seated - a.seated) || String(a.name).localeCompare(String(b.name)))
+      .map((r) => {
+        const closing = !!(st.leaving && st.session && st.session.tableId === r.id);
+        const seats = r.maxSeats || 6;
+        const off = closing || !r.open;
+        return {
+          name: r.name,
+          seated: `${r.seated}/${seats}`,
+          note: closing ? 'your seat is closing' : !r.open ? 'full' : r.seated === 0 ? 'empty' : `${seats - r.seated} open`,
+          pot: r.avgPot == null ? '\u2014' : usd(r.avgPot),
+          style: `display:flex;align-items:center;gap:14px;width:100%;box-sizing:border-box;padding:13px 15px;margin:0 0 8px;border-radius:8px;text-align:left;color:#e8ecf8;background:rgba(232,236,248,0.05);border:1px solid rgba(232,236,248,0.154);${off ? 'opacity:.45;cursor:not-allowed' : 'cursor:pointer'}`,
+          join: () => {
+            if (off) return;
+            this.setState({ tablePick: null });
+            this.sitAt(r.id);
+          },
+        };
+      });
 
     vals.tableName = sess ? sess.name : 'N/A';
     vals.tableStakes = stakesLabel();
-    vals.myTableStyle = `display:${st.seated && st.session ? 'block' : 'none'};padding:11px 20px;border-radius:5px;border:1px solid rgba(232,236,248,0.28);background:linear-gradient(180deg,rgba(148,163,196,0.05),rgba(0,0,0,0.125));box-shadow:inset 0 1px 0 rgba(255,255,255,0.1);color:${FELT_INK};font-size:13px`;
+    vals.myTableStyle = `display:${st.seated && st.session && !st.leaving ? 'block' : 'none'};padding:11px 20px;border-radius:5px;border:1px solid rgba(232,236,248,0.28);background:linear-gradient(180deg,rgba(148,163,196,0.05),rgba(0,0,0,0.125));box-shadow:inset 0 1px 0 rgba(255,255,255,0.1);color:${FELT_INK};font-size:13px`;
     /* Spectating is only reachable by standing up from a table you were
        playing, so the only thing this control means is "sit back down". It was
        rendered but never bound before. */
@@ -7549,6 +7659,7 @@ export default class SuitedApp extends React.Component<any, any> {
        detail because "waiting" without a reason reads as broken \u2014 everything
        else trusts the felt, which is already showing whose turn it is. */
     vals.turnTitle = !t ? 'Connecting\u2026'
+      : st.leaving ? 'Leaving \u00b7 your seat closes when the hand ends'
       : stalled ? (heroBroke ? 'Out of chips, stand up to buy back in' : `Waiting \u00b7 ${liveSeats} of 2 to deal`)
       : spectating ? `Watching ${sess ? sess.name : ''}`
       : myTurn ? 'Your action'
@@ -8103,9 +8214,9 @@ export default class SuitedApp extends React.Component<any, any> {
       if (!this.adapter) return;
       if (st.sittingOut) {
         this.adapter.sitIn();
-        this.setState({ sittingOut: false });
+        this.setState({ sittingOut: false, leaving: false });
         this.sfx('seat');
-        this.toast('You are dealt in next hand', 'ok');
+        this.toast(st.leaving ? 'Staying \u00b7 you keep your seat' : 'You are dealt in next hand', 'ok');
         return;
       }
       const r = this.adapter.sitUp();
@@ -8117,14 +8228,31 @@ export default class SuitedApp extends React.Component<any, any> {
     // elimination, not a cash-out; a tournament player detaches the felt by
     // navigating to another screen (nothing here forfeits the seat), never
     // through this control.
-    vals.leaveStyle = `font-family:${UI};font-size:11px;letter-spacing:.02em;border-radius:999px;padding:5px 12px;white-space:nowrap;background:transparent;display:${t && !spectating && !isTournamentTable ? 'inline-flex' : 'none'};transition:background .18s ease,border-color .18s ease,color .18s ease;color:${RED_INK};border:1px solid rgba(148,163,196,0.5)`;
+    vals.leaveLabel = st.leaving ? 'Leaving\u2026' : 'Leave';
+    vals.leaveStyle = `${st.leaving ? 'opacity:.55;cursor:default;' : ''}font-family:${UI};font-size:11px;letter-spacing:.02em;border-radius:999px;padding:5px 12px;white-space:nowrap;background:transparent;display:${t && !spectating && !isTournamentTable ? 'inline-flex' : 'none'};transition:background .18s ease,border-color .18s ease,color .18s ease;color:${RED_INK};border:1px solid rgba(148,163,196,0.5)`;
     vals.leaveTable = () => {
       // Belt-and-suspenders alongside the display gate above: this is the
       // ONLY path in the file that calls adapter.leave()/wallet.cashOut, and
       // freezeout never calls either for a tournament seat.
       if (isTournamentTable) return;
       if (!this.adapter) return;
+      if (st.leaving) return;
       const amount = (seats[0] || {}).stack || 0;
+      /* Dealt into a hand still in flight: the chips already in the pot cannot leave until the hand
+         is booked, so the server folds the seat and holds it. Say so, and stay on the felt: the
+         seat closes (and finishLeave takes us to the lobby) when the server lets go of it. */
+      const midHand = !!(t && seats[0] && (seats[0].hole || []).length > 0 && t.phase !== 'complete' && t.phase !== 'idle');
+      if (midHand && this.adapter.kind === 'remote') {
+        this._leaveAmount = amount;
+        this.adapter.leave();
+        // Out to the lobby at once, like the big rooms; the table stays marked as closing until the
+        // server lets go of the seat (finishLeave), and Join keeps away from it until then.
+        this.setState({ leaving: true, sittingOut: true, preAction: null, screen: 'lobby' },
+          () => { this.onResize(); this.syncTitle(this.state.table); });
+        this.sfx('fold');
+        this.toast('Hand folded \u00b7 your seat closes when the hand ends', 'warn');
+        return;
+      }
       this.adapter.leave();
       this.sfx('seat');
       if (this.wallet && this.wallet.cashOut) this.wallet.cashOut({ tableId: sess ? sess.id : null, amount });
@@ -8143,7 +8271,7 @@ export default class SuitedApp extends React.Component<any, any> {
        one toggle that is "sit up" while dealt in and "sit down" while not. */
     vals.topBarOn = tall && !!t;
     const topWalks = spectating || isTournamentTable;
-    vals.topLeaveLabel = topWalks ? 'Lobby' : 'Leave';
+    vals.topLeaveLabel = topWalks ? 'Lobby' : (st.leaving ? 'Leaving\u2026' : 'Leave');
     vals.topLeave = topWalks ? this.go('lobby') : vals.leaveTable;
     vals.topSitOn = !spectating && !isTournamentTable;
     vals.topSitOut = !!st.sittingOut;
@@ -8154,7 +8282,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.toggleSitOut = () => {
       if (isTournamentTable) return;
       const next = !st.sittingOut;
-      this.setState({ sittingOut: next });
+      this.setState({ sittingOut: next, ...(next ? {} : { leaving: false }) });
       if (this.adapter) next ? this.adapter.sitOut() : this.adapter.sitIn();
       this.toast(next ? 'You sit out after this hand' : 'Back in next hand', 'ok');
     };
