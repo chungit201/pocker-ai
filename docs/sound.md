@@ -114,13 +114,34 @@ it. The instrument is the strongest word in a musical prompt, so the fix is to
 pick one that cannot be shrill rather than to ask a shrill one to behave.
 
 Two instruments came back fine from the same phrasing and the choice between
-them was taste: a celesta at 0.07, 0.08 and 0.14, and the harp that ships at
-0.08, 0.24 and 0.06. Note what those triples do *not* support — harp's
-`potwin` is the brightest clip of either set and its `bigwin` the darkest,
-while celesta runs the other way. Per-clip figures from one take are not a
-property of the instrument; they are one roll of a non-deterministic API. The
-mean across a family is the number worth comparing (0.13 against 0.10, which
-is to say: no difference worth choosing on).
+them was taste: a celesta at 0.07, 0.08 and 0.14, and the harp that ships.
+
+## One bad clip is not a bad prompt
+
+The harp's first `potwin` came back at 0.24 above 2 kHz — the brightest clip of
+any candidate, in the gentlest family, from the same words that gave its
+siblings 0.08 and 0.06. It was shipped anyway, flagged in passing as "the
+brightest of the nine", and the next person to hear the table said it was
+shrill. They were right, and the measurement had already said so.
+
+The fix was not a new prompt. The same prompt was simply run three more times:
+
+| take | >2 kHz |
+|---|---|
+| the one that shipped | 0.24 |
+| re-roll b | 0.05 |
+| re-roll c | 0.06 |
+| re-roll d | **0.04** — now shipping |
+
+Four takes of identical words spanning 0.04 to 0.24 is the whole lesson. The
+API is not deterministic, so a per-clip figure is one roll of it and not a
+property of the instrument or the wording. Compare families by their mean;
+when one clip of an otherwise good family is wrong, **re-roll that clip** with
+`tools/gen-variant.mjs` and the option's own prompt, before touching words
+that are working for the other two.
+
+And do not ship a clip whose own measurement is an outlier because the mean
+looks fine. The number was there, in the table, before anyone listened.
 
 `probe-sound.mjs` reports both bands for this reason: above 4 kHz is hiss and
 clatter, which chips and card stock are supposed to have, while above 2 kHz is

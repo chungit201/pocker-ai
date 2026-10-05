@@ -140,6 +140,20 @@ ${rows}
     <td><audio controls preload="none" src="../../public/sounds/${cue}.mp3"></audio></td>
   </tr>`).join('\n');
 
+  /* Anything in the folder that is not one of the three options above — a
+     re-roll of a single cue, which is the usual next move when one clip of an
+     otherwise good family comes back wrong. Listed because a page that only
+     renders what OPTIONS knows about silently hides takes that exist on disk,
+     and a candidate nobody can hear is a candidate nobody will choose.
+     `harpd-potwin` is how the shipping potwin was found. */
+  const known = new Set(Object.keys(OPTIONS).flatMap((o) => Object.keys(CUES).map((c) => `${o}-${c}.mp3`)));
+  const extra = have.filter((f) => !known.has(f)).sort();
+  const extraRows = extra.map((f) => `  <tr>
+    <td class="n">${f.replace(/\.mp3$/, '')}</td>
+    <td class="s">${size(join(OUT, f))}</td>
+    <td><audio controls preload="none" src="./win-options/${f}"></audio></td>
+  </tr>`).join('\n');
+
   mkdirSync('tools/out', { recursive: true });
   writeFileSync(PAGE, `<!doctype html>
 <meta charset="utf-8">
@@ -171,6 +185,16 @@ ${current}
   </table>
 </section>
 ${Object.keys(OPTIONS).map(block).join('\n')}
+${extra.length ? `<section>
+  <h2>extra takes</h2>
+  <p>Re-rolls of a single cue, from <code>tools/gen-variant.mjs</code> with an
+  option's own prompt. The API is not deterministic, so the same words give a
+  different take every time — which is the cheapest fix when one clip of a good
+  family comes back wrong.</p>
+  <table>
+${extraRows}
+  </table>
+</section>` : ''}
 <p style="margin:28px 0 0">Tell me which one, and I will move its prompt into
 <code>tools/gen-sounds.mjs</code> and regenerate the three shipping clips from it.</p>
 `);
