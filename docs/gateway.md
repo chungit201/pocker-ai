@@ -11,6 +11,7 @@ probes after any change on their side:
 node tools/probe-gateway.mjs      # the gateway alone: REST, auth, ws handshake
 node tools/probe-live.mjs         # through the app, with a real signature
 node tools/watch-table.mjs        # spectate a table; does it deal hands?
+node tools/probe-lobby-live.mjs   # does the lobby refresh itself, or only on reload?
 ```
 
 ## How it is wired
@@ -61,6 +62,40 @@ connection `hello: false` and holds everything back until the client sends
 `{ t: 'hello' }`; only then do `sync`, `chat:history` and `balance` arrive.
 `src/engine/remote.ts` does this on open. It cost an hour of looking at a
 healthy silent socket, so it is written down.
+
+### The socket is per-table, so the lobby is not pushed
+
+`/ws?table=<id>` attaches to one table and carries that table's state to the
+people sitting at it. There is no lobby topic and no server push for the table
+list, so **everything the lobby screen shows is a plain `GET /api/lobby`** —
+the per-stake seat counts, the hero's "N players seated", and the header's
+"N online" chip, which is on every screen but sourced here.
+
+This was reported as a socket fault: a player joining from another machine did
+not appear until the page was reloaded. The socket was working; nothing was
+re-fetching. `loadLobby` ran on mount, on entering the lobby, and inside
+`quickSit` — which had already grown a re-read of its own, with a comment about
+the counts being "as old as its last refresh", so the staleness was known at
+the one place it would have sent someone to a full table. `SuitedApp` now also
+arms `lobbyTimer` while that screen is open (5s, skipped while the tab is
+hidden, with `onVis` catching up on return), cleared in `go()` and on unmount
+alongside `jkTimer` and `stkTimer`.
+
+Two things follow, and both are deliberate rather than overlooked:
+
+- **Five seconds is the resolution of the lobby.** It is not live and cannot
+  be until the gateway grows something to subscribe to. For the decision that
+  actually matters — which table a Join lands on — `quickSit`'s own re-read is
+  what makes it current, not the timer.
+- **The online chip only moves while the lobby is open.** On the leaderboard or
+  in settings it holds whatever the last fetch said. Polling it everywhere
+  would mean lobby traffic from every screen, including the felt, to keep a
+  decorative chip current.
+
+`tools/probe-lobby-live.mjs` stubs `/api/lobby`, changes its answer mid-session
+and asserts the screen follows without a reload. It fails three of its five
+checks against the code from before this, which is the only evidence that it
+tests the thing it claims to.
 
 ## What does not work
 

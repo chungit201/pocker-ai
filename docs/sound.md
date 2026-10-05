@@ -111,8 +111,16 @@ rounded, middle register" — every brightness guard above still in the prompt �
 and got 0.90, 0.67 and 0.47, worse than the painful first pass. The model hears
 "glass" and reaches for the top octave; the register asked for does not survive
 it. The instrument is the strongest word in a musical prompt, so the fix is to
-pick one that cannot be shrill rather than to ask a shrill one to behave. A
-celesta measured 0.07, 0.08 and 0.14 from the same phrasing, and is what ships.
+pick one that cannot be shrill rather than to ask a shrill one to behave.
+
+Two instruments came back fine from the same phrasing and the choice between
+them was taste: a celesta at 0.07, 0.08 and 0.14, and the harp that ships at
+0.08, 0.24 and 0.06. Note what those triples do *not* support — harp's
+`potwin` is the brightest clip of either set and its `bigwin` the darkest,
+while celesta runs the other way. Per-clip figures from one take are not a
+property of the instrument; they are one roll of a non-deterministic API. The
+mean across a family is the number worth comparing (0.13 against 0.10, which
+is to say: no difference worth choosing on).
 
 `probe-sound.mjs` reports both bands for this reason: above 4 kHz is hiss and
 clatter, which chips and card stock are supposed to have, while above 2 kHz is

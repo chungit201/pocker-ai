@@ -1069,6 +1069,7 @@ export default class SuitedApp extends React.Component<any, any> {
   declare hasPointer: any;
   declare jkTimer: any;
   declare layers: any;
+  declare lobbyTimer: any;
   declare measureCta: any;
   declare mx: any;
   declare my: any;
@@ -1529,7 +1530,14 @@ export default class SuitedApp extends React.Component<any, any> {
     window.addEventListener('resize', this.onResize);
     window.addEventListener('resize', this.measureStage);
     window.addEventListener('keydown', this.onKey);
-    this.onVis = () => this.syncTitle(this.state.table);
+    /* The lobby's refresh skips hidden ticks, so coming back to the tab is
+       where it catches up — otherwise a lobby left in the background for an
+       hour shows hour-old counts for up to five seconds after it is looked at
+       again, which is the same complaint in a smaller window. */
+    this.onVis = () => {
+      this.syncTitle(this.state.table);
+      if (!document.hidden && this.state.screen === 'lobby') this.loadLobby();
+    };
     document.addEventListener('visibilitychange', this.onVis);
     // The account menu opens on click now, so something has to close it. A
     // menu you can only dismiss by hitting the same 30px circle again is the
@@ -1615,6 +1623,7 @@ export default class SuitedApp extends React.Component<any, any> {
     // second-ticker now issues fetches — a leaked interval leaks traffic.
     clearInterval(this.jkTimer); this.jkTimer = null;
     clearInterval(this.stkTimer); this.stkTimer = null;
+    clearInterval(this.lobbyTimer); this.lobbyTimer = null;
     clearInterval(this.tNowTimer); this.tNowTimer = null;
     clearInterval(this.tSessTimer); this.tSessTimer = null;
     clearTimeout(this.tMineTimer); this.tMineTimer = null;
@@ -3076,6 +3085,7 @@ export default class SuitedApp extends React.Component<any, any> {
       this.syncTitle(this.state.table);
       clearInterval(this.jkTimer); this.jkTimer = null;
       clearInterval(this.stkTimer); this.stkTimer = null;
+      clearInterval(this.lobbyTimer); this.lobbyTimer = null;
       // Part 4 Task 3: the tournament poll + the whole-flow second-ticker are
       // cleared on every navigation, exactly like jkTimer, then re-armed below
       // for the screens that need them (the felt re-arms the seated poll; the
@@ -3155,7 +3165,14 @@ export default class SuitedApp extends React.Component<any, any> {
       // leaderboard does, so entering the lobby warms it too. Cheap and
       // cached in `st.jk`: a player who then opens the leaderboard sees it
       // already filled rather than an empty panel that fills a beat later.
-      if (screen === 'lobby') { this.loadLobby(); this.loadStats(); this.loadJackpot(); }
+      /* 5s, because what this screen shows is other people arriving: a seat
+         filling up and the online count moving. The slower cadences elsewhere
+         (15s staking, 30s jackpot) are for figures that drift; a lobby that is
+         half a minute behind sends players to a table that is already full. */
+      if (screen === 'lobby') {
+        this.loadLobby(); this.loadStats(); this.loadJackpot();
+        this.lobbyTimer = setInterval(this.refreshLobbyQuietly, 5000);
+      }
     });
   };
 
@@ -3450,6 +3467,29 @@ export default class SuitedApp extends React.Component<any, any> {
       })
       // No gateway answer: fall back to the demo set, as before.
       .catch(() => { if (ROOMS_PENDING) { ROOMS_PENDING = false; this.setState({ roomsAt: Date.now() }); } });
+  };
+
+  /* The lobby's own refresh, armed while that screen is open (see go()).
+   *
+   * /api/lobby is a plain fetch with nothing pushing behind it. The socket in
+   * engine/remote.js is per-table — it carries one table's state to the people
+   * sitting AT it and says nothing about the lobby — so a seat taken from
+   * another machine reached this page only on the next fetch, and the only
+   * things that fetched were mount, entering the lobby, and pressing Join.
+   * Sitting ON the lobby, both the per-table seat counts and the header's
+   * "N online" chip stayed frozen until a reload. `quickSit` already worked
+   * around this by re-reading the list before it chose a table.
+   *
+   * Nothing is skipped for focus: the lobby is a React render reading
+   * `crSb`/`crBb`/… out of state, so a repaint under the create-room form
+   * keeps both the caret and what has been typed. That is what separates this
+   * from refreshStakingQuietly, which repaints imperatively and has to check.
+   */
+  refreshLobbyQuietly = () => {
+    // A lobby behind another tab is traffic for nobody to look at; `onVis`
+    // fetches on the way back, so returning to it is never stale either.
+    if (!this.server || document.hidden) return;
+    this.loadLobby();
   };
 
   /**

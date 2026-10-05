@@ -140,13 +140,20 @@ for (const r of rows) {
   console.log(`${r.label.padEnd(19)} ${String(r.seconds).padStart(5)} ${String(r.peak).padStart(6)} ${String(r.lead).padStart(8)} ${String(r.bright).padStart(6)} ${String(r.pierce).padStart(6)} ${dB.padStart(7)}  ${flags.join(' ')}`);
 }
 
+/* Compared as a family mean, not clip by clip. The API is not deterministic,
+   so one clip's figure is one roll of it — harp's potwin came back the
+   brightest of any candidate and its bigwin the darkest, which says nothing
+   about harps. The baseline is measured rather than quoted, so it cannot go
+   stale when a cue is replaced. */
 const cand = rows.filter((r) => !r.err && !r.label.startsWith('shipping/'));
 if (cand.length) {
   const by = {};
   for (const r of cand) (by[r.label.split('/')[0]] ??= []).push(r.pierce);
-  console.log('\nmean >2kHz per option (lower is gentler; the shipping set is 0.02–0.12):');
+  const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
+  const ship = rows.filter((r) => !r.err && r.label.startsWith('shipping/')).map((r) => r.pierce);
+  console.log(`\nmean >2kHz per option (lower is gentler${ship.length ? `; what ships now is ${mean(ship).toFixed(2)}` : ''}):`);
   for (const [opt, xs] of Object.entries(by)) {
-    console.log(`  ${opt.padEnd(9)} ${(xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(2)}`);
+    console.log(`  ${opt.padEnd(11)} ${mean(xs).toFixed(2)}`);
   }
 }
 console.log(`\n${rows.length - bad}/${rows.length} clips clean`);
