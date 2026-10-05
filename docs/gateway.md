@@ -64,11 +64,19 @@ healthy silent socket, so it is written down.
 
 ## What does not work
 
-**Solana sign-in is rejected.** `/api/auth/challenge` with `chain: 'solana'`
-returns **400**. The browser half is built and tested; the gateway half is not
-deployed. `docs/wallet-sign-in.md` is the contract for it. Until that lands, the
-Solana tab on the connect screen can discover a wallet and get a signature out
-of it, and the gateway will refuse the result.
+~~**Solana sign-in is rejected.**~~ **It works** — this was out of date. The
+gateway grew its own endpoints for it:
+
+```
+POST /api/auth/sol/challenge   → 200
+POST /api/auth/sol/verify      → 200 with a real ed25519 signature, 401 without
+```
+
+`/api/auth/challenge` with `chain: 'solana'` still answers 400 "that is not an
+address", because that is the EVM route and its `isAddr` check is EVM-only.
+Reading that as "Solana is not deployed" was a wrong inference from the right
+measurement: the feature had moved to a path nothing was probing.
+`tools/probe-reload-solana.mjs` signs with a real key and gets a session.
 
 **On-chain deposits are off.** `/api/chain` returns `{"enabled":false}`, which in
 `Poker-BE/src/api.ts` means exactly one thing: `config.chain.mode !== 'evm'`.

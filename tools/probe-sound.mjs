@@ -110,19 +110,31 @@ if (leads.length) {
 }
 
 /* What the player will actually do with each clip, computed the same way it
-   does: lift towards a common peak, but no further than the clip's own noise
-   allows, and never past ABSOLUTE. Printed because a clip that comes out much
-   quieter than the rest is a prompt problem, not a mixing one. */
-const NOISE_CEIL = 0.008, ABSOLUTE = 40;
-const level = (r) => {
+   does: lift towards a common peak, bounded only by ABSOLUTE.
+ *
+ * There is no noise-based cap, because gain cannot change signal-to-noise —
+ * a clip's hiss after normalisation is fixed by the recording:
+ *
+ *     noise at peak 0.9  =  0.9 × floor / peak
+ *
+ * so that figure is reported instead. It is the number that says whether a
+ * clip is worth regenerating; making a hissy clip quieter never helped. */
+const ABSOLUTE = 40;
+const levels = out.filter((x) => !x.err).map((r) => {
   const want = r.peak > 0.001 ? 0.9 / r.peak : 1;
-  const allowed = (r.floor <= 0 || r.floor > NOISE_CEIL) ? ABSOLUTE : NOISE_CEIL / r.floor;
-  return { lift: Math.min(want, allowed, ABSOLUTE), capped: Math.min(allowed, ABSOLUTE) < want };
-};
-const levels = out.filter((x) => !x.err).map((r) => ({ name: r.name, ...level(r), out: +(r.peak * level(r).lift).toFixed(2) }));
+  const lift = Math.min(want, ABSOLUTE);
+  return { name: r.name, lift, out: +(r.peak * lift).toFixed(2), noise: r.peak > 0 ? 0.9 * r.floor / r.peak : 0 };
+});
 console.log('\nafter normalisation (before the per-voice mix):');
 for (const l of levels.sort((a, b) => a.out - b.out)) {
-  console.log(`  ${l.name.padEnd(11)} x${l.lift.toFixed(1).padStart(5)} -> peak ${l.out}${l.capped ? '   capped by its own noise' : ''}`);
+  const dB = l.noise > 0 ? (20 * Math.log10(l.noise)).toFixed(0) : '-inf';
+  console.log(`  ${l.name.padEnd(11)} x${l.lift.toFixed(1).padStart(5)} -> peak ${String(l.out).padEnd(5)} noise ${String(dB).padStart(4)} dBFS${l.lift >= ABSOLUTE ? '   at the absolute lift limit' : ''}`);
+}
+/* Anything above -30 dBFS of noise under its own content will be audible as
+   hiss or as a sustain that never resolves. Named, not quietened. */
+const hissy = levels.filter((l) => l.noise > 0.03);
+if (hissy.length) {
+  console.log(`\nworth regenerating — audible noise under the content: ${hissy.map((l) => l.name).join(' ')}`);
 }
 
 /* ── and does the app itself ask for them? ─────────────────────────────────

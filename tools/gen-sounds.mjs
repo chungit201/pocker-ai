@@ -74,14 +74,19 @@ const SOUNDS = {
   alert: [`A clear attention chime of three rising bell notes, clean and bright, no reverb tail.`, 1.5, 0.5],
 
   /* ── outcomes ──────────────────────────────────────────────────────────── */
-  /* Warm and low, not bright. The first take was a 'bright chime with a light
-     shimmer' and it was exactly that: 56% of its energy above 2 kHz, which is
-     where the ear is most sensitive and where 'piercing' comes from. Bells and
-     shimmer are named as things to avoid, and the register is stated outright,
-     because asking for 'warm' alone did not move it. */
-  win: [`A soft warm rising three-note motif on a low mellow wooden instrument struck with felt mallets. Rounded and gentle, muted, dark and understated. No bells, no chimes, no shimmer, no bright high frequencies, no cymbals, no drums.`, 1.4, 0.55],
-  potwin: [`A warm mellow rising chord swell on low strings and soft wooden tones, gentle and rounded, with a few soft clay poker chips settling underneath. Calm and satisfying, dark and smooth. No bells, no chimes, no shimmer, no bright high frequencies, no cymbals, no drums.`, 2.2, 0.55],
-  bigwin: [`A warm generous celebratory swell on low brass and mellow wooden tones, rising slowly, with a soft muffled cascade of clay poker chips underneath. Rich, rounded and dark. No bells, no chimes, no shimmer, no bright high frequencies, no cymbals, no drums.`, 3.0, 0.55],
+  /* Light and cheerful, and above all UNCLUTTERED. Three passes to get here:
+     a "bright chime with a light shimmer" was piercing (56% of its energy
+     above 2 kHz); rewriting it low and dark fixed the pain but made the cues
+     gloomy; and the chip cascade layered under the two bigger ones was simply
+     noise on top of a melody — a win is one clear phrase, not a pile of
+     things happening at once.
+   *
+   * So: a plain melody, a named gentle instrument, major key, nothing
+   * percussive, no chips, no swell, and short. The three differ in size, not
+   * in loudness — bigwin is a longer phrase, not a bigger noise. */
+  win: [`A light cheerful three-note rising melody on a soft warm marimba, mellow and rounded with a short natural decay. Major key, friendly and simple. No music box, no bells, no glockenspiel, no shimmer, no bright high frequencies, no percussion, no chips, no cymbals, no drums.`, 1.0, 0.5],
+  potwin: [`A cheerful rising four-note melody on a soft music box over a gentle warm pad. Light, uncluttered and pleasant, unhurried. Major key. No percussion, no chips, no fanfare, no cymbals, no drums.`, 1.6, 0.5],
+  bigwin: [`A happy little melody rising over a warm gentle chord, played on a soft music box and quiet strings. Celebratory but calm and uncluttered, never loud. Major key. No percussion, no chips, no brass fanfare, no cymbals, no drums.`, 2.2, 0.5],
   lose: [`A soft low descending two-note tone, quiet and deflating. No drums, no reverb tail.`, 1.2, 0.5],
   badbeat: [`A hollow descending four-note tone, dark and disappointed, fading out. No drums.`, 1.6, 0.5],
 };

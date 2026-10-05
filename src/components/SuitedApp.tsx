@@ -2128,8 +2128,18 @@ export default class SuitedApp extends React.Component<any, any> {
         // opponents' only when the pot is worth the fuss.
         this.later(award, 240);
         if (big || heroWin) this.later(() => this.setState((s) => ({ fx: { ...s.fx, celebrate: { at: Date.now() } } })), 240);
+        /* The fanfare belongs to whoever won the pot, and until now it played
+           on every award — so an opponent dragging a pot sounded exactly like
+           dragging it yourself. The visual already knew the difference
+           (`heroWin` gates the confetti above); only the sound did not.
+         *
+         * Losing is cued by its absence, and by the badbeat tone when you had
+         * real money in and got shown a better hand. That condition used to
+         * hang off "no confetti", which meant a big pot lost to a monster got
+         * the celebration and no commiseration — it asks about the hero now,
+         * which is what it was always trying to say. */
+        if (heroWin) snd(big ? 'bigwin' : 'potwin');
         else if (((t.seats[0] || {}).committed || 0) > 30 && (t.seats[0] || {}).revealed) this.later(() => snd('badbeat'), 240);
-        snd(big ? 'bigwin' : 'potwin');
         // Then the whole crowning fades out as one — dim, spotlight, crown,
         // lifted cards, pill and confetti, all gated on `winHide` — at +2200ms,
         // and only once it has gone (at +2800ms) do the chips ship, so the pot
@@ -7223,7 +7233,11 @@ export default class SuitedApp extends React.Component<any, any> {
       if (!s || s.empty || !(s.bet > 0)) return null;
       return {
         style: `position:absolute;${SEAT_ANCHORS[i].bet};display:flex;align-items:center;gap:11px;background:#0a0d16;border-radius:8px;padding:6px 14px;white-space:nowrap;z-index:19;box-shadow:0 5px 14px rgba(0,0,0,0.475)`,
-        labelStyle: `font-size:11px;letter-spacing:.14em;color:rgba(232,236,248,0.074)`,
+        /* MUTED at full strength. It was the page ink at 0.074 alpha — 1.16:1
+           against the pill, which is the word "BET" printed in the colour of
+           the thing behind it. The brass amount beside it still carries the
+           emphasis; the label only has to be legible, not loud. */
+        labelStyle: `font-size:11px;letter-spacing:.14em;color:${MUTED}`,
         amountStyle: `font-family:${SERIF};font-size:18px;line-height:1;color:${BRASS}`,
         label: 'BET',
         amount: this.amt(s.bet),

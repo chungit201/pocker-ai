@@ -2,12 +2,17 @@
 
 The browser can now sign in with an EVM wallet or a Solana one.
 
-The EVM half is **live**: against the deployed gateway a real secp256k1
-signature is accepted by `/api/auth/verify` and mints a session, verified by
-`tools/probe-live.mjs`. **The Solana half needs backend work that has not been
-done** — the same gateway answers `400` to a challenge with `chain: 'solana'`.
-This file is the contract for it. See [gateway.md](gateway.md) for what else
-that deployment does and does not serve.
+**Both halves are live.** Against the deployed gateway a real secp256k1
+signature is accepted by `/api/auth/verify` and a real ed25519 one by
+`/api/auth/sol/verify`; each mints a session that survives a reload. Verified
+by `tools/probe-live.mjs` and `tools/probe-reload-solana.mjs`, which sign with
+keys generated per run rather than with placeholder bytes.
+
+Solana landed on its own endpoints — `/api/auth/sol/challenge` and
+`/api/auth/sol/verify` — rather than on the `chain` parameter this file
+originally specified. That route still exists and still answers 400 to a base58
+key, which for a while read as "Solana is not deployed" when what it actually
+meant was "you are asking the EVM endpoint". See [gateway.md](gateway.md).
 
 ## What the browser does
 

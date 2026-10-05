@@ -28,24 +28,29 @@ const DIR = '/sounds';
  * tick and a jackpot fanfare should not sit at the same level. These say where
  * each voice belongs in the mix, and they are the knob to turn when something
  * is too loud: no regeneration, no API key, just a number. */
-/* How far a clip may be amplified, and why there is a limit at all.
+/* How far a clip may be amplified.
  *
- * Normalising a quiet clip lifts its hiss along with its content. The question
- * is how much hiss there is, and that is measurable rather than guessable: the
- * generated set's noise floors sit around 0.00005, so even a 40× lift leaves
- * them near -50 dBFS, which is inaudible under anything else in the room.
+ * Two earlier versions of this tried to cap the lift so that a quiet clip's
+ * hiss would not become audible — first a flat 6×, then a limit derived from
+ * the clip's measured noise floor. Both were wrong, and wrong for the same
+ * reason: **gain does not change signal-to-noise ratio.** Lifting a clip
+ * raises its content and its hiss by the identical factor, so a clip that
+ * hisses at one level hisses at every level. All a cap achieves is a quieter
+ * clip that hisses just as much — it hides nothing and costs audibility.
  *
- * A first pass capped this at a flat 6× out of caution and left the error cue
- * four times quieter than the card sounds for no reason. The cap now follows
- * the clip: it may be lifted until its own noise would reach NOISE_CEIL, and
- * never past ABSOLUTE.
+ * What a clip's noise will be after normalisation is fixed before we touch it:
  *
- * A floor ABOVE the ceiling is not hiss — it is a clip that is never quiet,
- * like the win fanfares and the badbeat tone, whose quietest 20ms is a held
- * note rather than a gap. Lifting those lifts music, which is the point, so
- * they are allowed the full range. Reading their sustain as noise is what held
- * the badbeat cue three times quieter than everything around it. */
-const NOISE_CEIL = 0.008;   // -42 dBFS before the mix and the master both cut it further
+ *     noise at peak 0.9  =  0.9 × floor / peak
+ *
+ * which depends only on the recording. So there is no noise-based cap here.
+ * A clip too hissy to use needs a better prompt, not less gain, and
+ * tools/probe-sound.mjs reports that figure so the ones worth redoing are
+ * visible.
+ *
+ * ABSOLUTE remains, for a different reason: below some level a clip's
+ * "content" is itself noise, and multiplying it by a thousand would make an
+ * accident loud. 40× is about -32 dB of headroom, past which the honest answer
+ * is that the generation failed. */
 const ABSOLUTE = 40;
 
 const MIX: Record<string, number> = {
@@ -107,20 +112,6 @@ export function createSound() {
     return p;
   }
 
-  /** The clip's own noise, as the RMS of its quietest 20ms. */
-  function noiseFloor(buf) {
-    const d = buf.getChannelData(0);
-    const win = Math.max(1, Math.floor(buf.sampleRate * 0.02));
-    let lowest = Infinity;
-    for (let i = 0; i + win <= d.length; i += win) {
-      let sum = 0;
-      for (let j = i; j < i + win; j++) sum += d[j] * d[j];
-      const rms = Math.sqrt(sum / win);
-      if (rms < lowest) lowest = rms;
-    }
-    return lowest === Infinity ? 0 : lowest;
-  }
-
   /* Fetch and decode every sample, once, in the background.
    *
    * Failures are per-voice and silent on purpose: one 404 must not cost the
@@ -134,17 +125,14 @@ export function createSound() {
         .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
         .then((b) => ctx.decodeAudioData(b))
         .then((buf) => {
-          /* Normalise towards a common peak, within what the clip's own noise
-             allows, then place it in the mix. A silent clip keeps unity gain
-             rather than dividing by zero. */
+          /* Normalise to a common peak, then place it in the mix. A silent
+             clip keeps unity gain rather than dividing by zero. */
           const p = peak(buf);
-          const floor = noiseFloor(buf);
           const want = p > 0.001 ? 0.9 / p : 1;
-          const allowed = (floor <= 0 || floor > NOISE_CEIL) ? ABSOLUTE : NOISE_CEIL / floor;
           bank.set(name, {
             buf,
             offset: leadIn(buf),
-            gain: Math.min(want, allowed, ABSOLUTE) * (MIX[name] ?? 0.6),
+            gain: Math.min(want, ABSOLUTE) * (MIX[name] ?? 0.6),
           });
         })
         .catch(() => { /* this voice stays synthesised */ });

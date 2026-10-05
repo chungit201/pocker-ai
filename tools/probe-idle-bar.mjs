@@ -1,4 +1,15 @@
-/* Does the action bar stay put before a hand starts?
+/* The felt, in the offline demo: the action bar's idle state, and whether
+ * anything on the table is unreadable.
+ *
+ * It carries the contrast audit because the table is the screen no other tool
+ * can reach — audit-contrast.mjs walks the nav from a cold landing page and
+ * cannot sit down, and probe-live.mjs can no longer sit either now that the
+ * deployed gateway has stopped funding new accounts. Everything that has gone
+ * invisible on the felt — the dealer button, the winner's plate, the turn
+ * clock, the BET pill — went unnoticed for exactly that reason.
+ *
+ * ── the original question ───────────────────────────────────────────────────
+ * Does the action bar stay put before a hand starts?
  *
  * The three decision plates used to be hidden while the table sat idle, so the
  * row emptied out and refilled itself at the first deal. They stay now and go
@@ -13,6 +24,7 @@
  *   node tools/probe-idle-bar.mjs
  */
 import { chromium } from 'playwright';
+import { AUDIT, describe } from './lib/contrast.mjs';
 
 const url = process.argv[2] ?? 'http://localhost:3001';
 const browser = await chromium.launch();
@@ -149,6 +161,23 @@ if (liveFrames.length) {
     `${shown.length} shown while "${f.phase}": ${shown.map((p) => p.label).join(' / ')}`);
   await page.screenshot({ path: 'tools/out/live-bar.png' });
 }
+
+/* Readability, sampled across the hand rather than once. The felt changes
+   character as a hand runs — a seat wins and its plate goes bright, the clock
+   turns crimson in the last seconds, the BET pill only exists while there is a
+   bet — so a single snapshot misses most of it. Findings are collected over a
+   stretch of play and reported together. */
+const unreadable = new Map();
+for (let i = 0; i < 40; i++) {
+  for (const b of await page.evaluate(AUDIT)) {
+    if (!unreadable.has(b.text)) unreadable.set(b.text, b);
+  }
+  await page.waitForTimeout(700);
+}
+const found = [...unreadable.values()];
+step('nothing on the felt is unreadable', found.length === 0,
+  found.length ? `${found.length} over ${40} samples of live play` : 'every label clears WCAG, through a whole hand');
+for (const b of found.slice(0, 10)) console.log(`      ${describe(b)}`);
 
 await browser.close();
 const failed = results.filter((r) => !r.ok);

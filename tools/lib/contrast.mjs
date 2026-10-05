@@ -43,9 +43,13 @@ export const AUDIT = () => {
     return [0, 1, 2].map((i) => Math.round(stops.reduce((a, s) => a + s[i], 0) / stops.length));
   };
 
+  /** Is this element's background painted into its glyphs rather than behind them? */
+  const isGradientText = (cs) =>
+    (cs.backgroundClip === 'text' || cs.webkitBackgroundClip === 'text') && parse(cs.color).a < 0.05;
+
   /** What is actually behind this element, climbing past transparent layers. */
-  const backdrop = (el) => {
-    let node = el;
+  const backdrop = (el, skipSelf) => {
+    let node = skipSelf ? el.parentElement : el;
     while (node && node !== document.documentElement) {
       const cs = getComputedStyle(node);
       const grad = gradientMean(cs.backgroundImage);
@@ -74,9 +78,26 @@ export const AUDIT = () => {
     const r = el.getBoundingClientRect();
     if (r.width < 2 || r.height < 2) continue;
 
-    const fg = parse(cs.color);
-    if (fg.a < 0.25) continue;
-    const bg = backdrop(el);
+    /* Low alpha on the TEXT COLOUR is not skipped, and that is deliberate.
+       It used to be — anything under 0.25 was treated as decorative — and that
+       single line hid two of the worst findings in this app: the blind markers
+       at 0.108 and the on-felt BET label at 0.074, both of which are words a
+       player is meant to read, printed in the colour of what is behind them.
+       Fading something out IS how text disappears, so it is exactly what this
+       should be looking for.
+
+       Genuinely decorative text is excluded by `aria-hidden` above, and an
+       element faded by its own `opacity` is excluded below — those are real
+       signals from the author. A colour's alpha is not. */
+    /* Gradient text — `background-clip: text` with a transparent colour — is
+       painted by the element's own background, so reading `color` reports
+       "transparent on violet" and calls the headline invisible. The gradient
+       IS the ink here, and the element paints no surface of its own, so the
+       backdrop has to start one level up. */
+    const gradientText = isGradientText(cs);
+    const inkStops = gradientText ? gradientMean(cs.backgroundImage) : null;
+    const fg = inkStops ? { rgb: inkStops, a: 1 } : parse(cs.color);
+    const bg = backdrop(el, gradientText);
     const c = ratio(over(fg, bg), bg);
     const size = parseFloat(cs.fontSize);
     const large = size >= 24 || (size >= 18.66 && +cs.fontWeight >= 700);
