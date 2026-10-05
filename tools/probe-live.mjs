@@ -35,6 +35,10 @@ const step = (name, ok, note) => {
   results.push({ name, ok });
   console.log(`${ok ? ' ok ' : 'FAIL'}  ${name}${note ? ` — ${note}` : ''}`);
 };
+/* Not every check is about our code. A step that cannot run because the
+   gateway's configuration changed is reported and not counted — a red run that
+   means "someone else turned the faucet off" trains people to ignore red. */
+const skip = (name, why) => console.log(`SKIP  ${name} — ${why}`);
 
 const browser = await chromium.launch();
 const page = await browser.newPage({ viewport: { width: 1512, height: 900 } });
@@ -133,7 +137,17 @@ if (absent.length) console.log(`      note: gateway has no ${absent.join(', ')} 
 
 /* ── sign in for real ──────────────────────────────────────────────────────── */
 await click('connect a wallet', 1800);
-const evmRow = page.locator('button').filter({ hasText: /·\s*evm/i }).first();
+/* The chain comes from the tab, not from the row label — rows are "<name>
+   <STATE>" and carry no chain suffix. So: pick ethereum, then take a row that
+   says DETECTED, which is the only state that can actually sign in. INSTALL,
+   OPEN APP and QR · APP all lead somewhere else. */
+/* Substring matches, not anchored ones. The tab carries an empty dot <span>
+   and the rows a badge, so their text content picks up whitespace that an
+   `^…$` regex fails on — which is how this probe came to report "no EVM
+   wallet" against a screen that was showing one. */
+const ethTab = page.locator('button:has-text("Ethereum")').first();
+if (await ethTab.count()) { await ethTab.click().catch(() => {}); await page.waitForTimeout(900); }
+const evmRow = page.locator('button').filter({ hasText: /DETECTED/ }).first();
 step('wallet row offered', (await evmRow.count()) > 0,
   (await evmRow.count()) ? (await evmRow.innerText()).replace(/\s+/g, ' ').trim() : 'the connect screen listed no EVM wallet');
 if (await evmRow.count()) { await evmRow.click().catch(() => {}); await page.waitForTimeout(6000); }
@@ -164,6 +178,17 @@ if (me?.pubkey) {
 }
 
 /* ── sit at a table and let the socket run ─────────────────────────────────── */
+/* A fresh identity needs chips to sit, and this deployment no longer hands any
+   out: `/api/faucet` answers "no faucet here" and `/api/chain` is
+   `enabled:false`, so there is no deposit route either. Everything below is
+   therefore skipped rather than failed — it is the gateway's configuration that
+   changed, not the browser. */
+const funded = (me?.balance ?? 0) > 0;
+if (!funded) {
+  skip('sitting down, the felt, and the cash-out', 'this account has no chips and the gateway has no faucet');
+  console.log('      the seat, socket-sync, card-rank and readability checks below all need a seat.');
+}
+if (funded) {
 await click('play now', 2000);
 const joined = await click('join', 5000) || await click('sit', 5000);
 const table = await bodyText();
@@ -194,6 +219,36 @@ const felt = await bodyText();
 step('seated at a live table', sat && !/take a seat/i.test(felt),
   sat ? (/(waiting|fold|check|call|all[- ]?in|sit out)/i.test(felt) ? 'the felt is up' : 'sat, but the felt shows no table controls') : 'no "take your seat" button');
 await page.screenshot({ path: 'tools/out/live-table.png' });
+
+/* Before a hand starts the three decision plates stay on screen, disabled —
+   they used to vanish and come back, which read as the controls breaking
+   rather than as the table being between hands. Checked as "present AND
+   inert", because present-and-live would be worse than hidden: it would invite
+   a click that cannot do anything. */
+const bar = await page.evaluate(() => {
+  const plates = [...document.querySelectorAll('button')]
+    .filter((b) => /^(fold|check|call|bet|raise to|all-in|check \/ fold|call any)/i.test((b.textContent ?? '').replace(/\s+/g, ' ').trim()))
+    .map((b) => {
+      const cs = getComputedStyle(b);
+      const r = b.getBoundingClientRect();
+      return {
+        label: (b.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 18),
+        shown: r.width > 2 && r.height > 2 && cs.visibility !== 'hidden',
+        inert: cs.pointerEvents === 'none' || +cs.opacity < 0.5,
+      };
+    });
+  const body = document.body.innerText.replace(/\s+/g, ' ');
+  return { plates, waiting: /waiting|dealing|1 of 2/i.test(body) };
+});
+const shown = bar.plates.filter((p) => p.shown);
+if (bar.waiting) {
+  step('idle table keeps its action plates, disabled', shown.length >= 3 && shown.every((p) => p.inert),
+    shown.length < 3 ? `only ${shown.length} plate(s) on screen while waiting`
+      : shown.every((p) => p.inert) ? `${shown.length} shown, all inert: ${shown.map((p) => p.label).join(' / ')}`
+      : `live while no hand is running: ${shown.filter((p) => !p.inert).map((p) => p.label).join(' / ')}`);
+} else {
+  console.log(`      (a hand was running — idle-bar check skipped; ${shown.length} plate(s): ${shown.map((p) => p.label).join(' / ')})`);
+}
 
 /* The ten prints as "10", not "T" — and "10" is roughly twice the width of
    every other rank, so the check is both that it says the right thing and that
@@ -281,6 +336,12 @@ const net = back && me ? back.balance - me.balance : null;
 step('seat released and chips returned', left && !!back && back.balance > (after?.balance ?? 0),
   left ? `balance ${after?.balance} → ${back?.balance}  (net ${net > 0 ? '+' : ''}${net} vs before sitting — blinds posted while seated)`
        : 'no "leave" control — the seat is held until the gateway times it out');
+} else {
+  // The funded branch closes the browser itself, before polling for the
+  // cash-out; this branch has nothing to wait for.
+  await page.screenshot({ path: 'tools/out/live-nofunds.png' });
+  await browser.close();
+}
 console.log('\nscreenshot: tools/out/live-table.png');
 console.log(`/api calls: ${calls.map((c) => `${c.path}→${c.status}`).join(' ')}`);
 

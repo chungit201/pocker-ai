@@ -7388,8 +7388,13 @@ export default class SuitedApp extends React.Component<any, any> {
        canvas has nothing but the curve of the rail. The strip itself lets
        touches through; only the two clusters take them. The side padding
        honours the notch. */
-    // No hand under way (see heroControls below): the plates are hidden, and
-    // upright the empty tray goes with them, keeping only its height.
+    /* No hand under way. The plates stay and go inert rather than vanishing —
+       see `deadBtn` and heroControls below.
+
+       The tray keeps its surface with them. Stood upright it used to dissolve
+       while idle, because everything it framed had been hidden and all that was
+       left was a gap; now that the controls stay, a tray that appeared under
+       them at the first deal would be the jump this was avoiding. */
     const noHand = !t || t.phase === 'idle';
     vals.actionBar = mini
       ? 'position:absolute;left:0;right:0;bottom:0;z-index:45;box-sizing:border-box;display:flex;align-items:flex-end;'
@@ -7399,8 +7404,7 @@ export default class SuitedApp extends React.Component<any, any> {
       + `padding:${tall ? '8px' : c ? '12px 14px' : '14px 20px'};`
       + 'background:#0d1220;border:1px solid rgba(232,236,248,.09);border-radius:14px;'
       + 'box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 18px 40px -28px rgba(0,0,0,1);'
-      + `${c ? '' : 'min-height:78px'}`
-      + (tall && noHand ? ';background:transparent;border-color:transparent;box-shadow:none' : '');
+      + `${c ? '' : 'min-height:78px'}`;
     vals.turnDotStyle = `width:7px;height:7px;border-radius:999px;flex:0 0 auto;background:${myTurn ? TURN : 'rgba(232,236,248,0.5)'};${myTurn ? 'animation:suPulse 1.4s ease-in-out infinite' : ''}`;
     const spectating = !st.seated;
 
@@ -7578,16 +7582,19 @@ export default class SuitedApp extends React.Component<any, any> {
     // One standard gap between every control, so the row reads as evenly spaced
     // rather than tuned pill by pill.
     /* No hand under way — the table is idle, waiting for a second player or
-       for the first deal — and there is nothing to fold, call or raise, so the
-       three plates are not shown at all rather than shown dimmed. Between
-       hands the phase is `complete`, not `idle`, so they stay through the
-       pause before the next deal. Stood upright the bar's height is what the
-       felt is fitted to, so there the row only goes invisible and keeps its
-       room: a table that jumps when the cards come is worse than an empty
-       strip under it. */
+       for the first deal. The three plates STAY, disabled (see `deadBtn`
+       below), rather than disappearing: the bar is where a seated player's
+       eyes already are, and a row that empties out and refills itself reads as
+       the controls having broken rather than as the table being between hands.
+       Dimmed and inert, it says "these are your moves, not yet" — which is the
+       truth — and nothing moves when the cards finally come.
+
+       Only a spectator and a busted seat still lose the row outright, because
+       neither of them has moves to be waiting for: one has no seat, and the
+       other's row is replaced by the rebuy control. */
     vals.heroControls = mini
-      ? `display:${spectating || heroBroke || noHand ? 'none' : 'flex'};flex:1;align-items:flex-end;justify-content:space-between;gap:10px;min-width:0`
-      : `display:${spectating || heroBroke || (noHand && !tall) ? 'none' : 'flex'};${noHand && tall ? 'visibility:hidden;' : ''}flex:1;flex-wrap:${c ? 'wrap' : 'nowrap'};align-items:center;gap:${c ? 8 : 10}px;min-width:0`;
+      ? `display:${spectating || heroBroke ? 'none' : 'flex'};flex:1;align-items:flex-end;justify-content:space-between;gap:10px;min-width:0`
+      : `display:${spectating || heroBroke ? 'none' : 'flex'};flex:1;flex-wrap:${c ? 'wrap' : 'nowrap'};align-items:center;gap:${c ? 8 : 10}px;min-width:0`;
     /* The row's two halves. Everywhere but a phone's side they are
        `display:contents` — boxes that are not there, so the row lays out its
        ten controls exactly as it did before they existed. On a phone's side
@@ -7813,8 +7820,17 @@ export default class SuitedApp extends React.Component<any, any> {
     /* Folded, the hand is over for you: no pre-action means anything, so the
        whole row greys out and ignores the pointer until the next deal. */
     const heroFolded = !!(t && t.phase !== 'complete' && hero.folded);
-    const preMode = !spectating && t && !myTurn && t.toAct !== 0 && t.phase !== 'complete' && !stalled && !heroFolded;
-    const deadBtn = heroFolded ? ';opacity:.32;pointer-events:none;transition:opacity 260ms linear' : '';
+    /* `!noHand` matters as much as the rest of it. Before a hand exists there
+       is nothing to queue a pre-action against, so the plates must not offer
+       to arm one — without this the idle bar reads "Check / fold" and "Call
+       any", naming a decision for a hand that has not been dealt. Excluded,
+       the labels fall back to the plain Fold / Check / Bet, which is what the
+       moves will be. */
+    const preMode = !spectating && t && !myTurn && t.toAct !== 0 && t.phase !== 'complete' && !stalled && !heroFolded && !noHand;
+    /* Dimmed and inert: folded, you are out of this hand; idle, the hand has
+       not started. Both are "your moves, but not now", and both look the same
+       because to a player they are the same. */
+    const deadBtn = (heroFolded || noHand) ? ';opacity:.32;pointer-events:none;transition:opacity 260ms linear' : '';
     vals.foldStyle = (preMode ? actPill(st.preAction === 'checkfold' ? 'on' : '') : actPill('fold')) + deadBtn;
     vals.callStyle = (preMode ? actPill(st.preAction === 'callany' ? 'on' : '') : actPill()) + deadBtn;
     // A lit dot on the armed pre-action, so a queued click reads at a glance
