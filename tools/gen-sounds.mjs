@@ -106,7 +106,21 @@ const SOUNDS = {
    * prompts asked for a glass bell instead measured 0.68 above 2 kHz, worse
    * than the pass recorded above as painful. See docs/sound.md. */
   win: [`A light rising three-note melody, friendly, short decay on ${HARP}`, 1.0, 0.5],
-  potwin: [`A cheerful rising four-note melody, unhurried, resolving gently on ${HARP}`, 1.6, 0.5],
+  /* `potwin` no longer shares the clause, and the exception is the point.
+   *
+   * It is the cue a player hears most — every pot won that is not a monster —
+   * and on the shared wording it was the one that kept coming back bright: the
+   * first take measured 0.24 above 2 kHz against its siblings' 0.08 and 0.06,
+   * and re-rolling the same words four times spanned 0.04 to 0.24. Re-rolling
+   * fixes a clip; it does not stop the next regeneration rolling badly again.
+   *
+   * So this prompt pins down what the shared one left to chance — "low
+   * register", "quiet throughout", "no bright attack, no sparkle" — and three
+   * takes of it came back 0.04, 0.04 and 0.03. The variance is gone, which is
+   * worth more than one lucky clip. The trade is that `potwin` can drift from
+   * its siblings in timbre, so changes to HARP should be mirrored here by
+   * hand. */
+  potwin: [`A slow soft rising four-note melody, calm and unhurried, resolving quietly on a small harp plucked very gently with the fingertips, warm and mellow, low register. Quiet throughout, no bright attack, no sparkle. Major key, one clear phrase, nothing layered under it. No percussion, no drums, no cymbals, no chips, no bells, no fanfare, no shimmer, no metallic overtones, no shrill highs, no reverb wash.`, 1.6, 0.5],
   bigwin: [`A happy rising six-note phrase resolving onto a held note over a quiet warm chord, calm on ${HARP}`, 2.2, 0.5],
   lose: [`A soft low descending two-note tone, quiet and deflating. No drums, no reverb tail.`, 1.2, 0.5],
   badbeat: [`A hollow descending four-note tone, dark and disappointed, fading out. No drums.`, 1.6, 0.5],

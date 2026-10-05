@@ -27,7 +27,7 @@ const MIX = {
   hover: 0.22, ui: 0.45, lowTime: 0.5, peel: 0.5,
   deal: 0.6, flip: 0.6, chip: 0.6, check: 0.6, seat: 0.6, error: 0.55, fold: 0.6, turnStart: 0.6,
   chips: 0.7, bet: 0.7, lose: 0.65, badbeat: 0.65,
-  alert: 0.8, win: 0.85, allin: 0.9, potwin: 0.9, bigwin: 1,
+  alert: 0.8, win: 0.85, allin: 0.9, potwin: 0.7, bigwin: 1,
 };
 
 const rows = files.map((f) => {

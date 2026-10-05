@@ -58,7 +58,12 @@ const MIX: Record<string, number> = {
   ui: 0.45, lowTime: 0.5, peel: 0.5,
   deal: 0.6, flip: 0.6, chip: 0.6, check: 0.6, seat: 0.6, error: 0.55, fold: 0.6, turnStart: 0.6,
   chips: 0.7, bet: 0.7, lose: 0.65, badbeat: 0.65,
-  alert: 0.8, win: 0.85, allin: 0.9, potwin: 0.9,
+  alert: 0.8, win: 0.85, allin: 0.9,
+  /* Lower than its siblings on purpose. `potwin` is the cue a player hears
+     most — every pot won that is not a monster — and at 0.9 it was the second
+     loudest voice in the set, which is how a cue earns "chói tai" even after
+     its spectrum is fixed. The rare ones can be the loud ones. */
+  potwin: 0.7,
   bigwin: 1,
 };
 
@@ -205,19 +210,33 @@ export function createSound() {
       [740, 988].forEach((f, i) => tone(f, { at: 0.42 + i * 0.11, d: 0.26, peak: 0.16, type: 'triangle' }));
     },
     lowTime: () => { tone(660, { d: 0.06, peak: 0.12, type: 'square' }); },
-    win: () => { [523, 659, 784, 1046].forEach((f, i) => tone(f, { at: i * 0.075, d: 0.34, peak: 0.15, type: 'triangle' })); voices.chips(); },
+    /* ── the victory cues, which the samples left behind ───────────────────
+     * These three layered a chip cascade under the melody — seven clicks for
+     * potwin, sixteen plus a 4–13 kHz hiss for bigwin — and ran the melody on
+     * triangles up to 1568 Hz.
+     *
+     * The SAMPLED set dropped all of that three passes ago, for the reason
+     * recorded in tools/gen-sounds.mjs: "a win is one clear phrase, not a pile
+     * of things happening at once". The fallback kept it, so it stayed the
+     * shrill version nobody had chosen — and the fallback is not a rare path.
+     * It plays whenever the samples have not arrived yet, and on a deploy
+     * where /sounds/ 404s it is the ONLY thing that plays, which is exactly
+     * when someone reports that the win sound is painful and nothing in the
+     * mp3s explains it.
+     *
+     * Same brief as the clips now: one plain phrase, sine rather than triangle
+     * for fewer harmonics, no chips, no hiss, and nothing above the octave the
+     * melody sits in. */
+    win: () => { [523, 659, 784].forEach((f, i) => tone(f, { at: i * 0.08, d: 0.34, peak: 0.13, type: 'sine' })); },
     potwin: () => {
-      tone(131, { d: 0.6, peak: 0.16, type: 'sine' });
-      [392, 523, 659, 784].forEach((f, i) => tone(f, { at: 0.04 + i * 0.08, d: 0.42, peak: 0.15, type: 'triangle' }));
-      for (let i = 0; i < 7; i++) setTimeout(() => { if (ctx && !muted) voices.chip(); }, 120 + i * 62);
+      tone(131, { d: 0.6, peak: 0.12, type: 'sine' });
+      [392, 523, 659, 784].forEach((f, i) => tone(f, { at: 0.04 + i * 0.09, d: 0.44, peak: 0.12, type: 'sine' }));
     },
     bigwin: () => {
-      tone(98, { d: 0.9, peak: 0.18, type: 'sine' });
-      tone(196, { d: 0.8, peak: 0.12, type: 'sine' });
-      [392, 523, 659, 784, 1046, 1318, 1568].forEach((f, i) => tone(f, { at: 0.05 + i * 0.075, d: 0.62, peak: 0.16, type: 'triangle' }));
-      [523, 659, 784, 1046].forEach((f, i) => tone(f, { at: 0.62 + i * 0.05, d: 0.9, peak: 0.1, type: 'sine' }));
-      hiss({ at: 0.05, d: 0.9, peak: 0.05, hp: 4200, lp: 13000, q: 0.8 });
-      for (let i = 0; i < 16; i++) setTimeout(() => { if (ctx && !muted) voices.chip(); }, 160 + i * 58);
+      tone(98, { d: 0.9, peak: 0.15, type: 'sine' });
+      tone(196, { d: 0.8, peak: 0.1, type: 'sine' });
+      [392, 523, 659, 784, 880, 1046].forEach((f, i) => tone(f, { at: 0.05 + i * 0.08, d: 0.62, peak: 0.13, type: 'sine' }));
+      [523, 659, 784].forEach((f, i) => tone(f, { at: 0.62 + i * 0.06, d: 0.9, peak: 0.08, type: 'sine' }));
     },
     lose: () => { [392, 330].forEach((f, i) => tone(f, { at: i * 0.11, d: 0.3, peak: 0.1, type: 'sine' })); },
     badbeat: () => { [523, 466, 415, 349].forEach((f, i) => tone(f, { at: i * 0.13, d: 0.4, peak: 0.11, type: 'sine' })); },

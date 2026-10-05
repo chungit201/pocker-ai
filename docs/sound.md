@@ -133,15 +133,48 @@ The fix was not a new prompt. The same prompt was simply run three more times:
 | re-roll c | 0.06 |
 | re-roll d | **0.04** — now shipping |
 
-Four takes of identical words spanning 0.04 to 0.24 is the whole lesson. The
-API is not deterministic, so a per-clip figure is one roll of it and not a
-property of the instrument or the wording. Compare families by their mean;
-when one clip of an otherwise good family is wrong, **re-roll that clip** with
-`tools/gen-variant.mjs` and the option's own prompt, before touching words
-that are working for the other two.
+Four takes of identical words spanning 0.04 to 0.24 is the first half of the
+lesson. The API is not deterministic, so a per-clip figure is one roll of it
+and not a property of the instrument or the wording.
 
-And do not ship a clip whose own measurement is an outlier because the mean
-looks fine. The number was there, in the table, before anyone listened.
+The second half is that re-rolling was not enough. A lucky clip does not stop
+the next regeneration rolling badly again, and `potwin` is the cue a player
+hears most — every pot won that is not a monster. So it got its own prompt,
+pinning down what the shared one left to chance ("low register", "quiet
+throughout", "no bright attack, no sparkle"), and three takes of THAT came
+back 0.04, 0.04 and 0.03. Killing the variance is worth more than winning the
+dice roll. It is the one cue in the victory family that does not share the
+instrument clause, and `tools/gen-sounds.mjs` says why.
+
+Two rules out of this, both of which were available before anyone listened:
+
+- **Do not ship a clip whose own measurement is an outlier** because the
+  family mean looks fine. 0.24 was printed in the table, next to its siblings'
+  0.08 and 0.06, and shipped anyway with a note calling it "the brightest of
+  the nine".
+- **Loudness is the other half of "shrill".** `potwin` sat at 0.9 in `MIX`,
+  the second loudest voice in the set, for a cue that fires constantly. It is
+  0.7 now. The rare cues can be the loud ones.
+
+## The fallback was still the old, shrill set
+
+Everything above is about the mp3s, and for three passes that was the whole
+investigation — while the synthesised voices in `sound.ts` still layered a chip
+cascade under all three victory cues (seven clicks under `potwin`, sixteen plus
+a 4–13 kHz hiss under `bigwin`) and ran their melodies on triangles up to
+1568 Hz. The clips were fixed; their fallbacks were not touched.
+
+That matters more than "it is only the fallback" suggests. The synthesiser
+plays whenever a sample has not arrived — and on a deploy where `/sounds/`
+404s, it is the *only* thing that plays. Which is precisely the situation in
+which someone reports the win sound as painful and nothing in the committed
+mp3s can explain it. The fallback now follows the same brief as the clips: one
+plain phrase, sine rather than triangle, no chips, no hiss, nothing above the
+melody's own octave.
+
+Worth generalising: a change to a sampled cue is not finished until its
+synthesised voice has had the same change, because they are two recordings of
+one decision and only one of them is in `public/`.
 
 `probe-sound.mjs` reports both bands for this reason: above 4 kHz is hiss and
 clatter, which chips and card stock are supposed to have, while above 2 kHz is
