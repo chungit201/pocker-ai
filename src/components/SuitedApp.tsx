@@ -7498,6 +7498,14 @@ export default class SuitedApp extends React.Component<any, any> {
        canvas has nothing but the curve of the rail. The strip itself lets
        touches through; only the two clusters take them. The side padding
        honours the notch. */
+    /* No hand under way. The plates stay and go inert rather than vanishing —
+       see `deadBtn` and heroControls below.
+
+       The tray keeps its surface with them. Stood upright it used to dissolve
+       while idle, because everything it framed had been hidden and all that was
+       left was a gap; now that the controls stay, a tray that appeared under
+       them at the first deal would be the jump this was avoiding. */
+    const noHand = !t || t.phase === 'idle';
     vals.actionBar = mini
       ? 'position:absolute;left:0;right:0;bottom:0;z-index:45;box-sizing:border-box;display:flex;align-items:flex-end;'
         + 'padding:0 max(10px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));pointer-events:none'
@@ -7684,6 +7692,17 @@ export default class SuitedApp extends React.Component<any, any> {
     // share the row.
     // One standard gap between every control, so the row reads as evenly spaced
     // rather than tuned pill by pill.
+    /* No hand under way — the table is idle, waiting for a second player or
+       for the first deal. The three plates STAY, disabled (see `deadBtn`
+       below), rather than disappearing: the bar is where a seated player's
+       eyes already are, and a row that empties out and refills itself reads as
+       the controls having broken rather than as the table being between hands.
+       Dimmed and inert, it says "these are your moves, not yet" — which is the
+       truth — and nothing moves when the cards finally come.
+
+       Only a spectator and a busted seat still lose the row outright, because
+       neither of them has moves to be waiting for: one has no seat, and the
+       other's row is replaced by the rebuy control. */
     vals.heroControls = mini
       ? `display:${spectating || heroBroke ? 'none' : 'flex'};flex:1;align-items:flex-end;justify-content:space-between;gap:10px;min-width:0`
       : `display:${spectating || heroBroke ? 'none' : 'flex'};flex:1;flex-wrap:${c ? 'wrap' : 'nowrap'};align-items:center;gap:${c ? 8 : 10}px;min-width:0`;
@@ -7912,8 +7931,17 @@ export default class SuitedApp extends React.Component<any, any> {
     /* Folded, the hand is over for you: no pre-action means anything, so the
        whole row greys out and ignores the pointer until the next deal. */
     const heroFolded = !!(t && t.phase !== 'complete' && hero.folded);
-    const preMode = !spectating && t && !myTurn && t.toAct !== 0 && t.phase !== 'complete' && !stalled && !heroFolded;
-    const deadBtn = heroFolded ? ';opacity:.32;pointer-events:none;transition:opacity 260ms linear' : '';
+    /* `!noHand` matters as much as the rest of it. Before a hand exists there
+       is nothing to queue a pre-action against, so the plates must not offer
+       to arm one — without this the idle bar reads "Check / fold" and "Call
+       any", naming a decision for a hand that has not been dealt. Excluded,
+       the labels fall back to the plain Fold / Check / Bet, which is what the
+       moves will be. */
+    const preMode = !spectating && t && !myTurn && t.toAct !== 0 && t.phase !== 'complete' && !stalled && !heroFolded && !noHand;
+    /* Dimmed and inert: folded, you are out of this hand; idle, the hand has
+       not started. Both are "your moves, but not now", and both look the same
+       because to a player they are the same. */
+    const deadBtn = (heroFolded || noHand) ? ';opacity:.32;pointer-events:none;transition:opacity 260ms linear' : '';
     vals.foldStyle = (preMode ? actPill(st.preAction === 'checkfold' ? 'on' : '') : actPill('fold')) + deadBtn;
     vals.callStyle = (preMode ? actPill(st.preAction === 'callany' ? 'on' : '') : actPill()) + deadBtn;
     // A lit dot on the armed pre-action, so a queued click reads at a glance

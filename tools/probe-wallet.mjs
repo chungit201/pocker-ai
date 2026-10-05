@@ -212,24 +212,32 @@ const rows = await page.evaluate(() => [...document.querySelectorAll('button')]
 console.log(`\nwallet rows offered: ${rows.filter((r) => /evm|solana|wallet/i.test(r)).join(' | ') || '(none)'}`);
 
 /* ── the chain picker ────────────────────────────────────────────────────── */
-/* The tabs are labelled "ethereum" and "solana"; the rows beneath carry the
-   chain in their own label too, so each is clicked by an exact match to keep
-   the two apart. */
+/* The tabs are "Ethereum" and "Solana". The rows no longer carry the chain in
+   their own label — they are "<name> <STATE>" — so the tab is the only thing
+   that says which chain the list below belongs to, and it has to be clicked
+   before the rows are read. */
 const chainTabs = await page.evaluate(() => [...document.querySelectorAll('button')]
   .filter((b) => b.offsetParent && /^(ethereum|solana)$/i.test((b.textContent ?? '').trim()))
   .map((b) => (b.textContent ?? '').trim()));
 console.log(`chain tabs: ${chainTabs.join(' | ') || '(none)'}`);
 
-/* Rows end in their state — DETECTED for a wallet the browser announced,
-   INSTALL for one from the catalogue that it did not. Both are matched: an
-   install row that stopped rendering would otherwise look like a short list
-   rather than a regression. */
+/* A row ends in its state: DETECTED for a wallet the browser announced,
+   INSTALL for a catalogue entry it did not have, OPEN APP on a phone, and
+   QR · APP for WalletConnect, which is never "in" this browser at all. All of
+   them are matched — a row type that stopped rendering would otherwise read as
+   a short list rather than as a regression. */
+const ROW = /\b(DETECTED|INSTALL|OPEN APP|QR · APP|NOT FOUND)$/;
 const rowsFor = async (tab) => {
-  const t = page.locator('button').filter({ hasText: new RegExp(`^${tab}$`, 'i') }).first();
+  // Substring match: the tab holds an empty dot <span>, so its text content
+  // picks up whitespace that an anchored regex fails on.
+  const t = page.locator(`button:has-text("${tab}")`).first();
   if (await t.count()) { await t.click().catch(() => {}); await page.waitForTimeout(900); }
-  return page.evaluate(() => [...document.querySelectorAll('button')]
-    .filter((b) => b.offsetParent && /·\s*(evm|solana)\s*(DETECTED|INSTALL|NOT FOUND)?$/i.test((b.textContent ?? '').replace(/\s+/g, ' ').trim()))
-    .map((b) => (b.textContent ?? '').replace(/\s+/g, ' ').trim()));
+  return page.evaluate((src) => {
+    const re = new RegExp(src);
+    return [...document.querySelectorAll('button')]
+      .filter((b) => b.offsetParent && re.test((b.textContent ?? '').replace(/\s+/g, ' ').trim()))
+      .map((b) => (b.textContent ?? '').replace(/\s+/g, ' ').trim());
+  }, ROW.source);
 };
 
 /* The note is wrapped by interp() in a <span class="sc-interp">, so the deepest
@@ -322,10 +330,12 @@ const catchAll = await page.evaluate(() => [...document.querySelectorAll('button
   .filter((b) => b.offsetParent && /another wallet|ethereum wallet/i.test(b.textContent ?? '')).length);
 console.log(`catch-all picker row: ${catchAll ? `PRESENT (${catchAll}) — it was meant to be removed` : 'absent, as intended'}`);
 
-/* Sign in with a real EVM wallet. It must be a DETECTED row: the list now also
-   holds catalogue rows that only open the Chrome Web Store, and clicking one of
-   those would quietly skip the sign-in this probe exists to test. */
-const evmRow = page.locator('button').filter({ hasText: /·\s*evm\s*DETECTED$/i }).first();
+/* Sign in with a real EVM wallet. It must be a DETECTED row: the list also
+   holds catalogue rows that only open the Chrome Web Store and a WalletConnect
+   row that opens a QR code, and clicking either would quietly skip the sign-in
+   this probe exists to test. The chain comes from the tab, which rowsFor() has
+   just left on "ethereum". */
+const evmRow = page.locator('button').filter({ hasText: /DETECTED/ }).first();
 if (await evmRow.count()) { await evmRow.click().catch(() => {}); await page.waitForTimeout(3500); }
 
 /* ── the Solana half ─────────────────────────────────────────────────────── */
@@ -336,20 +346,15 @@ await page.waitForTimeout(2000);
 await step('play now');
 await step('connect a wallet', 1600);
 
-/* The tab and the wallet row both say "solana", so the tab is selected by an
-   exact match and the row by the " · solana" its label carries. Clicking the
-   tab when you meant the row is how the Solana sign-in quietly stopped being
-   exercised at all. */
-const solTab = page.locator('button').filter({ hasText: /^solana$/i }).first();
-if (await solTab.count()) { await solTab.click().catch(() => {}); await page.waitForTimeout(900); }
-
-const solRows = await page.evaluate(() => [...document.querySelectorAll('button')]
-  .filter((b) => b.offsetParent).map((b) => b.textContent.replace(/\s+/g, ' ').trim())
-  .filter((t) => /·\s*solana/i.test(t)));
+/* Rows carry no chain in their label any more, so the Solana list is whatever
+   is on screen once the Solana tab is selected. Selecting it is the whole
+   point: clicking the tab when you meant the row is how the Solana sign-in
+   quietly stopped being exercised at all. */
+const solRows = await rowsFor('Solana');
 console.log(`\nSolana rows offered: ${solRows.join(' | ') || '(none — the Wallet Standard mock was not discovered)'}`);
 
 // DETECTED only, for the same reason as the EVM row above.
-const solDetected = page.locator('button').filter({ hasText: /·\s*solana\s*DETECTED$/i }).first();
+const solDetected = page.locator('button').filter({ hasText: /DETECTED/ }).first();
 if (await solDetected.count()) {
   await solDetected.click().catch(() => {});
   await page.waitForTimeout(3500);

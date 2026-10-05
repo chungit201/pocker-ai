@@ -57,8 +57,14 @@ a second browser profile or an incognito window (two tabs in one profile share
 an account, since the session lives in localStorage). The same two-player rule
 applies to the deployed gateway.
 
+Sound is 21 generated clips in `public/sounds/`, committed and lazily loaded —
+see **[docs/sound.md](docs/sound.md)** before changing one, and note that
+nothing makes a noise unless you are seated at a table.
+
 For the **offline demo** — bots in the browser, a local RNG, no gateway at all —
-set `NEXT_PUBLIC_SUITED_SERVER=offline` and restart. Note the URL router
+set `NEXT_PUBLIC_SUITED_SERVER=offline` and restart. It is also the only place
+the table can be exercised at all now that the deployed gateway has stopped
+funding new accounts. Note the URL router
 deliberately no-ops offline, so every path renders the landing page and you
 navigate by clicking; that is the original behaviour, not a port bug.
 

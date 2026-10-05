@@ -62,6 +62,13 @@ export const AUDIT = () => {
     // only elements with their own visible text
     const own = [...el.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim()).map((n) => n.textContent.trim()).join(' ');
     if (!own) continue;
+    /* `aria-hidden` is the author saying "this is not content". The drifting
+       suit glyphs behind every screen are text nodes by accident of being
+       characters rather than shapes, and holding them to a reading threshold
+       is wrong twice over: they are meant to be barely there, and 40 of them
+       drowned out the four real findings on the lobby. Honoured here rather
+       than listed as exceptions, so it keeps working as the backdrop changes. */
+    if (el.closest('[aria-hidden="true"]')) continue;
     const cs = getComputedStyle(el);
     if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity < 0.25) continue;
     const r = el.getBoundingClientRect();
