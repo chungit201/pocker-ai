@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ClaudeCodeEditorTabs">
-    <option name="activeSessionId" value="28b6f7bc-083c-4f78-9e51-e53512849cdf" />
+    <option name="activeSessionId" value="e1ee0e99-407c-4da8-bad1-d6253aa96bf1" />
     <option name="openSessionIds">
       <list>
-        <option value="28b6f7bc-083c-4f78-9e51-e53512849cdf" />
+        <option value="e1ee0e99-407c-4da8-bad1-d6253aa96bf1" />
       </list>
     </option>
     <option name="sessionPaths">
       <map>
-        <entry key="28b6f7bc-083c-4f78-9e51-e53512849cdf" value="/sessions/45eb737a-1e8c-4f37-92b7-828044b4c29b" />
+        <entry key="e1ee0e99-407c-4da8-bad1-d6253aa96bf1" value="/sessions/3c72b25e-e0dc-44cd-a8dc-bd89bac6506e" />
       </map>
     </option>
     <option name="sessionTitles">
       <map>
-        <entry key="28b6f7bc-083c-4f78-9e51-e53512849cdf" value="check project này rôồi chuyển đổi sang nextjs ts g" />
+        <entry key="e1ee0e99-407c-4da8-bad1-d6253aa96bf1" value="dùng api của event lab gen lại các âm thanh win kh" />
       </map>
     </option>
   </component>

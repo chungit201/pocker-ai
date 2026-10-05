@@ -10,6 +10,8 @@ node tools/gen-sounds.mjs --force     # all of it again
 node tools/gen-sounds.mjs deal fold   # just these
 node tools/sound-sheet.mjs            # a page that plays every clip
 node tools/probe-sound.mjs            # measure and check the wiring
+node tools/gen-win-options.mjs        # three candidate victory-cue families
+node tools/probe-win-options.mjs      # measure them, no dev server needed
 ```
 
 The key lives in `.env.local` as `ELEVENLABS_API_KEY`. It has no
@@ -103,6 +105,15 @@ shrill sound is still shrill. Naming the register ("low", "mellow", "wooden",
 "felt mallets") and listing what to avoid ("no bells, no chimes, no shimmer, no
 bright high frequencies, no cymbals") brought them to 0.02, 0.12 and 0.05.
 
+Naming an instrument can also override all of that. A later pass asked for the
+same three cues on "a soft glass bell struck with a felt mallet, pure and
+rounded, middle register" — every brightness guard above still in the prompt —
+and got 0.90, 0.67 and 0.47, worse than the painful first pass. The model hears
+"glass" and reaches for the top octave; the register asked for does not survive
+it. The instrument is the strongest word in a musical prompt, so the fix is to
+pick one that cannot be shrill rather than to ask a shrill one to behave. A
+celesta measured 0.07, 0.08 and 0.14 from the same phrasing, and is what ships.
+
 `probe-sound.mjs` reports both bands for this reason: above 4 kHz is hiss and
 clatter, which chips and card stock are supposed to have, while above 2 kHz is
 what makes a cue hurt. A chime can sit low on the first and high on the second.
@@ -119,10 +130,25 @@ shipping clips. It exists for the case where a cue is wrong in a *direction* —
 too bright, too long, too cheerful — where hearing two side by side settles in
 one pass what guessing settles in four.
 
-Promote one by moving its prompt into `tools/gen-sounds.mjs` and rerunning
-that, rather than by copying the mp3. The prompt is the only record of how the
-sound was made, and a clip whose prompt lives nowhere cannot be regenerated or
-adjusted later.
+Promote one by moving its prompt into `tools/gen-sounds.mjs`. The prompt is the
+only record of how the sound was made, and a clip whose prompt lives nowhere
+cannot be regenerated or adjusted later.
+
+Move the prompt, but copy the mp3 too, rather than rerunning the generator to
+produce the shipping file. The API is not deterministic: the same prompt comes
+back a different take every time, so a `--force` rerun ships a clip nobody has
+listened to and throws away the one that was chosen. The prompt records how to
+get *another* take of this sound, not how to get this one back.
+
+`tools/gen-win-options.mjs` is the same idea for the three victory cues
+together. They are one event at three sizes and are heard in the same session,
+so auditioning a `win` alone gives a table whose small pot is a glass bell and
+whose big pot is a music box; it generates one instrument across all three and
+writes a page where the families can be compared side by side. The current set
+was chosen that way. `tools/probe-win-options.mjs` measures the candidates
+against what ships, and unlike `probe-sound.mjs` needs no dev server — it
+stands up a throwaway static server, because mp3 has no decoder in Node and
+`fetch` is blocked on `file://`.
 
 ## What has not been checked
 

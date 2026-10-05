@@ -40,6 +40,12 @@ const API = 'https://api.elevenlabs.io/v1/sound-generation';
 
 const DRY = 'Dry, close-miked, no reverb, no room tone, no music, no voices. Mono studio foley.';
 
+/* The voice of all three victory cues, said once so they cannot drift apart.
+   Prompts are capped at 450 characters by the API, which is why this is terse. */
+const CELESTA = 'a celesta, crystalline in the attack but warm and rounded underneath, middle register.'
+  + ' Soft and gentle, never loud. Major key, one clear uncluttered phrase, nothing layered under it.'
+  + ' No percussion, no drums, no cymbals, no chips, no fanfare, no shimmer, no metallic overtones, no shrill highs, no reverb wash.';
+
 /** name → [prompt, seconds, promptInfluence] */
 const SOUNDS = {
   /* ── interface ─────────────────────────────────────────────────────────── */
@@ -84,9 +90,21 @@ const SOUNDS = {
    * So: a plain melody, a named gentle instrument, major key, nothing
    * percussive, no chips, no swell, and short. The three differ in size, not
    * in loudness — bigwin is a longer phrase, not a bigger noise. */
-  win: [`A light cheerful three-note rising melody on a soft warm marimba, mellow and rounded with a short natural decay. Major key, friendly and simple. No music box, no bells, no glockenspiel, no shimmer, no bright high frequencies, no percussion, no chips, no cymbals, no drums.`, 1.0, 0.5],
-  potwin: [`A cheerful rising four-note melody on a soft music box over a gentle warm pad. Light, uncluttered and pleasant, unhurried. Major key. No percussion, no chips, no fanfare, no cymbals, no drums.`, 1.6, 0.5],
-  bigwin: [`A happy little melody rising over a warm gentle chord, played on a soft music box and quiet strings. Celebratory but calm and uncluttered, never loud. Major key. No percussion, no chips, no brass fanfare, no cymbals, no drums.`, 2.2, 0.5],
+  /* A fourth pass replaced all three with one instrument — a celesta, chosen
+   * by ear from the three families tools/gen-win-options.mjs generates. The
+   * brief was "clear and gentle", and a celesta is the one voice that is both:
+   * crystalline in the attack, warm in the tail. Before it, win was a marimba
+   * and the other two were a music box, which is three sizes of the same
+   * event in two different instruments.
+   *
+   * The clause below is shared for that reason — the cues must stay one
+   * family, and three separately worded prompts drift apart. "Middle register"
+   * is load-bearing: the same prompts asked for a glass bell instead measured
+   * 0.68 of their energy above 2 kHz, worse than the pass recorded above as
+   * painful. See docs/sound.md. */
+  win: [`A light rising three-note melody, friendly, short decay on ${CELESTA}`, 1.0, 0.5],
+  potwin: [`A cheerful rising four-note melody, unhurried, resolving gently on ${CELESTA}`, 1.6, 0.5],
+  bigwin: [`A happy rising six-note phrase resolving onto a held note over a quiet warm chord, calm on ${CELESTA}`, 2.2, 0.5],
   lose: [`A soft low descending two-note tone, quiet and deflating. No drums, no reverb tail.`, 1.2, 0.5],
   badbeat: [`A hollow descending four-note tone, dark and disappointed, fading out. No drums.`, 1.6, 0.5],
 };
