@@ -2147,7 +2147,13 @@ export default class SuitedApp extends React.Component<any, any> {
          * hang off "no confetti", which meant a big pot lost to a monster got
          * the celebration and no commiseration — it asks about the hero now,
          * which is what it was always trying to say. */
-        if (heroWin) snd(big ? 'bigwin' : 'potwin');
+        /* One cue for every win you take, big pot or small — `bigwin`, which
+           is the harp phrase. It used to split on `big` (a 60bb pot, or a
+           monster hand) and play `potwin` otherwise; that split is gone from
+           the SOUND only. The VISUAL still keeps it: `big` gates the confetti
+           two lines up and rides along on the callout, so a big pot still
+           looks different. It just no longer sounds different. */
+        if (heroWin) snd('bigwin');
         else if (((t.seats[0] || {}).committed || 0) > 30 && (t.seats[0] || {}).revealed) this.later(() => snd('badbeat'), 240);
         // Then the whole crowning fades out as one — dim, spotlight, crown,
         // lifted cards, pill and confetti, all gated on `winHide` — at +2200ms,
@@ -4200,7 +4206,11 @@ export default class SuitedApp extends React.Component<any, any> {
       seated: false, sittingOut: false,
       fundDraft: usdcToStr(reg.payout), fundNote: '', fundBad: false,
     });
-    this.sfx(you.finishPlace === 1 ? 'win' : 'error');
+    /* Taking a tournament down is a win, so it gets the same cue every pot win
+       gets. `win` is left to the two places that are not wins at all — an
+       avatar unlocking and a hand verifying — where it reads as a success
+       chime rather than a celebration. */
+    this.sfx(you.finishPlace === 1 ? 'bigwin' : 'error');
   };
 
   // pollMine's finished-while-away path: same results route, but with no felt to

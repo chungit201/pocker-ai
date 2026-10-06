@@ -59,12 +59,16 @@ const MIX: Record<string, number> = {
   deal: 0.6, flip: 0.6, chip: 0.6, check: 0.6, seat: 0.6, error: 0.55, fold: 0.6, turnStart: 0.6,
   chips: 0.7, bet: 0.7, lose: 0.65, badbeat: 0.65,
   alert: 0.8, win: 0.85, allin: 0.9,
-  /* Lower than its siblings on purpose. `potwin` is the cue a player hears
-     most — every pot won that is not a monster — and at 0.9 it was the second
-     loudest voice in the set, which is how a cue earns "chói tai" even after
-     its spectrum is fixed. The rare ones can be the loud ones. */
+  /* `bigwin` is now the cue for EVERY win — the felt stopped splitting big
+     pots from small ones, see the award handler in SuitedApp — so it inherits
+     the level a constantly-firing cue needs rather than the 1.0 it carried as
+     a rare monster-pot fanfare. The rare ones can be the loud ones; this is no
+     longer a rare one. That 1.0 is most of what "chói tai" was.
+   *
+   * `potwin` keeps a level because its sample is still fetched and its
+   * synthesised voice still exists, but nothing on the felt plays it now. */
   potwin: 0.7,
-  bigwin: 1,
+  bigwin: 0.7,
 };
 
 export function createSound() {

@@ -156,6 +156,34 @@ Two rules out of this, both of which were available before anyone listened:
   the second loudest voice in the set, for a cue that fires constantly. It is
   0.7 now. The rare cues can be the loud ones.
 
+## One cue for every win
+
+The felt used to pick between two victory cues: `bigwin` for a pot over 60bb
+or a monster hand, `potwin` for everything else. It now plays `bigwin` for
+every win you take, and taking a tournament down plays it too.
+
+The split survived three rounds of tuning the clips and was never the thing
+being tuned, which is worth noticing: effort went into making two cues match
+each other when the question was whether the game needed two at all.
+
+What this changes beyond "one sound":
+
+- **`bigwin` dropped from 1.0 to 0.7 in `MIX`.** At 1.0 it was the loudest
+  voice in the set, which is defensible for a rare fanfare and not for a cue
+  that now fires on every won pot. By the rule above — the rare ones can be
+  the loud ones — it is no longer a rare one. That 1.0 was most of what "too
+  shrill" was; the spectrum work was real but it was not the whole complaint.
+- **The visual split stays.** `big` still gates the confetti and still rides
+  on the callout, so a big pot still *looks* different. Only the sound stopped
+  distinguishing them.
+- **`win` is not a win cue.** It is left to the two places that are not wins
+  at all — an avatar unlocking, a hand verifying — where a 1.0s phrase reads
+  as a success chime. Nothing on the felt has ever played it.
+- **`potwin` is now orphaned.** No code path plays it, but `load()` walks
+  `Object.keys(voices)`, so its 26 KB is still fetched on every visit and its
+  prompt and synthesised voice are still carried. Removing it touches six
+  files; it is listed here rather than done quietly.
+
 ## The fallback was still the old, shrill set
 
 Everything above is about the mp3s, and for three passes that was the whole
