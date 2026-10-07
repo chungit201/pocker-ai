@@ -156,21 +156,21 @@ function toTokens(units, decimals) {
  *  significant figures is far past what any percentage needs. */
 const ratio = (a, b) => (b > 0n ? Number((a * 1_000_000n) / b) / 1e6 : 0);
 
-const num = (n, dp = 0) => (n === null || n === undefined || !isFinite(n) ? 'N/A'
+const num = (n, dp = 0) => (n === null || n === undefined || !isFinite(n) ? '--'
   : n.toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp }));
-const money = (n, dp = 2) => (n === null || n === undefined || !isFinite(n) ? 'N/A' : `$${num(n, dp)}`);
-const pct = (n, dp = 1) => (n === null || n === undefined || !isFinite(n) ? 'N/A' : `${num(n, dp)}%`);
+const money = (n, dp = 2) => (n === null || n === undefined || !isFinite(n) ? '--' : `$${num(n, dp)}`);
+const pct = (n, dp = 1) => (n === null || n === undefined || !isFinite(n) ? '--' : `${num(n, dp)}%`);
 
 /** Big counts read better short; small ones need their digits. */
 function compact(n) {
-  if (n === null || n === undefined || !isFinite(n)) return 'N/A';
+  if (n === null || n === undefined || !isFinite(n)) return '--';
   const a = Math.abs(n);
   if (a >= 1e9) return `${(n / 1e9).toFixed(2)}B`;
   if (a >= 1e6) return `${(n / 1e6).toFixed(1)}M`;
   if (a >= 1e4) return `${Math.round(n / 1e3)}k`;
   return num(n, 0);
 }
-const moneyA = (n) => (n === null || n === undefined || !isFinite(n) ? 'N/A'
+const moneyA = (n) => (n === null || n === undefined || !isFinite(n) ? '--'
   : Math.abs(n) >= 10_000 ? `$${compact(n)}` : money(n, Math.abs(n) >= 1000 ? 0 : 2));
 
 /** A threshold is a number someone has to meet exactly, so it is never
@@ -213,7 +213,7 @@ const lockAdj = (seconds) => {
 /** The ticker as the site writes it. The contract's symbol is `SUITED`; the
  *  dollar sign is part of the name everywhere it is spoken. */
 const ticker = (symbol) => (symbol && symbol.startsWith('$') ? symbol : `$${symbol || 'SUITED'}`);
-const short = (a) => (a && a.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a || 'N/A');
+const short = (a) => (a && a.length > 12 ? `${a.slice(0, 6)}…${a.slice(-4)}` : a || '--');
 
 /** A daily countdown, in the shape the jackpot timer uses: `5d 04:12:03`. */
 function clock(ms) {
@@ -666,7 +666,7 @@ function tilesRow(v, d) {
     v.supplyPct === null ? null : `${pct(v.supplyPct)} of supply`,
   ].filter(Boolean).join(' · ');
   wrap.appendChild(tile('Total value locked',
-    v.tvlUsd === null ? (v.locked === null ? 'N/A' : compact(v.locked)) : `$${compact(v.tvlUsd)}`,
+    v.tvlUsd === null ? (v.locked === null ? '--' : compact(v.locked)) : `$${compact(v.tvlUsd)}`,
     v.locked === null ? `${v.symbol} locked · share of supply` : supplyLine).node);
 
   // 2 — the rate, TRAILING, at the longest lock. No price on chain means no
@@ -674,7 +674,7 @@ function tilesRow(v, d) {
   const top = v.rate && v.rate.perTier && v.rate.perTier.length ? v.rate.perTier[v.rate.perTier.length - 1] : null;
   const longest = v.tiers.length ? lockAdj(v.tiers[v.tiers.length - 1].duration) : '30-day';
   wrap.appendChild(tile('apr',
-    top === null ? 'N/A' : top.pct === null ? money(usd(top.perTokenYear) * 100_000, 0) : `Up to ${pct(top.pct)}`,
+    top === null ? '--' : top.pct === null ? money(usd(top.perTokenYear) * 100_000, 0) : `Up to ${pct(top.pct)}`,
     top === null
       ? (v.weight <= 0 ? 'Nobody is staked yet, so there is no pool rate'
         : 'A rate opens after two days of payments')
@@ -685,7 +685,7 @@ function tilesRow(v, d) {
 
   // 3 — what has actually been paid.
   wrap.appendChild(tile('Paid to stakers',
-    v.fundedAll === null ? 'N/A' : money(v.fundedAll, 0),
+    v.fundedAll === null ? '--' : money(v.fundedAll, 0),
     v.fundedAll === null ? 'All time, in USDC'
       : v.paidWeek > 0 ? `${money(v.paidWeek, 0)} in the last 7 days` : 'All time, in USDC').node);
 
@@ -693,7 +693,7 @@ function tilesRow(v, d) {
   //     reported one; otherwise the same midnight it will pick.
   const place = zoneLabel(v.sweepZone);
   const routed = !!(v.router && v.router.destinationOk !== false);
-  const t = tile('Next sweep', v.sweepAt ? clock(v.sweepAt - Date.now()) : 'N/A',
+  const t = tile('Next sweep', v.sweepAt ? clock(v.sweepAt - Date.now()) : '--',
     !v.router ? `Daily, at midnight ${place}, once the router is live`
         : !routed ? `Daily, at midnight ${place}, the vault is not pointed at the router`
           : `Rake is swept daily, at midnight ${place}`,
@@ -720,7 +720,7 @@ function tilesRow(v, d) {
   const burnt = bb ? toTokens(bb.totals.burnt, v.decimals) : null;
   const burntPct = burnt && v.supply ? (burnt / v.supply) * 100 : null;
   wrap.appendChild(tile('Tokens burnt',
-    burnt === null ? 'N/A' : `${compact(burnt)} ${v.symbol}`,
+    burnt === null ? '--' : `${compact(burnt)} ${v.symbol}`,
     !bb ? 'The buy wall is not running yet'
       : burntPct !== null ? `${pct(burntPct, burntPct < 1 ? 3 : 1)} of supply, bought back and burnt`
         : 'Nothing burnt yet',
@@ -840,7 +840,7 @@ function stakeCard(v, me) {
   /* ── what it would earn ─────────────────────────────────────────────────── */
   right.appendChild(pLabel('You would earn'));
   const estBox = el('div', 'display:flex;flex-direction:column;gap:1px');
-  const estBig = text('span', `font-family:${SERIF};${NUM};font-size:clamp(24px,38px,30px);line-height:1;color:${P_INK}`, 'N/A');
+  const estBig = text('span', `font-family:${SERIF};${NUM};font-size:clamp(24px,38px,30px);line-height:1;color:${P_INK}`, '--');
   const estUnit = text('span', `font-size:12.5px;color:${P_SUB}`, '');
   estBox.appendChild(estBig);
   estBox.appendChild(estUnit);
@@ -851,7 +851,7 @@ function stakeCard(v, me) {
   for (let i = 0; i < 6; i++) {
     const r = el('div', 'display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px solid rgba(232,236,248,0.099)');
     const k = text('span', `font-size:12.5px;color:${P_SUB}`, '');
-    const val = text('span', `font-family:${SERIF};${NUM};font-size:15px;color:${P_INK};text-align:right`, 'N/A');
+    const val = text('span', `font-family:${SERIF};${NUM};font-size:15px;color:${P_INK};text-align:right`, '--');
     r.appendChild(k);
     r.appendChild(val);
     rows.appendChild(r);
@@ -928,19 +928,19 @@ function stakeCard(v, me) {
       : belowFloor ? `The contract's floor is ${exact(toTokens(minBase, v.decimals))} ${v.symbol}`
         : '';
 
-    estBig.textContent = hasRate ? money(e.perWeek, 2) : 'N/A';
+    estBig.textContent = hasRate ? money(e.perWeek, 2) : '--';
     estBig.style.color = hasRate ? P_INK : P_SUB;
     estUnit.textContent = hasRate ? `USDC per week, at ${boostLabel(e.tier ? e.tier.boostBps : 10_000)}`
       : v.potYear !== null ? 'Enter an amount to see the estimate'
         : 'A rate opens after two days of payments';
 
     const cells = [
-      ['Per day', hasRate ? money(e.perDay, 2) : 'N/A', P_INK],
-      [`Over the ${e.tier ? Math.round(e.tier.duration / 86_400) : 30}-day lock`, hasRate ? money(e.overLock, 2) : 'N/A', P_INK],
-      ['Per year', hasRate ? money(e.perYear, 0) : 'N/A', P_INK],
-      [`APR at ${boostLabel(e.tier ? e.tier.boostBps : 10_000)}`, e.apr === null ? 'N/A' : pct(e.apr), e.apr === null ? P_SUB : BURNT],
-      ['Your weight', tokens ? compact(e.w) : 'N/A', P_INK],
-      ['Share of the pool', tokens ? pct(e.share * 100, e.share < 0.01 ? 2 : 1) : 'N/A', P_INK],
+      ['Per day', hasRate ? money(e.perDay, 2) : '--', P_INK],
+      [`Over the ${e.tier ? Math.round(e.tier.duration / 86_400) : 30}-day lock`, hasRate ? money(e.overLock, 2) : '--', P_INK],
+      ['Per year', hasRate ? money(e.perYear, 0) : '--', P_INK],
+      [`APR at ${boostLabel(e.tier ? e.tier.boostBps : 10_000)}`, e.apr === null ? '--' : pct(e.apr), e.apr === null ? P_SUB : BURNT],
+      ['Your weight', tokens ? compact(e.w) : '--', P_INK],
+      ['Share of the pool', tokens ? pct(e.share * 100, e.share < 0.01 ? 2 : 1) : '--', P_INK],
     ];
     cells.forEach(([k, val, tone], i) => {
       rowCells[i].k.textContent = k;
@@ -1028,7 +1028,7 @@ function claimCard(v, me) {
 
   const earned = me.earned === null || me.earned === undefined ? null : big(me.earned);
   const line = el('div', 'display:flex;align-items:baseline;gap:2px;flex-wrap:wrap');
-  const head = text('span', `font-family:${SERIF};${NUM};font-size:clamp(32px,56px,44px);line-height:1;color:${earned ? BRASS : MUTED}`, 'N/A');
+  const head = text('span', `font-family:${SERIF};${NUM};font-size:clamp(32px,56px,44px);line-height:1;color:${earned ? BRASS : MUTED}`, '--');
   const tail = text('span', `font-family:${SERIF};${NUM};font-size:20px;line-height:1;color:${MUTED}`, '');
   line.appendChild(head);
   line.appendChild(tail);
@@ -1057,7 +1057,7 @@ function claimCard(v, me) {
     { kind: earned && earned > 0n ? 'paper' : 'outline', wide: true, size: 14.5 });
 
   const paint = (now) => {
-    if (base === null) { head.textContent = 'N/A'; tail.textContent = ''; return; }
+    if (base === null) { head.textContent = '--'; tail.textContent = ''; return; }
     const grown = grownAt(now);
     head.textContent = money(Math.floor(grown * 100) / 100, 2);
     tail.textContent = String(Math.floor((grown * 1e6) % 1e4)).padStart(4, '0');
@@ -1080,13 +1080,13 @@ function claimCard(v, me) {
   const rows = el('div', 'display:flex;flex-direction:column;border-top:1px solid rgba(232,236,248,0.1)');
   const totalTokens = v.positions.reduce((a, p) => a + p.tokens, 0);
   const nextUp = v.positions.filter((p) => p.live).sort((a, b) => a.end - b.end)[0] || null;
-  rows.appendChild(kvRow('Total locked', v.positions.length ? `${compact(totalTokens)} ${v.symbol}` : 'N/A'));
+  rows.appendChild(kvRow('Total locked', v.positions.length ? `${compact(totalTokens)} ${v.symbol}` : '--'));
   rows.appendChild(kvRow('Earning weight',
     v.myWeightUnits > 0n
       ? `${compact(toTokens(v.myWeightUnits, v.decimals))} · ${pct(ratio(v.myWeightUnits, v.weightUnits) * 100, 2)} of pool`
-      : 'N/A',
+      : '--',
     v.myWeightUnits > 0n ? BRASS : MUTED));
-  const nextCell = kvRow('Next unlock', nextUp ? dur(nextUp.end - v.chainNow) : v.positions.length ? 'All ended' : 'N/A');
+  const nextCell = kvRow('Next unlock', nextUp ? dur(nextUp.end - v.chainNow) : v.positions.length ? 'All ended' : '--');
   rows.appendChild(nextCell);
   if (nextUp) {
     const node = nextCell.lastChild;
@@ -1214,7 +1214,7 @@ function positionsSection(v, me) {
     const shareBox = el('div', 'flex:0 1 112px;min-width:0;display:flex;flex-direction:column;gap:3px');
     shareBox.appendChild(text('span', `font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:${MUTED}`, 'Share of pool'));
     shareBox.appendChild(text('span', `font-family:${SERIF};${NUM};font-size:18px;color:${p.live ? BRASS : MUTED}`,
-      p.share === null ? 'N/A' : pct(p.share, 2)));
+      p.share === null ? '--' : pct(p.share, 2)));
     row.appendChild(shareBox);
 
     const acts = el('div', 'flex:0 0 auto;display:flex;gap:8px;flex-wrap:wrap');
@@ -1468,7 +1468,7 @@ function chartsRow(v) {
 
   wrap.appendChild(chartCard({
     eyebrow: 'Total value locked',
-    head: isUsd ? moneyA(v.tvlUsd) : v.locked === null ? 'N/A' : `${compact(v.locked)} ${v.symbol}`,
+    head: isUsd ? moneyA(v.tvlUsd) : v.locked === null ? '--' : `${compact(v.locked)} ${v.symbol}`,
     change: tvlDelta === null ? '' : `${tvlDelta >= 0 ? '+' : ''}${pct(tvlDelta)} over ${ui.range}d`,
     changeTone: tvlDelta === null ? MUTED : tvlDelta >= 0 ? WIN : LOSS,
     chips: unitChips,
@@ -1509,7 +1509,7 @@ function chartsRow(v) {
 
   wrap.appendChild(chartCard({
     eyebrow: paidMode ? 'USDC paid in per day · latest' : `APR at ${boostLabel(v.tiers[aprTierIndex] ? v.tiers[aprTierIndex].boostBps : 10_000)} · latest day`,
-    head: paidMode ? money(paidLast, 0) : aprNow === null ? 'N/A' : pct(aprNow),
+    head: paidMode ? money(paidLast, 0) : aprNow === null ? '--' : pct(aprNow),
     change: paidMode
       ? (paidFirst && paidLast !== null ? `${paidLast - paidFirst.paid >= 0 ? '+' : ''}${money(paidLast - paidFirst.paid, 0)} over ${ui.range}d` : '')
       : aprDelta === null ? '' : `${aprDelta >= 0 ? '+' : ''}${pct(aprDelta)} over ${ui.range}d`,
@@ -1540,7 +1540,7 @@ function chartsRow(v) {
    linked to the chain, so "we burnt X" is something to click, not to trust. */
 
 const txLink = (explorer, hash, label) => {
-  if (!hash) return text('span', `color:${MUTED}`, 'N/A');
+  if (!hash) return text('span', `color:${MUTED}`, '--');
   if (!explorer) return text('span', `font-size:11.5px;color:${MUTED};${NUM}`, short(hash));
   const a = text('a', `font-size:11.5px;color:${BRASS};text-decoration:none;border-bottom:1px solid rgba(139,92,246,0.3);${NUM}`, label);
   a.href = `${explorer.replace(/\/$/, '')}/tx/${hash}`;
@@ -1595,7 +1595,7 @@ function buybackSection(v, d) {
   const burntTokens = bb ? toTokens(bb.totals.burnt, v.decimals) : null;
   const line = el('div', 'display:flex;align-items:baseline;gap:10px;flex-wrap:wrap');
   line.appendChild(text('span', `font-family:${SERIF};${NUM};font-size:clamp(27px,44px,34px);line-height:1;color:${PAPER}`,
-    burntTokens === null ? 'N/A' : `${compact(burntTokens)} ${v.symbol}`));
+    burntTokens === null ? '--' : `${compact(burntTokens)} ${v.symbol}`));
   line.appendChild(text('span', `font-size:13px;color:${MUTED}`, 'burnt'));
   left.appendChild(line);
   left.appendChild(text('span', `font-size:12.5px;color:${MUTED}`,
@@ -1648,7 +1648,7 @@ function buybackSection(v, d) {
         const r = el('div', `display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;font-size:11.5px;color:${MUTED};${NUM}`);
         r.appendChild(text('span', `min-width:18px;color:${MUTED}`, String(c.n + 1)));
         r.appendChild(text('span', `min-width:64px;color:${INK}`, money(usd(c.usdgIn))));
-        r.appendChild(text('span', 'min-width:110px', c.received ? `→ ${compact(toTokens(c.received, v.decimals))} ${v.symbol}` : c.error ? 'Failed, absorbed' : 'N/A'));
+        r.appendChild(text('span', 'min-width:110px', c.received ? `→ ${compact(toTokens(c.received, v.decimals))} ${v.symbol}` : c.error ? 'Failed, absorbed' : '--'));
         r.appendChild(txLink(bb.explorer, c.buyTx, 'buy'));
         r.appendChild(txLink(bb.explorer, c.burnTx, 'burn'));
         detail.appendChild(r);
@@ -1761,7 +1761,7 @@ function sheetFor(v, me) {
       ['Lock length', `${Math.round((est.tier ? est.tier.duration : 0) / 86_400)} days · ${boostLabel(est.tier ? est.tier.boostBps : 10_000)}`, INK],
       ['unlocks', localWhen(est.end), INK],
       ['', utcWhen(est.end), MUTED],
-      ['estimated', est.perWeek === null ? 'N/A' : `${money(est.perWeek, 2)}/wk`, BRASS],
+      ['estimated', est.perWeek === null ? '--' : `${money(est.perWeek, 2)}/wk`, BRASS],
     ];
     note = 'No early exit. A lock runs to its end. You can extend it but never shorten it.';
     primary = `lock ${exact(s.tokens)} ${v.symbol}`;
@@ -1829,7 +1829,7 @@ function sheetFor(v, me) {
       l.appendChild(text('span', `font-size:12px;color:${MUTED};${NUM}`, `unlocks ${utcWhen(end)}`));
       b.appendChild(l);
       b.appendChild(text('span', `font-family:${SERIF};${NUM};font-size:16px;color:${BRASS};text-align:right`,
-        alt.perWeek === null ? 'N/A' : `${money(alt.perWeek, 2)}/wk`));
+        alt.perWeek === null ? '--' : `${money(alt.perWeek, 2)}/wk`));
       b.addEventListener('click', () => { ui.sheet = { ...s, pickTier: i }; repaint(); });
       body.appendChild(b);
     });

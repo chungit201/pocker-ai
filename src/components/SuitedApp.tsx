@@ -617,7 +617,7 @@ function checkNick(raw) {
 
 const SUITG = { s: '\u2660', h: '\u2665', d: '\u2666', c: '\u2663' };
 const RANKS = '23456789TJQKA';
-const fmt = (n) => (n == null ? 'N/A' : (Math.abs(n % 1) > 0.001 ? n.toFixed(2) : Math.round(n).toLocaleString('en-US')));
+const fmt = (n) => (n == null ? '--' : (Math.abs(n % 1) > 0.001 ? n.toFixed(2) : Math.round(n).toLocaleString('en-US')));
 /* The same figure counted in big blinds. Two decimal places at MOST — a stack
    is "97.5 bb", never "97.49999999999999" and never "97.50" — so trailing zeros
    go and a round number reads round. `toLocaleString` does both jobs in one
@@ -625,7 +625,7 @@ const fmt = (n) => (n == null ? 'N/A' : (Math.abs(n % 1) > 0.001 ? n.toFixed(2) 
    Below a hundredth of a blind it would print "0", which reads as nothing at
    all where something was actually bet, so that floor is shown as "<0.01". */
 const fmtBB = (n) => {
-  if (n == null) return 'N/A';
+  if (n == null) return '--';
   const r = Math.round(n * 100) / 100;
   if (r === 0 && n > 0) return '<0.01';
   return r.toLocaleString('en-US', { maximumFractionDigits: 2 });
@@ -4800,7 +4800,7 @@ export default class SuitedApp extends React.Component<any, any> {
       avInner: p.winnerAvatar ? avInner(p.winnerAvatar) : '',
     }));
 
-    let lbPos = 'N/A', lbPosSub = '', lbGap = 'N/A', lbGapSub = '';
+    let lbPos = '--', lbPosSub = '', lbGap = '--', lbGapSub = '';
     if (!lb) { /* still loading — leave the dashes */ }
     else if (!st.wallet) { lbPosSub = 'Connect to see your rank'; }
     else if (!lbMine) { lbPos = 'Unranked'; lbPosSub = `Play ${lbMin} hands to join`; }
@@ -5109,7 +5109,7 @@ export default class SuitedApp extends React.Component<any, any> {
       depositBtnStyle: `width:100%;padding:11px;border-radius:999px;background:${st.depositing ? 'rgba(232,236,248,0.28)' : CTA};color:${CTA_INK};font-size:13px;font-weight:500`,
       depositNote: `Minimum ${fmt(depMin)} ${this.tokenSymbol()} \u00b7 goes to the table program, not to us`,
       seatLabel: 'First open seat',
-      sitAmountLabel: sitAmount > 0 ? fmt(sitAmount) : 'N/A',
+      sitAmountLabel: sitAmount > 0 ? fmt(sitAmount) : '--',
       sitBbLabel: sitTable.bb > 0 ? `${Math.round(sitAmount / sitTable.bb)} big blinds` : '',
       sitMinLabel: fmt(sitTable.min),
       sitMaxLabel: fmt(Math.min(sitTable.max, st.balance || sitTable.max)),
@@ -5203,16 +5203,16 @@ export default class SuitedApp extends React.Component<any, any> {
       /* ── landing stats ───────────────────────────────────────────────
          Real numbers or nothing. A page whose whole claim is that the money
          is verifiable cannot open with invented figures.                  */
-      statHands: sstat ? Number(sstat.handsDealt).toLocaleString() : 'N/A',
+      statHands: sstat ? Number(sstat.handsDealt).toLocaleString() : '--',
       statHandsSub: sstat ? `${Number(sstat.handsThisWeek).toLocaleString()} today` : 'Run a gateway to see live numbers',
-      statInPlay: sstat ? fmt(sstat.inPlay / 1e6) : 'N/A',
+      statInPlay: sstat ? fmt(sstat.inPlay / 1e6) : '--',
       statTablesSub: sstat
         ? `${sstat.seated} seated across ${sstat.liveTables} live ${sstat.liveTables === 1 ? 'table' : 'tables'}`
         : 'Chips in front of players',
-      statCustody: sstat && sstat.custodied != null ? fmt(sstat.custodied / 1e6) : 'N/A',
+      statCustody: sstat && sstat.custodied != null ? fmt(sstat.custodied / 1e6) : '--',
       statCustodySub: sstat && sstat.chain ? 'Held by the table program' : 'Not connected to a chain',
-      statRake: sstat ? fmt(sstat.rake / 1e6) : 'N/A',
-      statJackpot: sstat ? fmt((sstat.jackpot || 0) / 1e6) : 'N/A',
+      statRake: sstat ? fmt(sstat.rake / 1e6) : '--',
+      statJackpot: sstat ? fmt((sstat.jackpot || 0) / 1e6) : '--',
       statJackpotSub: sstat ? 'Rolls daily at 00:00 UTC' : 'Daily prize pool',
 
       /* ── leaderboard ─────────────────────────────────────────────── */
@@ -5239,7 +5239,7 @@ export default class SuitedApp extends React.Component<any, any> {
       lbViewJackpot: st.lbView === 'jackpot',
       lbViewRecords: st.lbView === 'records',
       // jackpot view
-      jkPool: jk ? fmt((jk.pool || 0) / 1e6) : 'N/A',
+      jkPool: jk ? fmt((jk.pool || 0) / 1e6) : '--',
       jkEntrants: jk ? String(jk.entrants || 0) : '0',
       // Claim banner \u2014 only when THIS wallet has a live, unclaimed jackpot voucher.
       jkHasClaim: !!st.jkVoucher,
@@ -5312,7 +5312,7 @@ export default class SuitedApp extends React.Component<any, any> {
           rank: String(r.rank).padStart(2, '0'),
           name: r.name,
           hands: r.hands.toLocaleString(),
-          bb100: r.hands > 0 ? (bb >= 0 ? '+' : '\u2212') + Math.abs(bb).toFixed(1) : 'N/A',
+          bb100: r.hands > 0 ? (bb >= 0 ? '+' : '\u2212') + Math.abs(bb).toFixed(1) : '--',
           biggest: fmt((r.best || 0) / 1e6),
           net: (r.net >= 0 ? '+' : '\u2212') + fmt(Math.abs(r.net / 1e6)),
           sigil: (r.name || '?').slice(0, 2).toLowerCase(),
@@ -5339,11 +5339,11 @@ export default class SuitedApp extends React.Component<any, any> {
       // `you` to an authenticated caller, but a fixture or a stale payload
       // must never pin a "you" row under a signed-out visitor.
       lbHasYou: !!lbYou && !!st.wallet,
-      lbYouRank: lbYou ? (lbYou.rank ? String(lbYou.rank).padStart(2, '0') : 'N/A') : '',
+      lbYouRank: lbYou ? (lbYou.rank ? String(lbYou.rank).padStart(2, '0') : '--') : '',
       lbYouHands: lbYou ? lbYou.hands.toLocaleString() : '0',
       lbYouBb: lbYou && lbYou.hands > 0
         ? ((lbYou.netBb / lbYou.hands) * 100 >= 0 ? '+' : '\u2212') + Math.abs((lbYou.netBb / lbYou.hands) * 100).toFixed(1)
-        : 'N/A',
+        : '--',
       lbYouBest: lbYou ? fmt((lbYou.best || 0) / 1e6) : '0',
       lbYouNet: lbYou ? (lbYou.net >= 0 ? '+' : '\u2212') + fmt(Math.abs(lbYou.net / 1e6)) : '',
       lbYouNumStyle: 'text-align:right;font-size:12px;color:#94a3c4;font-variant-numeric:tabular-nums',
@@ -5396,11 +5396,11 @@ export default class SuitedApp extends React.Component<any, any> {
        that held-back amount, stated only when there is one. */
     const jkReserved = jk && jk.reserved ? Number(jk.reserved) / 1e6 : 0;
     vals.jkFacts = [
-      { k: 'DRAWN IN', v: (jk && jk.closesAt) ? fmtCountdown(jk.closesAt - st.now) : 'N/A', tone: BRASS },
-      { k: 'IN THE DRAW', v: jk ? Number(jk.entrants || 0).toLocaleString() : 'N/A', tone: PAPER_INK },
+      { k: 'DRAWN IN', v: (jk && jk.closesAt) ? fmtCountdown(jk.closesAt - st.now) : '--', tone: BRASS },
+      { k: 'IN THE DRAW', v: jk ? Number(jk.entrants || 0).toLocaleString() : '--', tone: PAPER_INK },
       jkReserved > 0
         ? { k: 'OWED TO WINNERS', v: '$' + fmt(jkReserved), tone: PAPER_INK }
-        : { k: 'FROM CREATOR FEES', v: jk ? '$' + fmt(Number(jk.fromCreator || 0) / 1e6) : 'N/A', tone: PAPER_INK },
+        : { k: 'FROM CREATOR FEES', v: jk ? '$' + fmt(Number(jk.fromCreator || 0) / 1e6) : '--', tone: PAPER_INK },
     ];
 
     /* The name this viewer plays under, resolved the way the gateway resolves
@@ -5420,7 +5420,7 @@ export default class SuitedApp extends React.Component<any, any> {
     const jkShort = jkYou && !jkIn ? Number(jkYou.shortBy || 0) / 1e6 : 0;
     vals.youInDraw = jkIn;
     vals.youOutOfDraw = !jkIn;
-    vals.youChance = jkIn ? `${jkYou.chance}%` : 'N/A';
+    vals.youChance = jkIn ? `${jkYou.chance}%` : '--';
     vals.youDrawRows = jkIn
       ? [
         { k: 'Your tickets', v: Number(jkYou.tickets).toLocaleString() },
@@ -5479,7 +5479,7 @@ export default class SuitedApp extends React.Component<any, any> {
         avTier: r.avatar ? avTier(r.avatar) : '',
         avInner: r.avatar ? avInner(r.avatar) : '',
         hands: r.hands.toLocaleString(),
-        bb100: bb === null ? 'N/A' : (bb >= 0 ? '+' : '−') + Math.abs(bb).toFixed(1),
+        bb100: bb === null ? '--' : (bb >= 0 ? '+' : '−') + Math.abs(bb).toFixed(1),
         bbStyle: `flex:0 0 11%;min-width:62px;text-align:right;font-size:12.5px;font-variant-numeric:tabular-nums;color:${bb === null ? MUTED : bb >= 0 ? '#22d3ee' : '#f0a8b4'}`,
         biggest: '$' + fmt((r.best || 0) / 1e6),
         net: (r.net >= 0 ? '+' : '−') + '$' + fmt(Math.abs(r.net / 1e6)),
@@ -5510,7 +5510,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.lbPoolLine = lb ? `$${fmt((lb.pool || 0) / 1e6)} raked` : '';
     // What it would take to move up one place — the gateway sends the row
     // above the viewer for exactly this, even when they are off the top N.
-    vals.lbGapLine = lbGap && lbGap !== 'N/A' && lbGapSub ? `${lbGap} ${lbGapSub}` : '';
+    vals.lbGapLine = lbGap && lbGap !== '--' && lbGapSub ? `${lbGap} ${lbGapSub}` : '';
 
     /* The five biggest pots, and a medal on the first three.
        Five, not the ten the endpoint sends: this is a sidebar beside the
@@ -5598,7 +5598,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.lobbyEyebrow = seatedNow ? 'PLAYING RIGHT NOW' : 'THE ROOM IS QUIET';
     vals.lobbyBig = seatedNow
       ? String(seatedNow)
-      : (handsToday == null ? 'N/A' : handsToday.toLocaleString());
+      : (handsToday == null ? '--' : handsToday.toLocaleString());
     vals.lobbyBigUnit = seatedNow
       ? (seatedNow === 1 ? 'player seated' : 'players seated')
       : (handsToday === 1 ? 'hand today' : 'hands today');
@@ -5616,13 +5616,13 @@ export default class SuitedApp extends React.Component<any, any> {
        slot carries presence instead. */
     // Rounded to the dollar with a thousands separator: these tiles are small
     // and a bankroll's cents are noise beside a five-figure number.
-    const statMoney = (v) => (sstat && v != null ? '$' + Math.round(v / 1e6).toLocaleString('en-US') : 'N/A');
+    const statMoney = (v) => (sstat && v != null ? '$' + Math.round(v / 1e6).toLocaleString('en-US') : '--');
     vals.lobbyFacts = [
       seatedNow
-        ? { k: 'HANDS TODAY', v: handsToday == null ? 'N/A' : handsToday.toLocaleString(), sub: 'Across every stake', tone: PAPER_INK }
+        ? { k: 'HANDS TODAY', v: handsToday == null ? '--' : handsToday.toLocaleString(), sub: 'Across every stake', tone: PAPER_INK }
         : { k: 'PLAYERS ONLINE', v: String(st.playersOnline), sub: 'Connected right now', tone: PAPER_INK },
       { k: 'IN PLAY', v: statMoney(sstat && sstat.inPlay), sub: 'Chips on the felt', tone: PAPER_INK },
-      { k: 'HANDS DEALT', v: sstat ? Number(sstat.handsDealt).toLocaleString() : 'N/A', sub: 'Since the first deal', tone: PAPER_INK },
+      { k: 'HANDS DEALT', v: sstat ? Number(sstat.handsDealt).toLocaleString() : '--', sub: 'Since the first deal', tone: PAPER_INK },
     ];
 
     /* Today's jackpot, from the /api/jackpot payload this screen already
@@ -5630,10 +5630,10 @@ export default class SuitedApp extends React.Component<any, any> {
        the leaderboard; a second copy in the lobby repeated a page one click
        away. This does not: it is time-boxed, it moves while you watch, and it
        is the only thing on this screen that answers "why now". */
-    vals.lobbyJkPool = jk ? fmt(Number(jk.pool || 0) / 1e6) : 'N/A';
+    vals.lobbyJkPool = jk ? fmt(Number(jk.pool || 0) / 1e6) : '--';
     vals.lobbyJkRows = [
-      { k: 'Drawn in', v: (jk && jk.closesAt) ? fmtCountdown(jk.closesAt - st.now) : 'N/A', tone: BRASS },
-      { k: 'In the draw', v: jk ? Number(jk.entrants || 0).toLocaleString() : 'N/A', tone: FELT_INK },
+      { k: 'Drawn in', v: (jk && jk.closesAt) ? fmtCountdown(jk.closesAt - st.now) : '--', tone: BRASS },
+      { k: 'In the draw', v: jk ? Number(jk.entrants || 0).toLocaleString() : '--', tone: FELT_INK },
     ];
     /* The entry rule in the draw's own numbers. The same sentence runs on the
        leaderboard and in the rules, so the three can never disagree. */
@@ -5849,7 +5849,7 @@ export default class SuitedApp extends React.Component<any, any> {
         };
       });
 
-    vals.tableName = sess ? sess.name : 'N/A';
+    vals.tableName = sess ? sess.name : '--';
     vals.tableStakes = stakesLabel();
     vals.myTableStyle = `display:${st.seated && st.session && !st.leaving ? 'block' : 'none'};padding:11px 20px;border-radius:5px;border:1px solid rgba(232,236,248,0.28);background:linear-gradient(180deg,rgba(148,163,196,0.05),rgba(0,0,0,0.125));box-shadow:inset 0 1px 0 rgba(255,255,255,0.1);color:${FELT_INK};font-size:13px`;
     /* Spectating is only reachable by standing up from a table you were
@@ -5884,35 +5884,35 @@ export default class SuitedApp extends React.Component<any, any> {
     /* Three states, three sentences: still loading, could not load, loaded and
        empty. They used to share one. */
     const noRecord = (empty) => (meLoading ? '\u2026' : meFailed ? 'Could not load your record' : empty);
-    const dash = (v, suffix?) => (v === null || v === undefined ? 'N/A' : `${v}${suffix || ''}`);
+    const dash = (v, suffix?) => (v === null || v === undefined ? '--' : `${v}${suffix || ''}`);
     const bigStyle = (colour?) => `font-family:'Inter Tight',system-ui,sans-serif;font-weight:600;letter-spacing:-.03em;font-size:28px;line-height:1${colour ? ';color:' + colour : ''}`;
     const noteStyle = 'font-size:10px;color:#94a3c4;margin-top:5px';
     const thin = ps && ps.bb100 === null ? `needs ${ps.minSample} hands` : '';
     vals.statTiles = [
       {
         label: 'BB / 100',
-        value: ps ? dash(ps.bb100 === null ? null : (ps.bb100 > 0 ? '+' + ps.bb100 : ps.bb100)) : 'N/A',
+        value: ps ? dash(ps.bb100 === null ? null : (ps.bb100 > 0 ? '+' + ps.bb100 : ps.bb100)) : '--',
         valueStyle: bigStyle(ps && ps.bb100 > 0 ? '#7d4cf0' : ps && ps.bb100 < 0 ? '#f33f5d' : null),
         note: thin || (ps ? `Over ${ps.hands.toLocaleString()} hands` : noRecord('No hands yet')),
         noteStyle,
       },
       {
         label: 'VPIP / PFR',
-        value: ps && ps.vpip !== null ? `${Math.round(ps.vpip)} / ${Math.round(ps.pfr)}` : 'N/A',
+        value: ps && ps.vpip !== null ? `${Math.round(ps.vpip)} / ${Math.round(ps.pfr)}` : '--',
         valueStyle: bigStyle(),
         note: thin || 'Played / raised preflop',
         noteStyle,
       },
       {
         label: 'WTSD',
-        value: ps ? dash(ps.wtsd === null ? null : Math.round(ps.wtsd), '%') : 'N/A',
+        value: ps ? dash(ps.wtsd === null ? null : Math.round(ps.wtsd), '%') : '--',
         valueStyle: bigStyle(),
         note: thin || 'Reached showdown',
         noteStyle,
       },
       {
         label: 'BIGGEST POT',
-        value: ps && ps.best > 0 ? fmt(ps.best / 1e6) : 'N/A',
+        value: ps && ps.best > 0 ? fmt(ps.best / 1e6) : '--',
         valueStyle: bigStyle(),
         note: ps && ps.rank ? `Rank #${ps.rank} all-time` : 'USDC',
         noteStyle,
@@ -5965,7 +5965,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.fundHistMoreLabel = st.fundHistAll ? 'Show fewer' : `Show all ${fhRows.length}`;
     vals.fundHistMore = () => this.setState({ fundHistAll: !st.fundHistAll });
     vals.resultsCardStyle = 'padding:22px;border-radius:26px;background:#1a2238';
-    vals.lifetimeNet = ps ? `${ps.net > 0 ? '+' : ''}${fmt(ps.net / 1e6)} usdg` : 'N/A';
+    vals.lifetimeNet = ps ? `${ps.net > 0 ? '+' : ''}${fmt(ps.net / 1e6)} usdg` : '--';
     vals.lifetimeNetStyle = `font-family:'Inter Tight',system-ui,sans-serif;font-weight:600;letter-spacing:-.03em;font-size:24px;color:${ps && ps.net > 0 ? '#7d4cf0' : ps && ps.net < 0 ? '#f33f5d' : '#e8ecf8'}`;
     vals.resultsNote = ps
       ? `${ps.hands.toLocaleString()} hands \u00b7 ${fmt(ps.volume / 1e6)} USDC wagered \u00b7 ${ps.handsThisWeek.toLocaleString()} today`
@@ -6311,9 +6311,9 @@ export default class SuitedApp extends React.Component<any, any> {
        the server could not compute is null, and null renders as an em dash
        with the reason beside it — "0 bb/100" would be a claim we cannot make. */
     const hp = st.me && st.me.stats;
-    const hDash = (v) => (v === null || v === undefined ? 'N/A' : v);
+    const hDash = (v) => (v === null || v === undefined ? '--' : v);
     const hNet = hp ? hp.net / 1e6 : null;
-    vals.sessNet = hNet == null ? 'N/A' : (hNet >= 0 ? '+' : '−') + '$' + fmt(Math.abs(hNet));
+    vals.sessNet = hNet == null ? '--' : (hNet >= 0 ? '+' : '−') + '$' + fmt(Math.abs(hNet));
     vals.sessNetTone = hNet == null ? MUTED : hNet >= 0 ? '#22d3ee' : '#f0a8b4';
     /* Signed out, loading and empty are three different things and the hero
        has to say which. Without the wallet check a signed-out visitor sat on
@@ -6325,11 +6325,11 @@ export default class SuitedApp extends React.Component<any, any> {
         : st.me === null ? 'Loading your record…' : 'No hands yet');
     const hThin = hp && hp.bb100 === null ? `needs ${hp.minSample} hands` : '';
     vals.sessFacts = [
-      { k: 'TODAY', v: hp ? hp.handsThisWeek.toLocaleString() : 'N/A', sub: 'Hands played', tone: PAPER_INK },
-      { k: 'BIGGEST POT', v: hp && hp.best > 0 ? '$' + fmt(hp.best / 1e6) : 'N/A', sub: 'Won in one hand', tone: PAPER_INK },
-      { k: 'BB/100', v: hp ? hDash(hp.bb100) : 'N/A', sub: hThin || (hp ? `Over ${hp.hands.toLocaleString()} hands` : 'Win rate'), tone: PAPER_INK },
+      { k: 'TODAY', v: hp ? hp.handsThisWeek.toLocaleString() : '--', sub: 'Hands played', tone: PAPER_INK },
+      { k: 'BIGGEST POT', v: hp && hp.best > 0 ? '$' + fmt(hp.best / 1e6) : '--', sub: 'Won in one hand', tone: PAPER_INK },
+      { k: 'BB/100', v: hp ? hDash(hp.bb100) : '--', sub: hThin || (hp ? `Over ${hp.hands.toLocaleString()} hands` : 'Win rate'), tone: PAPER_INK },
       // rank is null below the hand minimum and 0 when played-but-unranked.
-      { k: 'RANK', v: hp && hp.rank ? '#' + hp.rank : 'N/A', sub: hp && hp.rank ? 'On the all-time board' : 'Not yet ranked', tone: PAPER_INK },
+      { k: 'RANK', v: hp && hp.rank ? '#' + hp.rank : '--', sub: hp && hp.rank ? 'On the all-time board' : 'Not yet ranked', tone: PAPER_INK },
     ];
 
     /* The proof rail. THREE checks, because engine/verify.js returns three —
@@ -6375,7 +6375,7 @@ export default class SuitedApp extends React.Component<any, any> {
       const v = st.verified[h.handId];
       const row = {
         id: '#' + String(h.handNo).padStart(4, '0'),
-        hole: (h.heroHole || []).map((x) => cardText(x)).join(' ') || 'N/A',
+        hole: (h.heroHole || []).map((x) => cardText(x)).join(' ') || '--',
         board: (h.board || []).map((x) => cardText(x)).join(' ') || 'No showdown',
         holeStyle: `letter-spacing:.06em;color:${INK}`,
         boardStyle: `letter-spacing:.06em;color:${MUT}`,
@@ -6389,7 +6389,7 @@ export default class SuitedApp extends React.Component<any, any> {
         seed: (h.serverSeed || (v && v.seed) || 'Revealed when you verify') + ' \u00b7 hand ' + h.handNo,
         // Every player's contributed entropy, which is what stops the seed
         // being the house's alone. `\u2014` when a hand carried none.
-        clientSeeds: (h.clientSeeds || []).length ? (h.clientSeeds || []).join('  ') : 'N/A',
+        clientSeeds: (h.clientSeeds || []).length ? (h.clientSeeds || []).join('  ') : '--',
         summary: (h.seats || []).filter((s) => s.handName).map((s) => `${s.seat === 0 ? 'You' : s.name}: ${s.handName}`).join('\n') || 'Won before showdown',
         verify: () => {
           // The real thing: re-derive the whole deck from the revealed seed and
@@ -6511,7 +6511,7 @@ export default class SuitedApp extends React.Component<any, any> {
     const feat = tOpen[0] || tSoon[0] || null;
     // The featured event's own detail — the only source of its structure.
     const fd = st.tFeatDetail && feat && st.tFeatDetail.id === feat.id ? st.tFeatDetail : null;
-    const fDash = (v) => (v == null ? 'N/A' : v);
+    const fDash = (v) => (v == null ? '--' : v);
 
     if (feat) {
       const fBuy = Number(feat.buyIn || 0) / 1e6;
@@ -6531,7 +6531,7 @@ export default class SuitedApp extends React.Component<any, any> {
       // its caption apart.
       vals.featCountdown = fc.label.replace(/^(starts|registration opens) in /, '');
       vals.featStartLine = (feat.state === 'registering' ? 'Until cards are in the air · ' : 'Until registration opens · ')
-        + (at ? new Date(at).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : 'N/A');
+        + (at ? new Date(at).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' }) : '--');
       vals.featBlurbStyle = 'display:none';
       vals.featBlurb = '';
       vals.featFacts = [
@@ -6555,8 +6555,8 @@ export default class SuitedApp extends React.Component<any, any> {
         tone: i === 0 ? BRASS : MUTED,
       }));
       vals.featStructure = [
-        { k: 'Starting stack', v: fd ? Number(fd.startingStack).toLocaleString() : 'N/A' },
-        { k: 'Levels', v: fd ? `${fd.levelMinutes} min` : 'N/A' },
+        { k: 'Starting stack', v: fd ? Number(fd.startingStack).toLocaleString() : '--' },
+        { k: 'Levels', v: fd ? `${fd.levelMinutes} min` : '--' },
         // `tableSize` is never shipped on the wire, but `validateTournament`
         // refuses anything but 6 ("until 9-handed tables are built"), so this
         // is a fact about the engine rather than a guess about this event.
@@ -6711,7 +6711,7 @@ export default class SuitedApp extends React.Component<any, any> {
         // many (never who).
         invitesLabel: tt.inviteSeats > 0 ? `${tt.inviteSeats} seat${tt.inviteSeats === 1 ? '' : 's'} held for invites` : '',
         invitesStyle: `display:${tt.inviteSeats > 0 ? 'block' : 'none'};font-size:11px;line-height:1.4;margin-top:2px;color:${MUT}`,
-        entrantsLabel: `${tt.entrants ?? 0}/${tt.maxEntrants ?? 'N/A'}`,
+        entrantsLabel: `${tt.entrants ?? 0}/${tt.maxEntrants ?? '--'}`,
         // The pool as its own column, beside buy-in and field. `poolLine` above
         // still carries the guaranteed/ceiling pitch under the name.
         pool: usd((tt.prizePool != null ? Number(tt.prizePool) : Number(tt.projectedPool || 0)) / 1e6),
@@ -6831,7 +6831,7 @@ export default class SuitedApp extends React.Component<any, any> {
       const paid = (Number(mine.buyInPaid || 0) + Number(mine.feePaid || 0)) / 1e6;
       const metaK = finished ? 'PAYOUT' : 'BUY-IN PAID';
       const metaV = finished
-        ? (mine.payout != null ? usd(Number(mine.payout) / 1e6) : 'N/A')
+        ? (mine.payout != null ? usd(Number(mine.payout) / 1e6) : '--')
         : (mine.paid ? usd(paid) : 'invited');
       rows.push({
         name: mine.name || 'Tournament',
@@ -6862,7 +6862,7 @@ export default class SuitedApp extends React.Component<any, any> {
     const tdPoolMicro = td
       ? (td.prizePool != null ? Number(td.prizePool) : Number(td.projectedPool || 0))
       : 0;
-    vals.tdPoolLabel = td ? usd(tdPoolMicro / 1e6) : 'N/A';
+    vals.tdPoolLabel = td ? usd(tdPoolMicro / 1e6) : '--';
     // Prize-pool showcase: an overlay event is a guaranteed floor (the added
     // prize) climbing to a ceiling (every paying seat filled — the server's
     // `maxPool`, which leaves out seats held for invites, so a full field fills
@@ -6879,7 +6879,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.tdCeilChipStyle = `display:${tdPreLock && tdMaxPoolMicro > tdPoolMicro ? 'inline-flex' : 'none'};align-items:center;font-size:11px;color:#94a3c4;border:1px solid rgba(232,236,248,0.18);border-radius:5px;padding:3px 9px`;
     vals.tdPoolBarStyle = `display:${tdPreLock && tdMaxPoolMicro > 0 ? 'block' : 'none'};position:relative;height:5px;border-radius:3px;background:rgba(0,0,0,0.35);margin-top:12px;max-width:420px;overflow:hidden`;
     vals.tdPoolFillStyle = `position:absolute;left:0;top:0;bottom:0;width:${tdFillPct}%;border-radius:3px;background:linear-gradient(90deg,rgba(139,92,246,0.6),#8b5cf6);box-shadow:0 0 10px -2px rgba(139,92,246,0.7);transition:width .4s ease`;
-    vals.tdEntrantsLabel = td ? `${td.entrants ?? 0}/${td.maxEntrants ?? 'N/A'}` : 'N/A';
+    vals.tdEntrantsLabel = td ? `${td.entrants ?? 0}/${td.maxEntrants ?? '--'}` : '--';
     // Seats held for invites: capacity the public can't buy, shown while it
     // still matters (before the field locks).
     const tdInviteSeats = td ? Number(td.inviteSeats || 0) : 0;
@@ -6911,7 +6911,7 @@ export default class SuitedApp extends React.Component<any, any> {
       return {
         levelLabel: `L${lvl}`,
         blindsLabel: `${fmt(l.sb)}/${fmt(l.bb)}`,
-        anteLabel: l.ante ? fmt(l.ante) : 'N/A',
+        anteLabel: l.ante ? fmt(l.ante) : '--',
         rowStyle: `display:grid;grid-template-columns:44px 1fr auto;gap:12px;padding:8px 18px;font-size:12.5px;border-bottom:1px dashed rgba(232,236,248,0.11);${current ? 'background:rgba(139,92,246,0.22);font-weight:500;' : ''}`,
       };
     }) : [];
@@ -7059,8 +7059,8 @@ export default class SuitedApp extends React.Component<any, any> {
     const streetLabel = t && t.street
       ? (t.phase === 'complete' ? 'Showdown' : t.street)
       : 'Waiting';
-    vals.handIdLabel = t && t.handId ? t.handId : 'N/A';
-    vals.commitLabel = t && t.commit ? t.commit.slice(0, 8) + '…' : 'N/A';
+    vals.handIdLabel = t && t.handId ? t.handId : '--';
+    vals.commitLabel = t && t.commit ? t.commit.slice(0, 8) + '…' : '--';
     vals.streetLabel = streetLabel;
     vals.feltRef = this.feltRef;
 
@@ -7653,7 +7653,7 @@ export default class SuitedApp extends React.Component<any, any> {
       return ms > 0 ? fmtCountdown(ms) : 'Leveling up…';
     })();
     vals.tHudRemaining = (tsd && typeof tsd.remaining === 'number')
-      ? `${tsd.remaining} of ${tsd.entrants ?? 'N/A'} left`
+      ? `${tsd.remaining} of ${tsd.entrants ?? '--'} left`
       : '';
     // The bubble is the single spot before the money; otherwise, while short
     // of it, name where the money starts so the field size is oriented
@@ -7922,7 +7922,7 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.rebuyBankrollLabel = fmt(rbBankroll);
     vals.rebuyCanAfford = rbCanAfford;
     vals.rebuyCantAfford = !rbCanAfford;
-    vals.rebuyAmountLabel = rbAmount > 0 ? fmt(rbAmount) : 'N/A';
+    vals.rebuyAmountLabel = rbAmount > 0 ? fmt(rbAmount) : '--';
     vals.rebuyBbLabel = rbTbl.bb > 0 ? `${Math.round(rbAmount / rbTbl.bb)} big blinds` : '';
     vals.rebuyMinLabel = fmt(rbTbl.min);
     vals.rebuyMaxLabel = fmt(rbCeil);

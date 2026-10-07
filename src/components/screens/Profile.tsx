@@ -371,7 +371,7 @@ export default function Profile({ v }: { v: any }) {
             <span>
               {"LEVEL "}
               {interp(v.xpLevel)}
-              {" N/A "}
+              {" -- "}
               {interp(v.xpTitleCaps)}
             </span>
             <span style={{ color: "#94a3c4" }}>
