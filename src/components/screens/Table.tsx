@@ -878,6 +878,10 @@ export default function Table({ v }: { v: any }) {
                 </button>
                 <button className="pill-flat tb-btn" onClick={v.leaveTable} style={css(v.leaveStyle)}>{interp(v.leaveLabel)}</button>
               </div>
+              {/* Where "Sit down" used to be. A seat that is closing cannot be
+                  cancelled, so the control is gone and this says why rather
+                  than leaving a gap the player reads as a missing button. */}
+              <div style={css(v.seatClosingStyle)}>{interp(v.seatClosingNote)}</div>
               {"\r\n        "}
             </div>
             {"\r\n        "}

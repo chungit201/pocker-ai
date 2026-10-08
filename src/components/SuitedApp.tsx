@@ -1729,6 +1729,11 @@ export default class SuitedApp extends React.Component<any, any> {
     // and the faucet. Ask once; if it fails we fall back to the faucet path.
     this.loadStats();
     this.loadLobby();
+    /* On boot, because a cold load of `/` with a restored token is the main way
+       somebody arrives holding a seat they cannot see — the tab that was
+       playing is gone. It no-ops without a token, and its `then` is what
+       redirects them back to the table. */
+    this.loadMe();
     if (this.server && this.wallet.chainInfo) {
       this.wallet.chainInfo()
         .then((chain) => this.setState({ chain }))
@@ -1847,6 +1852,28 @@ export default class SuitedApp extends React.Component<any, any> {
             if (code === 'pin_required') {
               if (this.adapter) { this.unsub && this.unsub(); this.adapter.destroy(); this.adapter = null; }
               this.enterRoomByTable(tableId);
+              return;
+            }
+            /* One seat per account — fe-seats-and-tabs.md §4.
+             *
+             * Neither of these costs the player anything: the gateway refuses
+             * the sit before any money moves, so there is nothing to undo here.
+             * Both are routed to the lobby, which is where the seat they are
+             * blocked by is named and where the two ways out of it live (go
+             * back to it, or leave it). `loadMe` first, because that banner is
+             * drawn from `seats` and the refusal is itself the news that this
+             * tab's copy of it is out of date. */
+            if (code === 'seated_elsewhere') {
+              const where = msg && /\S/.test(String(msg)) ? msg : 'You already have a seat at another table';
+              this.toast(where, 'warn');
+              this.loadMe();
+              this.closeTable();
+              return;
+            }
+            if (code === 'seat_finishing') {
+              this.toast(msg || 'You left this table — the seat closes when the hand ends', 'warn');
+              this.loadMe();
+              this.closeTable();
               return;
             }
             // The host ended the session (or the room was reaped): the table is
@@ -2234,9 +2261,21 @@ export default class SuitedApp extends React.Component<any, any> {
         this.pushLog(
           e.status === 'online' ? 'reconnected'
             : e.status === 'expired' ? 'Session expired, sign in again to retake your seat'
+            // Not "connection lost": nothing was lost and nothing is being
+            // held open here — the other tab has the table and the seat.
+            : e.status === 'taken-over' ? 'This table was opened in another tab'
             : 'Connection lost, holding your seat',
           'acc',
         );
+        /* …and a toast for the takeover, because the overlay that explains it
+           is drawn inside the felt. Seated players can be anywhere — the lobby,
+           their profile — while the socket stays open behind them, and there
+           the table simply went quiet with nothing on screen to say why. The
+           other states need no toast: they put their own scrim up and are only
+           reachable from the table. */
+        if (e.status === 'taken-over' && this.state.screen !== 'table') {
+          this.toast('This table was opened in another tab', 'warn');
+        }
       }
     }
 
@@ -3217,7 +3256,12 @@ export default class SuitedApp extends React.Component<any, any> {
         this.setState({ screen: 'connect', connectStep: 0 });
         this.toast('Connect a wallet to sit at a table', 'ok');
       }
-      if (screen === 'landing') this.loadStats();
+      /* `loadMe` as well as `loadStats`: the landing is where a held seat sends
+         somebody back to their table, and that decision needs `seats` — which
+         is a server read, so navigating here with a stale `me` would miss it.
+         `resumeHeldSeat` also runs on whatever is already known, so a seat read
+         a moment ago redirects without waiting for the round trip. */
+      if (screen === 'landing') { this.loadStats(); this.loadMe(); this.resumeHeldSeat(); }
       // The lobby's biggest-pots panel reads the same /api/jackpot payload the
       // leaderboard does, so entering the lobby warms it too. Cheap and
       // cached in `st.jk`: a player who then opens the leaderboard sees it
@@ -3729,12 +3773,82 @@ export default class SuitedApp extends React.Component<any, any> {
     });
   };
 
+  /* ── one seat per account ───────────────────────────────────────────────
+     `/api/me` carries a `seats` array: at most one ACTIVE seat (`leaving:
+     false`, always first) plus any seats still closing out a hand after a
+     mid-hand Leave. See docs — fe-seats-and-tabs.md §1.
+
+     Read from the SERVER, not from `st.seated`/`st.session`: those describe
+     this tab, and the whole point of the field is the seat somebody left open
+     in another tab, on another machine, or behind a closed browser. A gateway
+     that does not send `seats` yet leaves both of these empty, so every caller
+     below degrades to the old behaviour rather than to a wrong one. */
+  activeSeat = () => {
+    const seats = this.state.me && this.state.me.seats;
+    return (Array.isArray(seats) ? seats.find((s) => s && !s.leaving) : null) || null;
+  };
+  /** Seats that will close when their hand is written up. Can be several. */
+  leavingSeats = () => {
+    const seats = this.state.me && this.state.me.seats;
+    return Array.isArray(seats) ? seats.filter((s) => s && s.leaving) : [];
+  };
+
+  /* Walking in the front door while holding a seat takes you back to it.
+   *
+   * `resume: true` is what makes this a return rather than a new buy-in — the
+   * seat is taken from the server's projection instead of the seat screen
+   * asking for money that is already on the table. Only from the landing page:
+   * the lobby and the rest stay reachable while seated, and the table's own
+   * Leave is there, so this is not a trap. */
+  resumeHeldSeat = () => {
+    if (!this.server || this.state.screen !== 'landing') return false;
+    const seat = this.activeSeat();
+    if (!seat || !seat.tableId) return false;
+    // Already there (a redirect that has landed) — nothing to do.
+    if (this.state.seated && this.state.session && this.state.session.tableId === seat.tableId) return false;
+    this.openTable(seat.tableId, { resume: true });
+    return true;
+  };
+
+  /* Leave a seat without opening its table — fe-seats-and-tabs.md §2.
+   *
+   * For the seat somebody cannot reach: the tab is closed, the link is lost, or
+   * they are on another machine. Without it a held seat is a dead end, because
+   * every other way to leave is a button on the table screen.
+   *
+   * The response already carries the new `seats`, but `loadMe` runs anyway: the
+   * doc is explicit that nothing is pushed, and one authoritative read is worth
+   * more than trusting a shape that may not be final. Mid-hand the seat does
+   * not close — it goes `leaving: true` — so the reply is checked rather than
+   * assumed, and the player is told which of the two happened. */
+  leaveHeldSeat = () => {
+    const token = this.wallet && this.wallet.token && this.wallet.token();
+    if (!this.server || !token || this.state.seatLeaving) return;
+    this.setState({ seatLeaving: true });
+    fetch(`${this.server}/api/seat/leave`, { method: 'POST', headers: { authorization: `Bearer ${token}` } })
+      .then(this.okJson)
+      .then((r) => {
+        this.setState({ seatLeaving: false });
+        const left = Array.isArray(r && r.left) ? r.left : [];
+        const stillClosing = Array.isArray(r && r.seats) && r.seats.some((s) => s && s.leaving);
+        if (!left.length) this.toast('No seat to leave', 'ok');
+        else if (stillClosing) this.toast('Leaving · your chips come back when the hand ends', 'warn');
+        else this.toast('Seat closed · chips are back in your bankroll', 'ok');
+        this.loadMe();
+        if (this.wallet && this.wallet.refresh) this.wallet.refresh().catch(() => {});
+      })
+      .catch((e) => {
+        this.setState({ seatLeaving: false });
+        this.toast(String((e && e.message) || 'Could not leave that seat'), 'bad');
+      });
+  };
+
   loadMe = () => {
     const token = this.wallet && this.wallet.token && this.wallet.token();
     if (!this.server || !token) { this.setState({ me: null, meErr: false }); return; }
     fetch(`${this.server}/api/me`, { headers: { authorization: `Bearer ${token}` } })
       .then(this.okJson)
-      .then((me) => this.setState({ me }))
+      .then((me) => this.setState({ me }, this.resumeHeldSeat))
       /* `me: null` on its own cannot be read: it is also the value this state
          starts at, and `meLoading` tests exactly that — so a 500 left the
          profile saying "…" forever, until the player navigated away and back.
@@ -4671,6 +4785,12 @@ export default class SuitedApp extends React.Component<any, any> {
     this.setState({ seated: true, screen: 'table' }, this.onResize);
     this.toast(`Seated at ${tbl.name} \u00b7 ${fmt(amount)} usdg`, 'ok');
     this.sfx('seat');
+    /* `/api/me` does not push, so the account's seat list is now stale \u2014
+       fe-seats-and-tabs.md \u00a76. Re-read it, or the lobby goes on offering a
+       Quick join that the gateway will refuse. Deferred a beat because the sit
+       above is optimistic: the server has not written the seat yet, and asking
+       for it in the same tick reads the state before this. */
+    this.later(this.loadMe, 900);
   };
 
 
@@ -5811,7 +5931,44 @@ export default class SuitedApp extends React.Component<any, any> {
     }
     /* The cream plate the rows gave up. One filled action per page, and this is
        it: every other way in is an outline pill on felt. */
-    vals.quickJoinStyle = (!qjOn || qjRedundant)
+    /* ── one seat per account, in the lobby — fe-seats-and-tabs.md §6 ──────
+       A held seat makes every way of sitting down a refusal waiting to happen,
+       so they are all withdrawn and replaced by the banner below, which names
+       the table and offers the only two moves the server will accept: go back
+       to it, or leave it.
+
+       `heldSeat` is the server's view and `st.seated` is this tab's. They are
+       usually the same and the difference is the whole point: the seat left
+       open in a closed tab is exactly the one this is for, and it is also the
+       one the player cannot see. Where the gateway sends no `seats` yet,
+       `heldSeat` is null and nothing below changes. */
+    const heldSeat = this.activeSeat();
+    /* Any held seat blocks sitting at any OTHER table, including the one this
+       tab is already looking at from the lobby. An earlier version asked
+       whether the seat was "elsewhere" — true only if this tab was not at it —
+       which meant a player sitting at a table and browsing the lobby was
+       offered a Join on all nine others, each of which the gateway would
+       refuse. The rule is one seat, not one seat per tab. */
+    const closingSeats = this.leavingSeats();
+
+    vals.heldSeatOn = !!heldSeat || closingSeats.length > 0;
+    vals.heldSeatStyle = `display:${vals.heldSeatOn ? 'flex' : 'none'};flex-wrap:wrap;align-items:center;gap:12px;`
+      + 'padding:13px 16px;margin:0 0 clamp(14px,24px,20px);border-radius:10px;'
+      + `border:1px solid rgba(139,92,246,0.34);background:rgba(139,92,246,0.08)`;
+    vals.heldSeatTextStyle = `flex:1 1 300px;min-width:0;font-size:13px;color:#e8ecf8;line-height:1.5`;
+    vals.heldSeatText = heldSeat
+      ? `You are seated at ${heldSeat.name || 'a table'}. One seat at a time — leave it before sitting anywhere else.`
+      : `Your seat at ${(closingSeats[0] || {}).name || 'a table'} is closing. Your chips come back when that hand ends.`;
+    vals.heldSeatGoStyle = `display:${heldSeat ? 'inline-flex' : 'none'};flex:none;padding:8px 16px;border-radius:999px;`
+      + `border:1px solid rgba(255,255,255,0.165);background:linear-gradient(180deg,#8b5cf6,#6d3fd4);color:${ON_FILL};font-size:12px;font-weight:500;cursor:pointer`;
+    vals.heldSeatGoLabel = heldSeat ? `Back to ${heldSeat.name || 'your table'}` : '';
+    vals.heldSeatGo = () => { if (heldSeat) { this.sfx('ui'); this.openTable(heldSeat.tableId, { resume: true }); } };
+    vals.heldSeatLeaveStyle = `display:${heldSeat ? 'inline-flex' : 'none'};flex:none;padding:8px 16px;border-radius:999px;`
+      + `border:1px solid rgba(232,236,248,0.28);background:transparent;color:#e8ecf8;font-size:12px;cursor:${st.seatLeaving ? 'progress' : 'pointer'}`;
+    vals.heldSeatLeaveLabel = st.seatLeaving ? 'Leaving…' : 'Leave that table';
+    vals.heldSeatLeave = this.leaveHeldSeat;
+
+    vals.quickJoinStyle = (!qjOn || qjRedundant || !!heldSeat)
       ? 'display:none'
       : `padding:12px 20px;border-radius:5px;background:linear-gradient(180deg,#8b5cf6,#6d3fd4);border:1px solid rgba(255,255,255,0.165);box-shadow:inset 0 1px 0 rgba(255,255,255,0.285),0 2px 6px rgba(0,0,0,0.375);color:${ON_FILL};font-size:14px;font-weight:500;letter-spacing:.01em;white-space:nowrap`;
     /* The lobby is where a signed-out visitor arrives from the landing page
@@ -5894,8 +6051,17 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.lobbyTableRows = allRooms.map((r) => {
       const seats = r.maxSeats || 6;
       const closing = !!(st.leaving && st.session && st.session.tableId === r.id);
-      const mine = !!(st.seated && st.session && st.session.tableId === r.id && !st.leaving);
-      const off = closing || (!r.open && !mine);
+      /* "Mine" is either tab's answer: this one is sitting here, or the server
+         says the account's seat is here. The second is what a reopened browser
+         knows and the first is not. */
+      const mine = (!!(st.seated && st.session && st.session.tableId === r.id) && !st.leaving)
+        || !!(heldSeat && heldSeat.tableId === r.id);
+      /* A held seat at ANOTHER table turns every Join into a refusal the
+         gateway would answer with `seated_elsewhere`, so they go inert rather
+         than spending a click to be told no. The banner above the list is
+         where the reason and the two ways out live — repeating it on twenty
+         rows would be the same sentence twenty times. */
+      const off = closing || (!r.open && !mine) || (!!heldSeat && !mine);
       return {
         name: r.name,
         // One game today. Named anyway, because the column is what tells a
@@ -5936,7 +6102,15 @@ export default class SuitedApp extends React.Component<any, any> {
           + (off
             ? `border:1px solid rgba(232,236,248,0.14);background:transparent;color:${MUTED};cursor:not-allowed`
             : `border:1px solid rgba(255,255,255,0.14);background:#6d3fd4;color:${CTA_INK};cursor:pointer`),
-        join: () => { if (off) return; this.sitAt(r.id); },
+        /* `openTable(resume)` for a seat already held, `sitAt` for a new one.
+           Routing a held seat through `sitAt` would put the buy-in screen in
+           front of chips that are already on the table, and the sit it ends in
+           is the one the gateway refuses. */
+        join: () => {
+          if (off) return;
+          if (mine) this.openTable(r.id, { resume: true });
+          else this.sitAt(r.id);
+        },
       };
     });
 
@@ -7607,18 +7781,31 @@ export default class SuitedApp extends React.Component<any, any> {
        So the expired face drops the progress bar (there is no progress) and
        stops promising that the seat is "held" — it is, on-chain, but not
        reachable again until this wallet signs. */
+    /* A third state now: this table is open in another tab and that tab holds
+       the connection (the gateway's ONE_TAB mode \u2014 see `takeoverLost` in
+       engine/remote.ts). It looks like the expired face rather than the
+       reconnecting one, because there is nothing in progress: this tab will sit
+       here until somebody chooses. The button is the ONLY way back; redialling
+       on a timer is what makes two tabs trade the socket until the gateway's
+       rate limit parks them both. */
+    const connTaken = !!(t && t.connection === 'taken-over');
     const connExpired = !!(t && t.connection === 'expired');
-    const connDown = connExpired || !!(t && t.connection === 'reconnecting');
+    const connStill = connExpired || connTaken;   // nothing is mending itself
+    const connDown = connStill || !!(t && t.connection === 'reconnecting');
     vals.reconnectStyle = `position:absolute;inset:0;z-index:40;display:${connDown ? 'flex' : 'none'};align-items:center;justify-content:center;background:rgba(0,0,0,0.72);backdrop-filter:blur(3px)`;
-    vals.reconnTitle = connExpired ? 'Session expired' : 'Reconnecting';
-    vals.reconnNote = connExpired
-      ? 'Your seat and stack are safe \u00b7 sign in again to take it back'
-      : 'Your seat and stack are held on-chain \u00b7 nothing is lost';
-    vals.reconnBtn = connExpired ? 'Sign in again' : 'Resume now';
-    vals.reconnBarStyle = `position:relative;width:210px;height:5px;border-radius:999px;background:rgba(232,236,248,0.16);overflow:hidden;display:${connExpired ? 'none' : 'block'}`;
-    vals.restore = connExpired
-      ? () => { this.sfx('ui'); this.setState({ screen: 'connect', connectStep: 0 }, () => this.onResize()); }
-      : () => { this.adapter.restoreConnection(); this.toast('Reconnected \u00b7 seat held', 'ok'); };
+    vals.reconnTitle = connTaken ? 'Open in another tab' : connExpired ? 'Session expired' : 'Reconnecting';
+    vals.reconnNote = connTaken
+      ? 'This table is open in another tab \u00b7 your seat and stack are untouched'
+      : connExpired
+        ? 'Your seat and stack are safe \u00b7 sign in again to take it back'
+        : 'Your seat and stack are held on-chain \u00b7 nothing is lost';
+    vals.reconnBtn = connTaken ? 'Use this tab' : connExpired ? 'Sign in again' : 'Resume now';
+    vals.reconnBarStyle = `position:relative;width:210px;height:5px;border-radius:999px;background:rgba(232,236,248,0.16);overflow:hidden;display:${connStill ? 'none' : 'block'}`;
+    vals.restore = connTaken
+      ? () => { this.sfx('ui'); this.adapter.takeOver && this.adapter.takeOver(); }
+      : connExpired
+        ? () => { this.sfx('ui'); this.setState({ screen: 'connect', connectStep: 0 }, () => this.onResize()); }
+        : () => { this.adapter.restoreConnection(); this.toast('Reconnected \u00b7 seat held', 'ok'); };
 
     /* ── action bar ───────────────────────────────────────────────── */
     const legal = t && t.toAct === 0 && this.adapter ? this.adapter.getLegal() : null;
@@ -7672,6 +7859,20 @@ export default class SuitedApp extends React.Component<any, any> {
       + `${c ? '' : 'min-height:78px'}`;
     vals.turnDotStyle = `width:7px;height:7px;border-radius:999px;flex:0 0 auto;background:${myTurn ? TURN : 'rgba(232,236,248,0.5)'};${myTurn ? 'animation:suPulse 1.4s ease-in-out infinite' : ''}`;
     const spectating = !st.seated;
+    /* This seat is closing — fe-seats-and-tabs.md §3.
+     *
+     * `pendingLeave` is the server's own flag for "Leave was pressed mid-hand,
+     * the seat closes when the hand is written up", and it reaches only the
+     * seat's owner (remote.ts decodes it; other seats see undefined). The
+     * gateway now REFUSES `sitin` for such a seat with `seat_finishing`, so the
+     * old "Sit down" was a button whose whole purpose — cancelling a Leave —
+     * had been taken away from it. A control certain to be refused is worse
+     * than no control: it reads as a way back that is not there.
+     *
+     * Declared up here rather than beside the button it hides, because the
+     * account menu renders its own copy of that button and is built earlier in
+     * this function. */
+    const seatClosing = !spectating && !!(seats[0] && seats[0].pendingLeave);
 
     /* A table needs two players who can act. Below that the felt simply sits
        there, and until now it said "dealing" while nothing dealt \u2014 which is
@@ -7782,7 +7983,9 @@ export default class SuitedApp extends React.Component<any, any> {
        (gated by `menuSeated`); suppress it too on a freezeout table so neither
        appears (both handlers early-return anyway, but a visible dead control
        must not show). The "IN PLAY" balance row stays on plain `menuSeated`. */
-    vals.menuSeatedCash = vals.menuSeated && !isTournamentTable;
+    // …and the same for a seat that is closing: the menu's copy of sit-up /
+    // leave must not offer what the felt's copy has just withdrawn.
+    vals.menuSeatedCash = vals.menuSeated && !isTournamentTable && !seatClosing;
 
     /* HUD data source: the SEATED poll's own detail (Ruling 1) — never
        `st.tournamentDetail` (the browsed detail screen's own key), which
@@ -8454,7 +8657,9 @@ export default class SuitedApp extends React.Component<any, any> {
     // Rail-header size, and hidden entirely for spectators — you cannot
     // stand from a seat you do not hold. Part 4 Task 4: also hidden on a
     // tournament table — freezeout has no voluntary sit-out.
-    vals.sitUpStyle = `font-family:${UI};font-size:11px;letter-spacing:.02em;border-radius:999px;padding:5px 12px;white-space:nowrap;background:transparent;display:${t && !spectating && !isTournamentTable ? 'inline-flex' : 'none'};transition:background .18s ease,border-color .18s ease,color .18s ease;${st.sittingOut ? `color:${BRASS};border:1px solid rgba(139,92,246,0.5)` : `color:${PAPER_COOL};border:1px solid rgba(232,236,248,0.28)`}`;
+    vals.seatClosingNote = seatClosing ? 'You left this table — your seat closes when the hand ends' : '';
+    vals.seatClosingStyle = `display:${seatClosing ? 'block' : 'none'};font-size:11px;color:${BRASS};max-width:30ch;line-height:1.45`;
+    vals.sitUpStyle = `font-family:${UI};font-size:11px;letter-spacing:.02em;border-radius:999px;padding:5px 12px;white-space:nowrap;background:transparent;display:${t && !spectating && !isTournamentTable && !seatClosing ? 'inline-flex' : 'none'};transition:background .18s ease,border-color .18s ease,color .18s ease;${st.sittingOut ? `color:${BRASS};border:1px solid rgba(139,92,246,0.5)` : `color:${PAPER_COOL};border:1px solid rgba(232,236,248,0.28)`}`;
     vals.sitUpLabel = st.sittingOut ? 'Sit down' : 'Sit up';
     vals.sitUp = () => {
       // Belt-and-suspenders alongside the display gate above: freezeout
@@ -8498,6 +8703,10 @@ export default class SuitedApp extends React.Component<any, any> {
         // server lets go of the seat (finishLeave), and Join keeps away from it until then.
         this.setState({ leaving: true, sittingOut: true, preAction: null, screen: 'lobby' },
           () => { this.onResize(); this.syncTitle(this.state.table); });
+        /* `/api/me` does not push — re-read the account's seats so the lobby
+           knows this one is closing, and shows the banner that says the chips
+           are still out there. fe-seats-and-tabs.md §6. */
+        this.later(this.loadMe, 900);
         this.sfx('fold');
         this.toast('Hand folded \u00b7 your seat closes when the hand ends', 'warn');
         return;
@@ -8511,6 +8720,9 @@ export default class SuitedApp extends React.Component<any, any> {
         { seated: false, sittingOut: false, screen: 'lobby' },
         () => { this.onResize(); this.syncTitle(this.state.table); },
       );
+      // The same re-read for the between-hands leave, where the seat closes at
+      // once and the lobby should go back to offering every table.
+      this.later(this.loadMe, 900);
       this.toast(`Seat closed \u00b7 ${fmt(amount)} USDC back in your wallet`, 'ok');
     };
     /* Held upright the rail is shut, and its two seat controls with it — so

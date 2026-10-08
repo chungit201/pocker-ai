@@ -19,6 +19,25 @@ export default function Lobby({ v }: { v: any }) {
       <div className="su-page su-stage" style={{ flex: "1", paddingBottom: "clamp(24px,76px,52px)" }}>
         {"\r\n      "}
         {/*
+           One seat per account. Shown only when the server says this account
+           holds a seat (or is closing one) — the seat may be at a table this
+           tab has never opened, which is the case the banner exists for. The
+           two buttons are the only moves the gateway will accept while it is
+           held, and every other way of sitting down on this page is withdrawn
+           while it is up.
+        */}
+        {"\r\n      "}
+        <div style={css(v.heldSeatStyle)}>
+          <span style={css(v.heldSeatTextStyle)}>{interp(v.heldSeatText)}</span>
+          <button className="pill-flat" onClick={v.heldSeatGo} style={css(v.heldSeatGoStyle)}>
+            {interp(v.heldSeatGoLabel)}
+          </button>
+          <button className="pill-flat" onClick={v.heldSeatLeave} style={css(v.heldSeatLeaveStyle)}>
+            {interp(v.heldSeatLeaveLabel)}
+          </button>
+        </div>
+        {"\r\n      "}
+        {/*
            The hero and the pots beside it, on the staking page's system: a
            guilloché card carrying the one number that says whether there is a
            game, and a hairline panel of the pots that number produced.

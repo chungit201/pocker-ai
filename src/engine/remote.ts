@@ -309,6 +309,33 @@ export function createRemoteAdapter(cfg) {
     onError('Your session expired, sign in again', 'session_expired');
   };
 
+  /* This table is open in another tab, and that tab has taken the connection.
+   *
+   * The gateway's ONE_TAB mode replaces an existing connection for the same
+   * account on the same table: the losing tab gets `{ t: 'error', code:
+   * 'other_session' }` and then a close with code 4002. Both are handled,
+   * because either can arrive first and a close with no frame before it is
+   * still a takeover.
+   *
+   * The reconnect below MUST NOT run for this close. It is the one case where
+   * retrying does active harm rather than merely failing: each redial takes the
+   * table back off the other tab, which redials in turn, and the two trade the
+   * socket forever until the gateway's 30-connections-per-minute limit parks
+   * them both on "reconnecting". So the loop stops and the UI offers the
+   * takeover as a choice — `takeOver()` below is the only way back.
+   *
+   * The seat is NOT closed and the session is NOT dropped: the other tab is
+   * holding the same seat, and tearing it down here would lose a live hand. */
+  let takenOver = false;
+  const takeoverLost = () => {
+    if (takenOver) return;
+    takenOver = true;
+    clearTimeout(retryTimer);
+    stopHeartbeat();
+    view = { ...view, connection: 'taken-over' };
+    publish({ t: 'connection', status: 'taken-over' });
+  };
+
   let connectGen = 0;
   let resyncing = false;   // the next close is ours — see `resync`
   function open() {
@@ -378,9 +405,14 @@ export function createRemoteAdapter(cfg) {
       handleFrame(frame);
     };
 
-    ws.onclose = () => {
+    ws.onclose = (e) => {
       stopHeartbeat();
-      if (closed || authDead) return;
+      if (closed || authDead || takenOver) return;
+      /* 4002 is the gateway's "another tab has this table". It can arrive with
+         no `other_session` frame before it, so the code is checked here too —
+         and it is checked BEFORE `resyncing`, because a resync that loses the
+         race to another tab must not redial either. */
+      if (e && e.code === 4002) { takeoverLost(); return; }
       // A close we asked for (`resync`) is not a lost connection: redial at
       // once, and without telling the table it is "reconnecting".
       if (resyncing) { resyncing = false; open(); return; }
@@ -478,6 +510,12 @@ export function createRemoteAdapter(cfg) {
         // Liveness only — arriving already refreshed the frame clock in onmessage.
         return;
       case 'error':
+        /* `other_session` is not an error to report — the seat is fine, this
+           tab simply no longer holds it. Handled before `onError` so the app
+           does not toast it or act on it as a failure; the connection status
+           is what the UI reads. The close with 4002 normally follows, and
+           `takeoverLost` is idempotent so arriving twice is harmless. */
+        if (frame.code === 'other_session') { takeoverLost(); return; }
         // The code matters as well as the text: 'dropped' means the seat is
         // gone and the table view on screen is a fiction.
         onError(frame.message || frame.code || 'error', frame.code);
@@ -616,6 +654,22 @@ export function createRemoteAdapter(cfg) {
     // seat 1s to act and releases it after 30s (actor.ts). "resume now" on the
     // reconnect scrim just redials early.
     restoreConnection: open,
+
+    /**
+     * Take this table back from the tab that holds it.
+     *
+     * Only reachable from the takeover overlay, and deliberately a deliberate
+     * act: redialling automatically is what makes two tabs fight. Redialling
+     * here hands the other tab its own `other_session`, and it stops in turn —
+     * so the pair swap exactly when somebody asks them to, and never on their
+     * own. `lastEventId` is kept, so the server replays rather than resyncing.
+     */
+    takeOver() {
+      if (closed || authDead || !takenOver) return;
+      takenOver = false;
+      retry = 0;
+      open();
+    },
 
     /**
      * Take the table again from scratch, on a new socket — what a page reload
