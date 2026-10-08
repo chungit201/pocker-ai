@@ -5545,8 +5545,11 @@ export default class SuitedApp extends React.Component<any, any> {
 
       toasts: st.toasts.map((x) => ({
         text: x.text,
-        style: `display:flex;align-items:center;gap:9px;padding:9px 15px;border-radius:8px;background:linear-gradient(180deg,#222c47,#0d1220);color:${ON_FILL};font-size:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 3px 10px rgba(0,0,0,0.4);animation:riseIn .3s ${EASE} both`,
-        dot: `width:6px;height:6px;border-radius:999px;background:${x.kind === 'ok' ? '#8b5ff2' : ACC}`,
+        /* Light on dark, the one surface on the page that is: the toast is a
+           message, and it has to read over whatever it lands on. The dot says
+           which kind — violet for news, amber for a warning, red for a refusal. */
+        style: `display:flex;align-items:center;gap:10px;padding:12px 18px;border-radius:10px;max-width:min(380px, calc(100vw - 36px));background:linear-gradient(180deg,#f6f3ff,#e6e0fb);color:#1a1030;font-size:14px;font-weight:500;line-height:1.35;border:1px solid rgba(139,92,246,0.55);box-shadow:0 10px 28px rgba(0,0,0,0.55),0 0 0 1px rgba(0,0,0,0.35);animation:riseIn .3s ${EASE} both`,
+        dot: `flex:none;width:8px;height:8px;border-radius:999px;background:${x.kind === 'warn' ? '#e0a62c' : (x.kind === 'bad' || x.kind === 'err') ? '#e5484d' : '#6d3fd4'}`,
       })),
       // A live "you earned it" card, with the new avatar wearing its tier motion.
       celebrations: st.celebrations.map((c) => ({
@@ -7955,10 +7958,12 @@ export default class SuitedApp extends React.Component<any, any> {
       vals.waitOrRule = 'flex:1;width:1px;background:rgba(232,236,248,0.16)';
       vals.waitOrText = `font-size:10px;letter-spacing:.18em;color:${MUTED}`;
       vals.waitCopy = this.copyTableLink;
-      /* The lobby, not `leaveTable`. Navigating away from the felt detaches the
-         screen and nothing else — the seat and the chips stay where they are —
-         so this cannot cost anybody their seat by misreading the button. */
-      vals.waitFind = this.go('lobby');
+      /* Leaves the seat, not just the screen: with nobody else here the seat
+         is holding chips for a game that is not happening, and the button says
+         it is going to find one elsewhere. `leaveTable` (defined further down
+         this function, hence the thunk) closes the seat out and lands in the
+         lobby. */
+      vals.waitFind = () => vals.leaveTable && vals.leaveTable();
     }
 
     /* ── Part 4 Task 4: tournament HUD + freezeout ─────────────────────

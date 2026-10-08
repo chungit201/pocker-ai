@@ -171,7 +171,7 @@ export default function SuitedTemplate({ v }: { v: any }) {
         {"\r\n\r\n  "}
         {/* toasts */}
         {"\r\n  "}
-        <div style={{ position: "fixed", left: "18px", bottom: "18px", zIndex: "60", display: "flex", flexDirection: "column", gap: "8px", pointerEvents: "none" }}>
+        <div style={{ position: "fixed", right: "18px", top: "64px", zIndex: "60", display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "8px", pointerEvents: "none" }}>
           {"\r\n    "}
           {asArray(v.toasts).map((t: any, $index: number) => (
             <Fragment key={$index}>
