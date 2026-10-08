@@ -11,6 +11,11 @@ export default function Lobby({ v }: { v: any }) {
   return (
     <>
       {"\r\n    "}
+      {/* No `maxWidth` of its own any more: the 1200 this page was narrowed to
+          is `--su-page` now, so every screen wearing `.su-page` has it and this
+          one has nothing special to say. An override repeating the shared value
+          is the sort of thing that survives the shared value changing. */}
+      {"\r\n    "}
       <div className="su-page su-stage" style={{ flex: "1", paddingBottom: "clamp(24px,76px,52px)" }}>
         {"\r\n      "}
         {/*
@@ -39,7 +44,7 @@ export default function Lobby({ v }: { v: any }) {
               </div>
             </div>
             {"\r\n          "}
-            <div className="lb-hero-in" style={{ position: "relative", padding: "clamp(22px,42px,34px)", display: "flex", flexDirection: "column", gap: "16px", flex: "1" }}>
+            <div className="lb-hero-in" style={{ position: "relative", padding: "clamp(18px,30px,26px)", display: "flex", flexDirection: "column", gap: "12px", flex: "1" }}>
               {"\r\n            "}
               {/*
                  People, not tables. Tables are spawned on demand, so a table
@@ -58,11 +63,11 @@ export default function Lobby({ v }: { v: any }) {
               {"\r\n            "}
               <div style={{ display: "flex", alignItems: "baseline", gap: "12px", flexWrap: "wrap" }}>
                 {"\r\n              "}
-                <span style={{ fontFamily: "'Instrument Serif',serif", fontVariantNumeric: "tabular-nums", fontSize: "clamp(46px,97px,76px)", lineHeight: ".86", color: "#e8ecf8" }}>
+                <span style={{ fontFamily: "'Instrument Serif',serif", fontVariantNumeric: "tabular-nums", fontSize: "clamp(36px,66px,54px)", lineHeight: ".88", color: "#e8ecf8" }}>
                   {interp(v.lobbyBig)}
                 </span>
                 {"\r\n              "}
-                <span style={{ fontFamily: "'Instrument Serif',serif", fontSize: "clamp(20px,33px,26px)", lineHeight: "1", color: "#94a3c4" }}>
+                <span style={{ fontFamily: "'Instrument Serif',serif", fontSize: "clamp(16px,24px,20px)", lineHeight: "1", color: "#94a3c4" }}>
                   {interp(v.lobbyBigUnit)}
                 </span>
                 {"\r\n            "}
@@ -72,22 +77,22 @@ export default function Lobby({ v }: { v: any }) {
                 {interp(v.lobbyLine)}
               </span>
               {"\r\n            "}
-              <div className="lb-facts" style={{ display: "flex", flexWrap: "wrap", gap: "10px", paddingTop: "4px" }}>
+              <div className="lb-facts" style={{ display: "flex", flexWrap: "wrap", gap: "9px", paddingTop: "2px" }}>
                 {"\r\n              "}
                 {asArray(v.lobbyFacts).map((f: any, $index: number) => (
                   <Fragment key={$index}>
                     {"\r\n                "}
-                    <span className="gm-stat" style={{ flex: "1 1 130px", minWidth: "0", display: "flex", flexDirection: "column", gap: "5px", padding: "13px 15px", border: "1px solid rgba(232,236,248,0.12)", borderRadius: "8px", background: "rgba(0,0,0,0.175)" }}>
+                    <span className="gm-stat" style={{ flex: "1 1 130px", minWidth: "0", display: "flex", flexDirection: "column", gap: "4px", padding: "10px 12px", border: "1px solid rgba(232,236,248,0.12)", borderRadius: "8px", background: "rgba(0,0,0,0.175)" }}>
                       {"\r\n                  "}
                       <span className="gm-stat-k" style={{ fontSize: "10px", letterSpacing: ".14em", color: "#c3cbe0" }}>
                         {interp(f?.k)}
                       </span>
                       {"\r\n                  "}
-                      <span style={css(`font-family:'Instrument Serif',serif;font-variant-numeric:tabular-nums;font-size:21px;line-height:1;color:${f?.tone ?? ''}`)}>
+                      <span style={css(`font-family:'Instrument Serif',serif;font-variant-numeric:tabular-nums;font-size:18px;line-height:1;color:${f?.tone ?? ''}`)}>
                         {interp(f?.v)}
                       </span>
                       {"\r\n                  "}
-                      <span className="gm-stat-sub" style={{ fontSize: "11.5px", color: "#94a3c4" }}>
+                      <span className="gm-stat-sub" style={{ fontSize: "11px", color: "#94a3c4" }}>
                         {interp(f?.sub)}
                       </span>
                       {"\r\n                "}
@@ -162,13 +167,13 @@ export default function Lobby({ v }: { v: any }) {
              /api/jackpot is already fetched on this screen.
           */}
           {"\r\n        "}
-          <div className="gm-side" style={{ flex: "1 1 280px", minWidth: "0", border: "1px solid rgba(232,236,248,0.12)", borderRadius: "12px", padding: "18px", display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div className="gm-side" style={{ flex: "1 1 280px", minWidth: "0", border: "1px solid rgba(232,236,248,0.12)", borderRadius: "12px", padding: "16px", display: "flex", flexDirection: "column", gap: "10px" }}>
             {"\r\n          "}
             <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#a78bfa" }}>{"TODAY'S JACKPOT"}</span>
             {"\r\n          "}
             <div style={{ display: "flex", alignItems: "baseline", gap: "6px", flexWrap: "wrap" }}>
               {"\r\n            "}
-              <span style={{ fontFamily: "'Instrument Serif',serif", fontVariantNumeric: "tabular-nums", fontSize: "clamp(30px,51px,40px)", lineHeight: "1", color: "#e8ecf8" }}>
+              <span style={{ fontFamily: "'Instrument Serif',serif", fontVariantNumeric: "tabular-nums", fontSize: "clamp(26px,40px,32px)", lineHeight: "1", color: "#e8ecf8" }}>
                 {interp(v.lobbyJkPool)}
               </span>
               {"\r\n            "}
@@ -181,7 +186,7 @@ export default function Lobby({ v }: { v: any }) {
               {asArray(v.lobbyJkRows).map((r: any, $index: number) => (
                 <Fragment key={$index}>
                   {"\r\n              "}
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "9px 0", borderBottom: "1px solid rgba(232,236,248,0.08)" }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "10px", padding: "8px 0", borderBottom: "1px solid rgba(232,236,248,0.08)" }}>
                     {"\r\n                "}
                     <span style={{ fontSize: "12.5px", color: "#94a3c4" }}>
                       {interp(r?.k)}
@@ -211,70 +216,21 @@ export default function Lobby({ v }: { v: any }) {
         </div>
         {"\r\n\r\n      "}
         {/*
-           Every stake as a tile, and one way in. The grid states the ladder at
-           a glance — what it costs, and whether anyone is there — and the
-           button above it acts on whichever tile is lit.
-                 
-           A single "sit me down · <stake>" button lived at the foot of this
-           page once and was removed on purpose: it acted on a stake selected
-           at the top, so the thing you pressed and the thing it applied to sat
-           at opposite ends of the screen. It is back because that is no longer
-           true — it sits against the grid it acts on, and names the stake it
-           will seat you at before you press it.
+           The stake ladder — an "EVERY STAKE" label, a big Join button for the
+           lit tile, and six stake chips — stood here and is gone.
+         *
+           It answered "what does each level cost, and is anyone there", one
+           row per STAKE. The table list below answers the same question one
+           row per TABLE, with the blinds and the buy-in band spelled out and a
+           Join on every row, so the ladder had become a second, coarser copy
+           of it sitting above it on the same screen. Two lists of the same
+           thing is worse than either: the reader has to work out whether they
+           disagree.
+
+           `bankrollLine` was the one thing up here the list cannot say — which
+           levels this bankroll can actually sit at — so it moved into the
+           list's own header rather than going with the rest.
         */}
-        {"\r\n      "}
-        <div style={{ display: "flex", flexDirection: "column", gap: "12px", paddingTop: "22px" }}>
-          {"\r\n        "}
-          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "12px", flexWrap: "wrap" }}>
-            {"\r\n          "}
-            <span style={{ fontSize: "11px", letterSpacing: ".14em", color: "#a78bfa" }}>{"EVERY STAKE"}</span>
-            {"\r\n          "}
-            <span style={{ fontSize: "12.5px", color: "#94a3c4", fontVariantNumeric: "tabular-nums" }}>
-              {interp(v.bankrollLine)}
-            </span>
-            {"\r\n        "}
-          </div>
-          {"\r\n        "}
-          <button className={[v.joinStakeClass, "scp5 scp6"].filter(Boolean).join(' ')} onClick={v.joinStake}>
-            {"\r\n          "}
-            <span style={{ fontSize: "15px", color: "#e8ecf8" }}>
-              {interp(v.joinStakeLabel)}
-            </span>
-            {"\r\n          "}
-            <span style={{ fontFamily: "'Instrument Serif',serif", fontVariantNumeric: "tabular-nums", fontSize: "26px", lineHeight: "1.05", color: "#a78bfa" }}>
-              {interp(v.joinStakeName)}
-            </span>
-            {"\r\n        "}
-          </button>
-          {"\r\n        "}
-          <div className="su-stakes">
-            {"\r\n          "}
-            {asArray(v.stakeRows).map((s: any, $index: number) => (
-              <Fragment key={$index}>
-                {"\r\n            "}
-                <button className={s?.cls} onClick={s?.pick} onDoubleClick={s?.join} aria-pressed={s?.on} title={s?.hint}>
-                  {"\r\n              "}
-                  <span style={css(`font-family:'Instrument Serif',serif;font-variant-numeric:tabular-nums;font-size:27px;line-height:1;color:${s?.nameTone ?? ''}`)}>
-                    {interp(s?.blinds)}
-                  </span>
-                  {"\r\n              "}
-                  <span style={css(`font-size:13px;font-variant-numeric:tabular-nums;color:${s?.buyTone ?? ''}`)}>
-                    {interp(s?.buyIn)}
-                  </span>
-                  {"\r\n              "}
-                  <span style={css(s?.playingStyle)}>
-                    {interp(s?.players)}
-                    <span className="su-stake-dot" />
-                  </span>
-                  {"\r\n            "}
-                </button>
-                {"\r\n          "}
-              </Fragment>
-            ))}
-            {"\r\n        "}
-          </div>
-          {"\r\n      "}
-        </div>
         {"\r\n\r\n      "}
         {/*
            The seat-assignment rationale used to sit here. A product that
@@ -286,6 +242,69 @@ export default function Lobby({ v }: { v: any }) {
            which meant the thing you pressed and the thing it applied to were at
            opposite ends of the screen. Each row now carries its own join.
         */}
+        {"\r\n\r\n      "}
+        {/*
+           …and here it finally is. The ladder above is "what stake", this is
+           "which table, and who is already there" — the question the stake
+           chips cannot answer, and which used to need a Join press per stake
+           to see at all. Each row joins itself, per the note above.
+        */}
+        {"\r\n      "}
+        <div style={css(v.lobbyTableWrap)}>
+          {"\r\n        "}
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "14px", flexWrap: "wrap", marginBottom: "12px" }}>
+            <span style={{ display: "flex", alignItems: "baseline", gap: "12px", flexWrap: "wrap" }}>
+              <span style={css(v.lobbyTableTitle)}>{"Live tables"}</span>
+              <span style={css(v.lobbyTableSubStyle)}>{interp(v.lobbyTableSub)}</span>
+            </span>
+            {/* What the ladder above used to say, and the list cannot. */}
+            <span style={css(v.lobbyTableSubStyle + ';font-variant-numeric:tabular-nums')}>
+              {interp(v.bankrollLine)}
+            </span>
+          </div>
+          {"\r\n        "}
+          <div className="lb-tbl" style={css(v.lobbyTablePanel)}>
+            {"\r\n          "}
+            {/* The column headings, which are also the labels the cards use on
+                a phone — each cell below repeats its own in `data-k`, so the
+                header can be hidden there without the figures losing their
+                meaning. One row of markup, two layouts. */}
+            {"\r\n          "}
+            <div className="lb-tbl-head" style={css(v.lobbyTableHeadStyle)}>
+              <span>{"Table"}</span>
+              <span>{"Game"}</span>
+              <span>{"Blinds"}</span>
+              <span>{"Buy-in min/max"}</span>
+              <span style={{ textAlign: "right" }}>{"Avg pot"}</span>
+              <span style={{ textAlign: "right" }}>{"Players"}</span>
+              <span />
+            </div>
+            {"\r\n          "}
+            <div className="lb-tbl-scroll" style={css(v.lobbyTableScroll)}>
+              {"\r\n            "}
+              {asArray(v.lobbyTableRows).map((r: any, $index: number) => (
+                <Fragment key={$index}>
+                  {"\r\n              "}
+                  <div className="lb-tbl-row" style={css(r?.rowStyle)}>
+                    <span className="lb-tbl-name" style={css(r?.nameStyle)}>{interp(r?.name)}</span>
+                    <span className="lb-tbl-c" data-k="Game" style={css(r?.cellStyle)}>{interp(r?.game)}</span>
+                    <span className="lb-tbl-c" data-k="Blinds" style={css(r?.cellStyle)}>{interp(r?.blinds)}</span>
+                    <span className="lb-tbl-c" data-k="Buy-in" style={css(r?.cellStyle)}>{interp(r?.buyIn)}</span>
+                    <span className="lb-tbl-c" data-k="Avg pot" style={css(r?.cellStyle + ';text-align:right')}>{interp(r?.avgPot)}</span>
+                    <span className="lb-tbl-c" data-k="Players" style={css(r?.playersStyle + ';text-align:right')}>{interp(r?.players)}</span>
+                    <button className="pill-flat lb-tbl-join" onClick={r?.join} style={css(r?.btnStyle)}>
+                      {interp(r?.btnLabel)}
+                    </button>
+                  </div>
+                  {"\r\n            "}
+                </Fragment>
+              ))}
+              {"\r\n          "}
+            </div>
+            {"\r\n        "}
+          </div>
+          {"\r\n      "}
+        </div>
         {"\r\n    "}
       </div>
       {"\r\n\r\n    "}
@@ -297,9 +316,16 @@ export default function Lobby({ v }: { v: any }) {
       {v.createRoomOn ? (
         <>
           {"\r\n      "}
-          <div onClick={v.closeCreateRoom} style={{ position: "absolute", inset: "0", zIndex: "80", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", background: "rgba(0,0,0,0.72)" }}>
+          <div onClick={v.closeCreateRoom} style={{ position: "fixed", inset: "0", zIndex: "80", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", background: "rgba(0,0,0,0.72)" }}>
             {"\r\n        "}
-            <div onClick={v.crStop} style={{ width: "100%", maxWidth: "440px", padding: "28px", borderRadius: "12px", background: "#1a2238", color: "#e8ecf8", border: "1px solid rgba(232,236,248,0.154)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.21),0 24px 60px -20px rgba(0,0,0,0.72)", animation: "riseIn .32s cubic-bezier(.2,.9,.24,1) both" }}>
+            {/* Capped and scrollable, the way the table picker beside it
+                already is. Anchored to the page the sheet could run past the
+                bottom of a short window and the rest of the page would scroll
+                to reach it; anchored to the viewport nothing scrolls behind it,
+                so a form taller than the screen would simply have its Create
+                button out of reach. */}
+            {"\r\n            "}
+            <div onClick={v.crStop} style={{ width: "100%", maxWidth: "440px", maxHeight: "88%", overflowY: "auto", padding: "28px", borderRadius: "12px", background: "#1a2238", color: "#e8ecf8", border: "1px solid rgba(232,236,248,0.154)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.21),0 24px 60px -20px rgba(0,0,0,0.72)", animation: "riseIn .32s cubic-bezier(.2,.9,.24,1) both" }}>
               {"\r\n\r\n          "}
               {v.crShowForm ? (
                 <>
@@ -483,7 +509,7 @@ export default function Lobby({ v }: { v: any }) {
          the first table). Same paper dialog as the room form above.
       */}
       {v.tablePickOn ? (
-        <div onClick={v.closeTablePick} style={{ position: "absolute", inset: "0", zIndex: "80", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", background: "rgba(0,0,0,0.72)" }}>
+        <div onClick={v.closeTablePick} style={{ position: "fixed", inset: "0", zIndex: "80", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", background: "rgba(0,0,0,0.72)" }}>
           <div onClick={v.tpStop} style={{ width: "100%", maxWidth: "520px", maxHeight: "86%", overflowY: "auto", padding: "28px", borderRadius: "12px", background: "#1a2238", color: "#e8ecf8", border: "1px solid rgba(232,236,248,0.154)" }}>
             <h2 style={{ fontFamily: "'Inter Tight',system-ui,sans-serif", fontWeight: "600", letterSpacing: "-.03em", fontSize: "26px", margin: "0 0 3px" }}>
               {interp(v.tablePickTitle)}

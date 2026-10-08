@@ -3489,10 +3489,19 @@ export default class SuitedApp extends React.Component<any, any> {
       .then(this.okJson)
       .then((body) => {
         const stakeOfId = (id) => String(id).split('-')[0];
+        /* The gateway names its tables in lower case ("river bend"). Capitalise
+           the FIRST letter only, not every word: these are names, so "High desk"
+           is right and `text-transform: capitalize`'s "High Desk" is not — and a
+           player's own private room ("Friday night at mine") would be mangled
+           worse. Done here, at the one place the list enters the app, so the
+           lobby row, the table picker and the felt's own header cannot end up
+           spelling the same table two ways. The id is what identifies a table;
+           nothing compares these. */
+        const titled = (s) => { const t = String(s ?? ''); return t ? t[0].toUpperCase() + t.slice(1) : t; };
         LIVE_ROOMS = (body.tables || []).map((t) => ({
           id: t.id,
           stake: stakeOfId(t.id),
-          name: t.name,
+          name: titled(t.name),
           seated: t.seated,
           maxSeats: t.maxSeats,
           open: t.seated < t.maxSeats,
@@ -5660,7 +5669,13 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.lobbyLine = seatedNow
       ? 'Tables spawn as people arrive, so there is always a seat at the stake you want.'
       : 'Sit down at any stake and a table opens for you, so you never wait for a seat.';
-    vals.lobbyLineStyle = 'font-size:clamp(14px,22px,16px);color:#e8ecf8;max-width:42ch;text-wrap:pretty';
+    // Scaled with the hero around it; at 16px it was the second-loudest thing
+    // on a card whose job is one figure and two buttons.
+    /* 42ch, not wider. The measure is not about reading comfort here — the
+       card's top-right corner holds the dealt-cards artwork, and a longer line
+       runs under the chips. Smaller type on the same measure is the shrink;
+       smaller type on a wider measure is a collision. */
+    vals.lobbyLineStyle = 'font-size:clamp(13px,19px,14.5px);color:#e8ecf8;max-width:42ch;text-wrap:pretty';
     /* Facts that exist, straight off /api/stats, em dash when no gateway
        answered. The first one swaps so the hero never states the same figure
        twice: today's hands is the headline when the room is quiet, so the
@@ -5699,73 +5714,12 @@ export default class SuitedApp extends React.Component<any, any> {
        placeholder rather than their money, and then the stake's own minimum. */
     const bank = st.wallet ? st.balance : null;
     const affords = (x) => bank != null && bank >= x.min;
-    /* Selected stake: the one you are sitting at, else the best one open to
-       you — highest you can afford that has a game running, falling back to the
-       highest you can afford at all, then the cheapest. That is the same order
-       quick join picks in, worked out here rather than read from `qjPick`,
-       which is declared further down this function and would be in its dead
-       zone. Never a stored id that no longer exists: a stake can leave the
-       ladder between renders. */
-    const best = () => {
-      const open = STAKES.filter((x) => openAt(x.id));
-      const mine = open.filter(affords).reverse();
-      return (mine.find((x) => playersAt(x.id) > 0) || mine[0] || open[0] || STAKES[0]).id;
-    };
-    const selId = (STAKES.find((x) => x.id === st.stakeSel) && st.stakeSel)
-      || seatedStake
-      || best();
-    const sel = STAKES.find((x) => x.id === selId) || STAKES[0];
-
-    vals.stakeRows = STAKES.map((s, i) => {
-      const players = playersAt(s.id);
-      const mine = seatedStake === s.id;
-      const free = openAt(s.id);
-      const ok = affords(s);
-      const on = s.id === selId;
-      /* White at the bottom of the ladder, brass at the top, so the six read as
-         a run rather than six of the same thing. */
-      const u = i / (STAKES.length - 1);
-      const tone = [246, 243, 236].map((v, k) => Math.round(v + ([167, 139, 250][k] - v) * u)).join(',');
-      return {
-        on,
-        pick: () => this.setState({ stakeSel: s.id }),
-        /* Double-click is the join. It takes the same route as the button —
-           `quickSit` for a stake, `go('table')` for the one you are already
-           at — so the two ways in can never disagree about what a tile means.
-           The single click still lands first, so the selection is right even
-           if the second click is swallowed. */
-        join: () => (mine ? this.go('table')() : this.quickSit(s.id)),
-        blinds: stakes(s),
-        nameTone: `rgb(${tone})`,
-        // `usd` pads the cents, so 0.4 reads as $0.40 beside $2.
-        buyIn: `${usd(s.min)} \u2013 ${usd(s.max)}`,
-        buyTone: ok ? FELT_INK : MUTED,
-        /* A stake with no chair free says so in place of the count. "full" is a
-           fact about the stake, not a disabled button — the tile still selects,
-           and the join above it is what refuses. */
-        players: mine ? 'Your table' : (!free ? 'Full' : (players ? `${players} seated` : 'Nobody yet')),
-        playingStyle: `display:flex;align-items:center;gap:6px;font-size:13px;font-variant-numeric:tabular-nums;color:${players || mine ? FELT_INK : MUTED}`,
-        hint: ok || bank == null ? '' : `Needs ${usd(s.min)} to sit`,
-        cls: `su-stake${ok ? ' su-stake--open' : ''}${on ? ' su-stake--on' : ''}${players ? ' su-stake--busy' : ''}`,
-      };
-    });
-
-    /* One way in, naming the stake it will seat you at. `sitAt` already sends a
-       wallet-less visitor to connect and an underfunded one to the deposit
-       step, so this button does not need to decide either. */
-    const selMine = seatedStake === sel.id;
-    const selOpen = openAt(sel.id);
-    vals.joinStakeName = stakes(sel);
-    vals.joinStakeLabel = selMine ? 'Back to your table' : (selOpen ? 'Join' : 'Every table full at');
-    vals.joinStakeClass = `su-join${selMine || selOpen ? '' : ' su-join--shut'}`;
-    /* `quickSit`, not `sitAt`. `sitAt` wants a TABLE id; handing it a bare stake
-       id looks like it works, because `tableById` falls back to the stake config
-       of the same name — and then the socket opens on a table that does not
-       exist and hangs on "connecting…". `quickSit` resolves the stake to its
-       fullest table with a seat free first, which is also the anti-bum-hunting
-       rule every other way in already goes through. The seated case navigates
-       rather than seating again. */
-    vals.joinStake = () => (selMine ? this.go('table')() : this.quickSit(sel.id));
+    /* The selected-stake machinery — `best()`, `selId`, `stakeRows`, and the
+       `joinStake*` values — went with the stake ladder it drove. The lobby
+       shows one row per TABLE now, each with its own Join, so there is no
+       "currently selected stake" for anything to act on; `st.stakeSel` is
+       written by nothing and read by nothing. `quickSit` is untouched and
+       still backs the Quick join button, which picks its own stake. */
     /* What the ladder costs you, in your own money. Signed out it says what the
        ladder is instead of inventing a bankroll. */
     vals.bankrollLine = bank == null
@@ -5899,6 +5853,92 @@ export default class SuitedApp extends React.Component<any, any> {
           },
         };
       });
+
+    /* ── the lobby's table list ────────────────────────────────────────────
+       Every live table in one grid, rather than only inside the per-stake
+       picker a Join opens. The stake ladder above answers "what am I willing
+       to play for"; this answers "where are the people", which is the question
+       somebody opening a poker lobby actually has, and until now the only way
+       to see it was to press Join on each stake in turn and read a modal.
+
+       Sorted by who is seated, descending: a table with players is worth more
+       than a table at a nicer stake with none, and an empty room sorts to the
+       bottom where it reads as the fallback it is. */
+    /* Fixed columns for the figures, the slack to the name.
+       Proportional columns (1fr each) looked reasonable written down and came
+       out 400px wide on a 1424px page — four numbers marooned in the middle of
+       their own cells with the eye travelling between them. A figure needs
+       exactly as much room as its longest value. */
+    const tableRowCols = 'grid-template-columns:minmax(0,1fr) 54px 104px 140px 84px 70px 80px;gap:14px;align-items:center';
+    vals.lobbyTableHeadStyle = `display:grid;${tableRowCols};padding:11px 16px;`
+      + `font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:${MUTED};`
+      + 'border-bottom:1px solid rgba(232,236,248,0.12)';
+    /* No cap of its own any more. It used to be held to 1040px and centred
+       inside a 1424px page, which is what made it look like a card dropped on
+       a wider screen; the page itself is 1040 inside its gutters now, so the
+       list simply fills it and its edges are the page's edges. */
+    vals.lobbyTableWrap = 'margin:clamp(18px,30px,26px) 0 0';
+    vals.lobbyTablePanel = 'border-radius:10px;border:1px solid rgba(232,236,248,0.12);'
+      + 'background:rgba(0,0,0,0.14);overflow:hidden';
+    /* A cap plus its own scroll, so a busy gateway cannot push the rest of the
+       lobby off the screen — the reference list does the same. */
+    vals.lobbyTableScroll = 'max-height:420px;overflow-y:auto';
+    vals.lobbyTableTitle = `font-family:${SERIF};font-size:23px;line-height:1.1;color:#e8ecf8`;
+    vals.lobbyTableSubStyle = `font-size:12px;color:${MUTED}`;
+
+    const allRooms = ROOMS_ALL().slice()
+      .sort((a, b) => (b.seated - a.seated) || (a.bb - b.bb) || String(a.name).localeCompare(String(b.name)));
+    vals.lobbyTableSub = allRooms.length
+      ? `${allRooms.length} ${allRooms.length === 1 ? 'table' : 'tables'} · ${allRooms.reduce((n, r) => n + r.seated, 0)} seated`
+      : 'No tables yet — sit at a stake above and one opens for you';
+    vals.lobbyTableRows = allRooms.map((r) => {
+      const seats = r.maxSeats || 6;
+      const closing = !!(st.leaving && st.session && st.session.tableId === r.id);
+      const mine = !!(st.seated && st.session && st.session.tableId === r.id && !st.leaving);
+      const off = closing || (!r.open && !mine);
+      return {
+        name: r.name,
+        // One game today. Named anyway, because the column is what tells a
+        // reader these are all hold'em rather than leaving them to assume it.
+        game: 'NLH',
+        blinds: `${usd(r.sb)}/${usd(r.bb)}`,
+        buyIn: `${usd(r.min)}/${usd(r.max)}`,
+        /* Null is carried through rather than flattened to $0 — `loadLobby` is
+           careful to keep "no average yet" and "the pots here are tiny" apart,
+           and printing $0 for the first would throw that away at the last step.
+           Written `--`, which is how every other absent figure in this app
+           reads (the jackpot's "drawn in", the table name with no session). */
+        avgPot: r.avgPot == null ? '--' : usd(r.avgPot),
+        players: `${r.seated}/${seats}`,
+        // The count carries the colour: a table with nobody at it should not
+        // look as alive as a full one.
+        playersStyle: `font-size:12.5px;font-variant-numeric:tabular-nums;color:${r.seated ? BRASS : MUTED}`,
+        rowStyle: `display:grid;${tableRowCols};padding:12px 16px;width:100%;box-sizing:border-box;text-align:left;`
+          + `border-bottom:1px solid rgba(232,236,248,0.07);background:${mine ? 'rgba(139,92,246,0.10)' : 'transparent'}`,
+        nameStyle: 'font-size:13.5px;font-weight:500;color:#e8ecf8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap',
+        cellStyle: `font-size:12.5px;font-variant-numeric:tabular-nums;color:${MUTED}`,
+        btnLabel: mine ? 'Open' : closing ? 'Closing' : !r.open ? 'Full' : 'Join',
+        /* A flat violet fill, deliberately NOT the app's primary gradient.
+           globals.css rewrites `linear-gradient(#8b5cf6, #6d3fd4)` into the
+           white-on-lavender pill with a glow, which is right for the one button
+           a screen is about and wrong repeated down twenty rows — twenty
+           primary actions is no primary action, and the page lights up like a
+           keypad. A solid `#8b5cf6` misses that rule (it keys on the two-stop
+           pair).
+         *
+           The fill is #6d3fd4, the gradient's DARK stop, not #8b5cf6 the light
+           one: the label is 11px, and `CTA_INK` on #8b5cf6 measures 3.87:1
+           against the 4.5 small text needs. On #6d3fd4 it is 5.79:1. (The
+           stake chips' own white "Join" on #8b5cf6 is 4.23:1 and has been
+           failing audit-contrast for a while — same cause, not this row.)
+           Its hover lives in globals.css keyed on rgb(109, 63, 212). */
+        btnStyle: 'padding:7px 0;width:100%;border-radius:999px;font-size:11px;letter-spacing:.04em;font-weight:500;'
+          + (off
+            ? `border:1px solid rgba(232,236,248,0.14);background:transparent;color:${MUTED};cursor:not-allowed`
+            : `border:1px solid rgba(255,255,255,0.14);background:#6d3fd4;color:${CTA_INK};cursor:pointer`),
+        join: () => { if (off) return; this.sitAt(r.id); },
+      };
+    });
 
     vals.tableName = sess ? sess.name : '--';
     vals.tableStakes = stakesLabel();

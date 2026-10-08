@@ -10,7 +10,7 @@ export default function CloseRoomModal({ v }: { v: any }) {
   return (
     <>
       {"\r\n    "}
-      <div onClick={v.dismissCloseRoom} style={{ position: "absolute", inset: "0", zIndex: "90", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", background: "rgba(0,0,0,0.72)" }}>
+      <div onClick={v.dismissCloseRoom} style={{ position: "fixed", inset: "0", zIndex: "90", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", background: "rgba(0,0,0,0.72)" }}>
         {"\r\n      "}
         <div onClick={v.crStop} style={{ width: "100%", maxWidth: "420px", padding: "30px", borderRadius: "12px", background: "#1a2238", color: "#e8ecf8", border: "1px solid rgba(232,236,248,0.154)", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.21),0 24px 60px -20px rgba(0,0,0,0.72)", animation: "riseIn .32s cubic-bezier(.2,.9,.24,1) both" }}>
           {"\r\n        "}

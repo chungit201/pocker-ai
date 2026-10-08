@@ -37,7 +37,15 @@
      its shell in JS: it reads the same custom property instead of carrying a
      second copy that can drift again. Bottom padding stays per page — a board
      that scrolls wants more tail than a lobby that does not. */
-  :root { --su-page: 1512px; --su-gutter: 44px; --su-scale: 1; }
+  /* 1200, not the 1512 of the design canvas. The canvas is how big the page is
+     DRAWN; this is how wide a column of it should be allowed to get, and those
+     are different questions — at 1512 the content of every one of these screens
+     was spread far enough apart to read as unrelated blocks sharing a
+     background. The lobby was narrowed first and on its own; this is the same
+     measure given to every page that wears `.su-page`, so they stop disagreeing
+     about where their left edge is. The landing and the docs are unaffected:
+     both are full-bleed and lay themselves out. */
+  :root { --su-page: 1200px; --su-gutter: 44px; --su-scale: 1; }
   .su-page { width: 100%; max-width: var(--su-page); margin: 0 auto;
     padding-top: 52px; padding-left: var(--su-gutter); padding-right: var(--su-gutter); }
   /* Proportion, not width. One factor fits a fixed 1512x850 design canvas to
@@ -354,6 +362,12 @@
      felt outline warms to brass — keyed on the resting style so the JS-built
      buttons (funding, rakeback, claim, seat CTAs) inherit it without attrs. */
   .pill-flat[style*="rgb(139, 92, 246)"]:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.285), 0 0 30px -6px rgba(232,236,248,0.114), 0 2px 5px rgba(0,0,0,0.4) !important; }
+  /* The lobby's per-row Join. It is filled with the gradient's DARK stop on its
+     own — #8b5cf6 cannot carry 11px text at 4.5:1 — so it matches neither the
+     light-stop rule above nor the two-stop primary override, and needs its own
+     line to have any hover at all. */
+  .pill-flat[style*="rgb(109, 63, 212)"]:not([style*="rgb(139, 92, 246)"]):hover { background: #7d4cf0 !important; }
+  .pill-flat[style*="rgb(109, 63, 212)"]:not([style*="rgb(139, 92, 246)"]):active { transform: translateY(1px); }
   .pill-flat[style*="rgb(139, 92, 246)"]:active { transform: translateY(1px); box-shadow: inset 0 2px 5px rgba(10,13,22,0.28) !important; }
   .pill-flat[style*="rgba(232, 236, 248, 0.28)"]:hover { border-color: rgba(139,92,246,0.55) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,0.14), 0 0 18px -6px rgba(139,92,246,0.6) !important; }
   /* 3a "fields, milled in": every cream input shares the #222c47 well, so the
@@ -894,6 +908,86 @@ html, body { height: 100%; margin: 0 }
   .su-nav > div:last-child { gap: 10px !important; }
 }
 @media (max-width: 600px) { .su-nav { padding: 0 16px !important; } }
+
+/* ── the lobby's table list on a phone ──────────────────────────────────────
+   Six columns of figures need about 770px before the grid starts crushing
+   them, so under that the row stops being a row and becomes a card: the
+   heading strip is hidden, the cells wrap, and each one grows its own label.
+
+   The label comes from `data-k` on the cell rather than from a second set of
+   markup for phones. Duplicate markup is the usual way to do this and it is
+   two things to keep in step — a column added to one and forgotten in the
+   other reads as a bug in the data, not in the HTML.
+
+   The border and radius are overridden here but NOT the background: the row a
+   player is already sitting at carries a violet tint inline, and a blanket
+   `background: …!important` would erase exactly the one row worth marking. */
+@media (max-width: 770px) {
+  .lb-tbl { border: 0 !important; background: transparent !important; }
+  .lb-tbl-head { display: none !important; }
+  .lb-tbl-scroll { max-height: none !important; overflow: visible !important; }
+  /* The card itself, in the stake chips' language: a rounded well lifted off
+     the page rather than a bordered box, so a column of them reads as a rack
+     of tables and not as a form. */
+  .lb-tbl-row { display: flex !important; flex-wrap: wrap; align-items: center;
+    gap: 6px 12px !important; padding: 13px 14px 12px !important;
+    border: 1px solid rgba(232,236,248,0.1) !important; border-radius: 14px; margin-bottom: 9px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.045), 0 8px 20px -16px rgba(0,0,0,0.9);
+    /* background-IMAGE, so the inline `background-color` underneath survives:
+       that is where the violet tint for the table you are sitting at lives,
+       and a translucent gradient over it still lets it read. Overriding the
+       shorthand would have erased the one row worth marking. */
+    background-image: linear-gradient(180deg, rgba(232,236,248,0.05), rgba(0,0,0,0.14)) !important; }
+  /* Three lines, in the order somebody choosing a table actually reads them:
+   *
+       copper                    • 0/6     who and how full
+       $0.01/$0.02        [  Join  ]       the stake, and the way in
+       NLH · Buy-in … · Avg pot …          the small print
+
+     The stake is the figure the old stake chips made large and set in the
+     display serif, and it was the right call — a card whose biggest thing is
+     the table's codename tells you nothing you can choose on. Labelling every
+     figure, which is what the first attempt did ("Game NLH  Blinds $0.01/$0.02
+     Buy-in …"), reads as a debug dump: a stake and a seat count need no label,
+     so only the three in the small print keep theirs.
+
+     The two line breaks are the container's own ::before and ::after. A flex
+     container's pseudo-elements become flex items, so with `flex: 0 0 100%`
+     each forces a wrap at a chosen point — and two is exactly how many are
+     available, which is why the layout is three lines and not four. The order
+     numbers run 1–9 so those two can sit between the real cells. */
+  .lb-tbl-row { align-content: flex-start; }
+  .lb-tbl-row::before { content: ''; order: 3; flex: 0 0 100%; height: 0; }
+  .lb-tbl-row::after { content: ''; order: 6; flex: 0 0 100%; height: 2px; }
+
+  .lb-tbl-name { order: 1; flex: 1 1 auto; font-size: 14px !important; letter-spacing: .01em; }
+  .lb-tbl-c[data-k="Players"] { order: 2; flex: 0 0 auto; font-size: 12px !important; }
+  /* A lit pip next to the count, the signal the stake chips used for "there is
+     a game here". Dim when the table is empty — the count's own colour already
+     switches, so the dot follows it with currentColor. */
+  .lb-tbl-c[data-k="Players"]::after { content: ''; display: inline-block; width: 6px; height: 6px;
+    margin-left: 6px; border-radius: 50%; background: currentColor; vertical-align: middle; opacity: .85; }
+
+  .lb-tbl-c[data-k="Blinds"] { order: 4; flex: 1 1 auto;
+    font-family: 'Instrument Serif', serif; font-size: 22px !important; line-height: 1.05;
+    color: #e8ecf8 !important; }
+  .lb-tbl-join { order: 5; flex: 0 0 auto; width: auto !important; padding: 7px 20px !important; font-size: 11.5px !important; }
+
+  .lb-tbl-c[data-k="Game"] { order: 7; }
+  .lb-tbl-c[data-k="Buy-in"] { order: 8; }
+  .lb-tbl-c[data-k="Avg pot"] { order: 9; }
+  .lb-tbl-c { flex: 0 0 auto; text-align: left !important; font-size: 11.5px !important; }
+  /* Only the two figures that could be mistaken for each other are labelled.
+     "Blinds $0.01/$0.02" and "Game NLH" are both words spent telling a poker
+     player something the value already says; a buy-in band and an average pot
+     are two money ranges in a row, and those do need saying apart. */
+  .lb-tbl-c[data-k="Buy-in"]::before,
+  .lb-tbl-c[data-k="Avg pot"]::before { content: attr(data-k) " "; color: #7d87a3; }
+  /* The game type as a chip, which is what it is — a tag, not a measurement. */
+  .lb-tbl-c[data-k="Game"] { padding: 2px 7px; border-radius: 999px; font-size: 10px !important;
+    letter-spacing: .08em; color: #b9c3dc !important; background: rgba(232,236,248,0.07);
+    border: 1px solid rgba(232,236,248,0.1); }
+}
 
 /* ── the docs on a phone ────────────────────────────────────────────────────
    The desktop shape is a 248px contents rail beside an 860px column, which on
