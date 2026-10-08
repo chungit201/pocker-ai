@@ -222,6 +222,8 @@ export function createRemoteAdapter(cfg) {
       maxRaiseTo: toDisplay(w.maxRaiseTo),
       potIfCall: toDisplay(w.potIfCall),
       stack: toDisplay(w.stack),
+      // The turn this answers: the server refuses an action that quotes any other.
+      turnNo: w.turnNo,
     };
   }
 
@@ -606,7 +608,7 @@ export function createRemoteAdapter(cfg) {
         wire.type = 'raise';
         wire.to = toMicro(Math.min(Math.max(target, legal.minRaiseTo), legal.maxRaiseTo));
       }
-      send({ t: 'act', action: wire, seq: ++seq });
+      send({ t: 'act', action: wire, seq: ++seq, turnNo: legal.turnNo });
       // Clear locally so the action bar cannot be double-fired while the server
       // decides. The next frame is authoritative either way.
       legal = null;
