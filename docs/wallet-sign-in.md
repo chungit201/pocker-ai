@@ -187,9 +187,73 @@ configured and none should be. The kitchen-sink
 a Stellar SDK whose postinstall runs `yarn`, which fails outright on a machine
 without it.
 
+## When a Solana connect fails, read the cause and not the name
+
+`WalletConnectionError: Unexpected error` was reported from production, and it
+is worth knowing why that line, on its own, says nothing at all.
+
+"Unexpected error" is not ours and does not come from any package we bundle —
+grep the tree, it is in none of them. It is the **wallet extension's** own
+message, its way of saying "refused, no reason given".
+`wallet-standard-wallet-adapter-base/adapter.js:224` wraps whatever
+`standard:connect` threw as:
+
+```js
+throw new WalletConnectionError(error?.message, error)
+```
+
+So the wrapper copies the wallet's *message* up and keeps the wallet's actual
+error on `.error` — where the code, and usually a real reason, live. The app
+reported the wrapper. The part that could be acted on was discarded one line
+before anyone saw it.
+
+`describeWalletError` in `src/wallet/bridge.ts` walks that chain (`.error`,
+then `cause`), keeps the code each layer carries, and drops consecutive
+duplicates — a wrapper that copied its child's message should not read as two
+problems. It is used in two places: `WalletBridge`'s Solana `connect`, which
+rethrows so the toast carries it, and `WalletProvider`'s `onError`, which had
+no handler at all and so logged the bare `WalletError`. The same failure now
+reads:
+
+```
+ProbeWallet refused to connect: Unexpected error <- Unexpected error (code -32603) <- the extension is locked
+```
+
+It diagnoses nothing by itself. It stops the diagnosis being thrown away, which
+is a different and more tractable problem than guessing.
+
+`connect` also holds a one-at-a-time guard across the whole sequence now. A
+wallet extension keeps **one** pending approval per page, and a second request
+arriving while the first is open is answered by several of them with exactly
+this kind of generic internal error. The adapter's own guard does not cover it:
+`isConnectingRef` in `WalletProviderBase.handleConnect` makes the second
+`connect()` resolve *without connecting*, so the second caller used to fall
+through to the 120-second wait and sit there. The row stays clickable the whole
+time, so this was one impatient click away.
+
 ## Testing it
 
-Two probes, and the difference between them is the point.
+Three probes, and the difference between them is the point.
+
+**A failing Solana wallet, on demand:**
+
+```bash
+node tools/probe-solana-connect.mjs
+```
+
+Playwright has no extension, and an extension that fails when you ask it to is
+not something you can obtain — so this registers a Wallet Standard wallet from
+an init script whose `standard:connect` rejects the way the reported one did
+(message "Unexpected error", `code: -32603`, a cause underneath). Discovery is
+real: it arrives over the same `wallet-standard:register-wallet` event Phantom
+uses, and the app cannot tell it from a wallet you installed. That first check
+— that the row appears at all — is also the only automated test of Solana
+wallet discovery there is.
+
+Run against the code from before `describeWalletError` it fails two of its
+three checks, and the toast reads `Unexpected error` and nothing else, which is
+how the reproduction was confirmed to be the reported bug rather than a
+lookalike.
 
 **Against the real gateway, with a real signature** — no setup beyond
 `npm run dev`, since `.env.local` already points there:

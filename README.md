@@ -259,6 +259,8 @@ useful question for a UI assembled this way.
 | `node tools/felt.mjs` | plays the demo onto the table and photographs it |
 | `node tools/echo-gateway.mjs` | stands in for Poker-BE on :3000, no Postgres needed |
 | `node tools/probe-wallet.mjs` | signs in on both chains against fake wallets |
+| `node tools/probe-solana-connect.mjs` | a Solana wallet that fails on demand; is the reason readable? |
+| `node tools/probe-waiting-panel.mjs` | "Waiting for others" shows at an empty table and nowhere else |
 | `node tools/shots.mjs` · `shot-actionbar` · `shot-hero-card` | screenshots, for looking at a change |
 | `node tools/read-env.mjs <file>` · `check-be-env` | read or verify the gateway's env without printing secrets |
 

@@ -2675,6 +2675,35 @@ export default class SuitedApp extends React.Component<any, any> {
     this.sitAt(cr.tableId);
   };
 
+  /* The link to the table you are sitting at, for the "waiting for others"
+     panel. Built from `routePath`'s own shape (/table/<id>) rather than from
+     `location.href`, which on a refresh-less navigation is whatever the address
+     bar last settled on and may still read /lobby.
+
+     A failure is reported rather than swallowed. `copyRoomLink` can stay quiet
+     because the room sheet prints the link beside the button, so a blocked
+     clipboard leaves something to select by hand; here the link is nowhere on
+     screen, and a button that silently does nothing is the worse outcome. */
+  copyTableLink = () => {
+    const id = this.state.session && this.state.session.tableId;
+    if (!id) return;
+    const url = `${location.origin}/table/${id}`;
+    const ok = () => {
+      this.sfx('ui');
+      this.setState({ crCopied: true });
+      setTimeout(() => this.setState({ crCopied: false }), 1600);
+    };
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(ok).catch(() => this.toast(`Could not copy — the link is ${url}`, 'bad'));
+      } else {
+        this.toast(`This browser blocks copying — the link is ${url}`, 'warn');
+      }
+    } catch {
+      this.toast(`Could not copy — the link is ${url}`, 'bad');
+    }
+  };
+
   /* One money formatter for every amount that belongs to a table.
      In dollars it is `fmt` and nothing has changed. In big blinds it divides by
      the blind and carries the unit inside the string, because these figures land
@@ -7602,6 +7631,66 @@ export default class SuitedApp extends React.Component<any, any> {
        cleared until the next deal, which for a frozen heads-up bust never comes,
        so keying on it would hide the rebuy in exactly the case it is for. */
     const heroBroke = !spectating && (hero.stack || 0) <= 0 && !!hero.sittingOut;
+
+    /* ── "Waiting for others" ──────────────────────────────────────────────
+       Sitting down at an empty table and being told "Waiting · 1 of 2 to deal"
+       on the action bar is accurate and useless: it says what is wrong and
+       nothing about what to do, on the one line of the screen a new player is
+       least likely to read. The felt itself is the thing they are staring at,
+       so the answer goes there — and it is an answer, not a status: a link to
+       pull somebody in, or a way to go and find a table that already has one.
+
+       `othersHere` counts OCCUPIED seats rather than live ones on purpose. The
+       bar's `liveSeats` also excludes anyone sat out or broke, so it fires when
+       a table has people in it who merely cannot act this hand — a case where
+       "share this link with a friend" is the wrong advice and "they will be
+       back next hand" is the truth. This panel is strictly for an empty room.
+
+       Suppressed on a tournament table: its seats are dealt by the runtime, a
+       link to one invites nobody, and the lobby is not where its players are. */
+    const othersHere = seats.filter((s, i) => i !== 0 && s && !s.empty).length;
+    const waitOn = !spectating && !isTournamentTable && !!t && othersHere === 0 && !heroBroke;
+    vals.waitOn = waitOn;
+    if (waitOn) {
+      vals.waitWrap = `position:absolute;left:${BOARD.cx}px;top:${BOARD.cy}px;transform:translate(-50%,-50%);z-index:60;pointer-events:auto`;
+      /* The same smoked glass the win callout uses, for the same reason: the
+         felt and the seats behind stay legible through it, so the table still
+         reads as a table with a note on it rather than a dialog that replaced
+         one. */
+      vals.waitPanel = 'display:flex;flex-direction:column;align-items:center;gap:6px;'
+        + 'background:rgba(0,0,0,0.72);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);'
+        + 'border-radius:14px;padding:26px 38px;'
+        + 'box-shadow:0 18px 50px rgba(0,0,0,0.6), 0 0 0 1px rgba(139,92,246,0.34);'
+        + 'animation:riseIn .34s cubic-bezier(.2,.9,.24,1) both';
+      vals.waitTitleRow = 'display:flex;align-items:center;gap:9px';
+      vals.waitDot = `width:7px;height:7px;border-radius:999px;background:${BRASS};animation:suPulse 2.2s ease-in-out infinite`;
+      vals.waitTitleStyle = `font-family:${SERIF};font-size:27px;line-height:1.05;color:#e8ecf8`;
+      vals.waitTitle = 'Waiting for others';
+      vals.waitSubStyle = `font-size:12px;color:${MUTED};margin-bottom:16px`;
+      vals.waitSub = 'Your seat is taken and the table is open - it deals as soon as one more player sits down.';
+      vals.waitCols = 'display:flex;align-items:stretch;gap:22px';
+      vals.waitCol = 'display:flex;flex-direction:column;align-items:center;gap:11px;min-width:210px';
+      vals.waitLeadStyle = 'font-size:13px;color:#e8ecf8';
+      vals.waitShareLead = 'Invite someone to this table';
+      // `crCopied` is the created-room copy's own flag and is reused here: both
+      // are "the link is on your clipboard", and one flag cannot be true for
+      // two links at once — the create-room sheet is not open on the felt.
+      vals.waitCopyLabel = st.crCopied ? 'Link copied' : 'Copy table link';
+      const btn = 'padding:11px 22px;border-radius:5px;font-size:12.5px;font-weight:500;cursor:pointer;letter-spacing:.01em';
+      vals.waitCopyStyle = `${btn};border:none;background:linear-gradient(180deg,#8b5cf6,#6d35e0);color:#f6f3ff;`
+        + 'box-shadow:inset 0 1px 0 rgba(255,255,255,0.22),0 2px 6px rgba(0,0,0,0.4)';
+      vals.waitFindLead = 'Or find a table with players';
+      vals.waitFindLabel = 'Back to the lobby';
+      vals.waitFindStyle = `${btn};border:1px solid rgba(232,236,248,0.28);background:transparent;color:#e8ecf8`;
+      vals.waitOrWrap = 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;align-self:stretch';
+      vals.waitOrRule = 'flex:1;width:1px;background:rgba(232,236,248,0.16)';
+      vals.waitOrText = `font-size:10px;letter-spacing:.18em;color:${MUTED}`;
+      vals.waitCopy = this.copyTableLink;
+      /* The lobby, not `leaveTable`. Navigating away from the felt detaches the
+         screen and nothing else — the seat and the chips stay where they are —
+         so this cannot cost anybody their seat by misreading the button. */
+      vals.waitFind = this.go('lobby');
+    }
 
     /* ── Part 4 Task 4: tournament HUD + freezeout ─────────────────────
        A tournament table is any table id under the runtime's `priv-tt-`

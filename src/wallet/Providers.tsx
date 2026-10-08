@@ -14,16 +14,17 @@
  * @solana/wallet-adapter-wallets, drags in a Stellar SDK whose postinstall runs
  * yarn, which fails outright on a machine without it.
  */
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { WagmiProvider, createConfig, http } from 'wagmi';
 import { injected, walletConnect } from 'wagmi/connectors';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
-import { WalletAdapterNetwork, type Adapter } from '@solana/wallet-adapter-base';
+import { WalletAdapterNetwork, type Adapter, type WalletError } from '@solana/wallet-adapter-base';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 
 import '@rainbow-me/rainbowkit/styles.css';
 import { robinhoodTestnet, SOLANA_RPC } from './chains';
+import { describeWalletError } from './bridge';
 import WalletBridge from './WalletBridge';
 
 /* WalletConnect: the way in for a wallet that is not in this browser — a phone
@@ -123,9 +124,26 @@ function SolanaProviders({ children }: { children: ReactNode }) {
     return () => { gone = true; };
   }, []);
 
+  /* Every adapter error, named at the source.
+   *
+   * Without an `onError` the provider logs the WalletError itself, which in a
+   * console reads as its class and its message and nothing else — and the
+   * message is the WALLET's, so a Phantom refusal arrives as the famously
+   * unhelpful "WalletConnectionError: Unexpected error". The cause the adapter
+   * attached is the part that says which layer refused and with what code, so
+   * it is unwrapped here (`describeWalletError`) and the original object is
+   * logged beside it for anyone with the console open.
+   *
+   * This only reports. `connect` in WalletBridge still rejects, and the connect
+   * screen still shows its own message; a wallet error that nobody can read is
+   * the thing being fixed, not the error itself. */
+  const onError = useCallback((error: WalletError, adapter?: Adapter) => {
+    console.error(`[wallet] solana${adapter ? ` (${adapter.name})` : ''}: ${describeWalletError(error)}`, error);
+  }, []);
+
   return (
     <ConnectionProvider endpoint={SOLANA_RPC}>
-      <WalletProvider wallets={solanaWallets} autoConnect={false}>
+      <WalletProvider wallets={solanaWallets} autoConnect={false} onError={onError}>
         {children}
       </WalletProvider>
     </ConnectionProvider>

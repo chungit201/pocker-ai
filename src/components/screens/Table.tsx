@@ -7,6 +7,7 @@
 import { Fragment } from 'react';
 import { interp, css, asArray } from '../dc-runtime';
 import { openTableMenu } from './TableDrawer';
+import WaitingForOthers from './WaitingForOthers';
 
 export default function Table({ v }: { v: any }) {
   return (
@@ -546,6 +547,15 @@ export default function Table({ v }: { v: any }) {
                 ))}
                 {"\r\n            "}
               </div>
+              {"\r\n\r\n            "}
+              {/*
+                 "nobody else is here yet" — inside the play area, so it sits on
+                 the felt and scales with it. Last in the stack and above the
+                 board, but below the reconnect scrim: a dropped socket is the
+                 more urgent thing to say, and both can be true at once.
+              */}
+              {"\r\n            "}
+              {v.waitOn ? <WaitingForOthers v={v} /> : null}
               {"\r\n          "}
             </div>
             {"\r\n\r\n          "}

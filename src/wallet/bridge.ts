@@ -83,3 +83,41 @@ export function requireSolana(): SolanaBridge {
   if (!bridge.solana) notReady('the Solana wallet')();
   return bridge.solana!;
 }
+
+/* What a wallet adapter error actually said, as opposed to what it is called.
+ *
+ * `WalletError` (@solana/wallet-adapter-base) keeps the wallet's own error on
+ * `.error` and copies only its MESSAGE onto itself — see
+ * wallet-standard-wallet-adapter-base/adapter.js, which wraps every failed
+ * `standard:connect` as `new WalletConnectionError(error?.message, error)`.
+ *
+ * A browser extension's message is often a bare "Unexpected error", which is
+ * its way of saying "no reason given". Report the wrapper alone and every one
+ * of these failures arrives looking identical and unactionable: a class name, a
+ * generic string, and nothing about which layer refused or with what code. The
+ * cause underneath usually carries both, and we were throwing it away.
+ *
+ * So walk the chain — `.error` first, then `cause` — and keep whatever each
+ * layer adds. Nothing here invents a diagnosis; it stops the one the wallet
+ * gave us from being discarded.
+ */
+export function describeWalletError(e: unknown): string {
+  const parts: string[] = [];
+  // Wallets have been known to set `error` to the error itself; without this
+  // the walk never terminates.
+  const seen = new Set<unknown>();
+  let cur: unknown = e;
+  while (cur && typeof cur === 'object' && !seen.has(cur)) {
+    seen.add(cur);
+    const o = cur as { name?: string; message?: string; code?: unknown; error?: unknown; cause?: unknown };
+    const msg = String(o.message ?? '').trim();
+    const label = msg || o.name || '';
+    const code = o.code == null ? '' : ` (code ${String(o.code)})`;
+    if (label || code) parts.push(`${label}${code}`.trim());
+    cur = o.error ?? o.cause;
+  }
+  if (!parts.length) return String(e ?? 'the wallet failed with no error at all');
+  /* Consecutive duplicates are the normal case, because the wrapper copied the
+     message it is wrapping. Printing it twice reads as two problems. */
+  return parts.filter((p, i) => p !== parts[i - 1]).join(' <- ');
+}

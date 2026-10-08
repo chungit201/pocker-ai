@@ -18,7 +18,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import bs58 from 'bs58';
 import { VersionedTransaction } from '@solana/web3.js';
 
-import { bridge } from './bridge';
+import { bridge, describeWalletError } from './bridge';
 
 /** Resolves when `read()` returns a value, or rejects on `timeoutMs`. */
 function waitFor<T>(read: () => T | null | undefined, timeoutMs: number, onTimeout: string): Promise<T> {
@@ -63,6 +63,9 @@ export default function WalletBridge() {
      so it closes over a ref rather than over the render's own bindings. */
   const latest = useRef({ account, connectors, connectAsync, disconnectAsync, signMessageAsync, openConnectModal, solana });
   latest.current = { account, connectors, connectAsync, disconnectAsync, signMessageAsync, openConnectModal, solana };
+
+  /** Whether a Solana connect sequence is already waiting on the wallet. */
+  const solConnecting = useRef(false);
 
   useEffect(() => {
     bridge.evm = {
@@ -138,14 +141,43 @@ export default function WalletBridge() {
         const found = l.wallets.find((w) => w.adapter.name === walletName);
         if (!found) throw new Error(`${walletName} is not available in this browser`);
         if (l.publicKey && l.wallet?.adapter.name === walletName) return l.publicKey.toBase58();
-        l.select(found.adapter.name as never);
-        // `select` only sets which wallet; connecting is a separate step and the
-        // adapter has to re-render before it will take it.
-        await waitFor(() => (latest.current.solana.wallet?.adapter.name === walletName ? true : null), 5_000,
-          'the wallet did not become selectable');
-        await latest.current.solana.connect();
-        const key = await waitFor(() => latest.current.solana.publicKey, 120_000, 'no wallet was connected');
-        return key.toBase58();
+
+        /* One attempt at a time, for the whole sequence and not just the
+           adapter's own `connect`.
+         *
+         * A wallet extension holds ONE pending approval per page, and a second
+         * request arriving while the first is still open is a case several of
+         * them answer with a generic internal error rather than a queue — which
+         * is one of the ways "Unexpected error" is produced. The adapter's own
+         * guard (`isConnectingRef` in WalletProviderBase.handleConnect) does
+         * not cover this: it makes the second `connect()` resolve immediately
+         * WITHOUT connecting, so the second caller would fall through to the
+         * 120s wait below and sit there until it timed out. The row on the
+         * connect screen is clickable throughout, so this is a click away. */
+        if (solConnecting.current) throw new Error('a wallet connection is already waiting for approval');
+        solConnecting.current = true;
+        try {
+          l.select(found.adapter.name as never);
+          // `select` only sets which wallet; connecting is a separate step and
+          // the adapter has to re-render before it will take it.
+          await waitFor(() => (latest.current.solana.wallet?.adapter.name === walletName ? true : null), 5_000,
+            'the wallet did not become selectable');
+          try {
+            await latest.current.solana.connect();
+          } catch (e) {
+            /* The adapter hands up a WalletError whose message is the wallet's
+               own and whose CAUSE is the only part that says anything useful.
+               Without this the report is "WalletConnectionError: Unexpected
+               error" and there is nowhere to go from it. */
+            const err = new Error(`${walletName} refused to connect: ${describeWalletError(e)}`);
+            (err as { cause?: unknown }).cause = e;
+            throw err;
+          }
+          const key = await waitFor(() => latest.current.solana.publicKey, 120_000, 'no wallet was connected');
+          return key.toBase58();
+        } finally {
+          solConnecting.current = false;
+        }
       },
       async signMessage(message) {
         const l = latest.current.solana;
