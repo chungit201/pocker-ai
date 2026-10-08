@@ -103,16 +103,28 @@ const fill = async (placeholder, value) => {
   const el = page.locator(`input[placeholder="${placeholder}"]`).first();
   if (await el.count()) await el.fill(value);
 };
-await fill('Room name (optional)', 'Waiting probe');
-await fill('Small blind', '0.05');
-await fill('Big blind', '0.1');
-await fill('Minimum', '2');
-await fill('Maximum', '10');
+/* Keyed to the sheet's placeholders, which are example VALUES ("0.05") rather
+   than field names ("Small blind"). They have been renamed once already, and
+   the failure mode is nasty: every fill silently misses, the form submits
+   empty, no room is created, and the run reports "the panel did not show" —
+   a true statement about the wrong thing. Hence the count check below. */
+await fill('Friday night', 'Waiting probe');
+await fill('0.05', '0.05');
+await fill('0.10', '0.10');
+await fill('2', '2');
+await fill('10', '10');
 await fill('6', '6');
-// The pin field is the only four-digit one; it has no placeholder of its own.
 const pin = page.locator('input[inputmode="numeric"]').last();
 if (await pin.count()) await pin.fill('1234');
 await page.waitForTimeout(400);
+
+const filled = await page.evaluate(() =>
+  [...document.querySelectorAll('input')].filter((i) => i.value.trim()).length);
+if (filled < 6) {
+  console.log(`FAIL  only ${filled} of the create-room fields took a value — the sheet's placeholders changed, so this probe is filling nothing`);
+  await browser.close();
+  process.exit(1);
+}
 
 if (!await click('Create room', 6000)) {
   console.log('FAIL  no "Create room" button — the create-room sheet changed');
@@ -172,9 +184,15 @@ if (joined) await click('take your seat', 6000);
 await page.waitForTimeout(3000);
 
 const others = await page.evaluate(() => document.body.innerText).then((t) => t.replace(/\s+/g, ' '));
-const atBusy = /fold|check|call|dealing|waiting ·/i.test(others);
+/* "Waiting · 1 of 2 to deal" is the action bar's own ALONE state, so matching
+   it as evidence of a busy table — which this guard first did — makes the
+   check demand that the panel hide at exactly the table it is for, and fail
+   whenever the public table happened to be empty too. The question is whether
+   anyone ELSE is here, and that line answers it in the negative. */
+const stillAlone = /waiting\s*·\s*1 of 2/i.test(others);
+const atBusy = !stillAlone && /fold|check|call|dealing/i.test(others);
 if (!atBusy) {
-  console.log('SKIP  the panel is NOT shown with others present — could not reach a populated table to try');
+  console.log(`SKIP  the panel is NOT shown with others present — ${stillAlone ? 'the public table was empty too' : 'could not reach a populated table'}`);
 } else {
   const stillUp = await panelUp();
   step('the panel stays hidden once somebody else is at the table', !stillUp,

@@ -344,7 +344,12 @@
   .pill-flat[style*="rgb(34, 44, 71)"]:hover { box-shadow: inset 0 1px 0 rgba(255,255,255,0.16), 0 0 22px -6px rgba(148,163,196,0.95), 0 2px 5px rgba(0,0,0,0.375) !important; }
   .pill-flat[style*="rgb(34, 44, 71)"]:active { transform: translateY(1px); box-shadow: inset 0 2px 6px rgba(0,0,0,0.5) !important; }
   /* the cream outline action: the hairline seats on hover instead of glowing */
-  .pill-flat[style*="rgba(232, 236, 248, 0.22)"]:hover, .pill-flat[style*="rgba(232, 236, 248, 0.176)"]:hover, .pill-flat[style*="rgba(232, 236, 248, 0.198)"]:hover { border-color: rgba(232,236,248,0.28) !important; }
+  /* The `0.198` arm went with the create-room sheet's old "Copy link" button,
+     which was the only .pill-flat that ever carried that border — every other
+     use of the token is a dashed rule on a div, which this selector cannot
+     match. Its replacement is a 0.28 chip, so it hovers off the rule below.
+     tools/probe-attr.mjs reported this as DEAD, which is what it is for. */
+  .pill-flat[style*="rgba(232, 236, 248, 0.22)"]:hover, .pill-flat[style*="rgba(232, 236, 248, 0.176)"]:hover { border-color: rgba(232,236,248,0.28) !important; }
   /* 1a on the felt, by family: any paper-gradient plate blooms on hover, any
      felt outline warms to brass — keyed on the resting style so the JS-built
      buttons (funding, rakeback, claim, seat CTAs) inherit it without attrs. */
@@ -889,6 +894,56 @@ html, body { height: 100%; margin: 0 }
   .su-nav > div:last-child { gap: 10px !important; }
 }
 @media (max-width: 600px) { .su-nav { padding: 0 16px !important; } }
+
+/* ── the docs on a phone ────────────────────────────────────────────────────
+   The desktop shape is a 248px contents rail beside an 860px column, which on
+   a 390px screen leaves about fifty pixels for the prose. So below the stage's
+   own breakpoint the two stop being columns: the rail becomes a drawer over
+   the article, opened by a button that does not exist above it.
+
+   Everything here is !important because the three elements carry their desktop
+   geometry as inline styles, which a stylesheet cannot otherwise beat — the
+   same arrangement the lobby and landing use, and the reason those are classes
+   too. The toggle is the one piece with no inline style, so it is written
+   normally and merely revealed.
+
+   Collapsed is a `max-height` and not `display:none` so it animates, and not
+   the `grid-template-rows: 0fr` idiom because that needs the collapsing box to
+   have exactly ONE child — `renderNav` appends the heading, every group label
+   and every link straight onto the <nav>, so each would become a grid row of
+   its own and the whole thing would stay open. 52vh caps the drawer at about
+   half the screen, so opening it never buries the article entirely. */
+.su-docs-toggle { display: none; align-items: center; gap: 9px; width: 100%; flex: none;
+  padding: 11px 14px; margin: 12px 0 0; border-radius: 8px; cursor: pointer;
+  border: 1px solid rgba(232,236,248,0.2); background: rgba(0,0,0,0.18); color: #e8ecf8;
+  font: inherit; font-size: 12.5px; letter-spacing: .02em; text-align: left; }
+.su-docs-toggle-mark { width: 14px; height: 1.5px; flex: none; background: currentColor; box-shadow: 0 5px 0 currentColor, 0 -5px 0 currentColor; }
+@media (max-width: 940px) {
+  .su-docs { flex-direction: column !important; padding: 0 var(--su-gutter) !important; }
+  .su-docs-toggle { display: flex; }
+  /* `min-height: 0` is what actually makes this collapse, and leaving it out is
+     why the first attempt did nothing at all.
+   *
+     The shell is `display:flex`, so the nav is a flex item, and a flex item's
+     default `min-height: auto` resolves to its CONTENT height in a column
+     container. A minimum beats a maximum in CSS, so `max-height: 0` was being
+     ignored and the whole contents list stayed on screen. Same trap as the
+     `minHeight: 0` already sitting on the article's scroller inline. */
+  .su-docs-nav { width: auto !important; flex: none !important;
+    border-right: none !important; padding: 0 !important;
+    min-height: 0 !important; max-height: 0; overflow: hidden !important;
+    /* Zero WIDTH, not a transparent border. A 1px transparent border still
+       occupies a pixel, so the shut drawer measured 1px tall and left a hairline
+       gap above the article. */
+    border-bottom: 0 solid rgba(232,236,248,0.132);
+    transition: max-height .24s ease, border-bottom-width .24s ease; }
+  .su-docs-nav--on { max-height: 52vh; overflow-y: auto !important;
+    padding: 4px 0 12px !important; border-bottom-width: 1px; }
+  /* renderNav's own "Contents" heading, which the toggle above already says.
+     Positional because that function owns the markup and gives it no class. */
+  .su-docs-nav > div:first-child { display: none; }
+  .su-docs-body { max-width: none !important; padding: 20px 0 96px !important; }
+}
 
 /* ── every page on a phone: a phone's gutter ────────────────────────────────
    44px a side was drawn for a 1512px canvas; at 390px it is a quarter of the

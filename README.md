@@ -262,11 +262,20 @@ useful question for a UI assembled this way.
 | `node tools/probe-solana-connect.mjs` | a Solana wallet that fails on demand; is the reason readable? |
 | `node tools/probe-waiting-panel.mjs` | "Waiting for others" shows at an empty table and nowhere else |
 | `node tools/shots.mjs` · `shot-actionbar` · `shot-hero-card` | screenshots, for looking at a change |
+| `node tools/shot-create-room.mjs` | both steps of the create-room sheet, and audits them |
 | `node tools/read-env.mjs <file>` · `check-be-env` | read or verify the gateway's env without printing secrets |
 
 Run `verify` and `audit-contrast` after any visual change, and `snapshot` around
 any refactor. The three unreadable-text bugs that reached the user were all
 invisible to a screenshot; `audit-contrast` is what catches them now.
+
+`audit-contrast` walks the app cold, so it never sees anything behind the
+sign-in — and a label on the create-room sheet was dimmed to 4.22:1 there,
+under the 4.5 small text needs, while looking perfectly fine in a 2x
+screenshot. The signed-in surfaces carry the audit themselves for that reason:
+`probe-live` for the seat screen and the felt, `shot-create-room` for the
+sheet. Each measures what its own screen ADDS, so the lobby's pre-existing
+violet-on-violet does not make them red for something they did not touch.
 
 The port was originally held to a DOM diff against the original single-file app,
 which it passed on ten screens with zero structural differences, including the

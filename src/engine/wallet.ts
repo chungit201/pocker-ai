@@ -650,6 +650,31 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
     await solConfirm(cfg, sig, 'finalized');
   }
 
+  /**
+   * Which chain the GATEWAY runs, regardless of who is signed in — or whether
+   * anyone is.
+   *
+   * `chainInfo` below cannot answer this and should not be made to: it reports
+   * the chain of the CURRENT SESSION, because that is what the deposit and
+   * withdrawal paths need to know. The consequence is that with no session it
+   * falls through to `/api/chain`, and on a Solana-only deployment that
+   * answers `{enabled:false}` with no `kind` at all.
+   *
+   * The docs are read before anyone connects, so they were asking the one
+   * question `chainInfo` answers wrongly and got `'evm'` every time — which is
+   * why a Solana gateway's documentation described Robinhood Chain.
+   */
+  async function gatewayChain() {
+    const c = await solConfig().catch(() => null);
+    if (c && c.enabled) {
+      return { enabled: true, kind: 'solana', symbol: c.symbol, cluster: c.cluster, mint: c.mint };
+    }
+    const evm = await api('/api/chain').catch(() => null);
+    // `kind` is only meaningful where the chain is actually on; a disabled EVM
+    // config is not evidence that this is an EVM deployment.
+    return evm && evm.enabled ? { ...evm, kind: evm.kind ?? 'evm' } : { enabled: false };
+  }
+
   async function chainInfo() {
     if (isSolSession()) {
       const c = await solConfig().catch(() => null);
@@ -912,6 +937,8 @@ export function createServerWallet({ endpoint, onSession = (_token?: any, _addre
 
     /** `{ enabled, minDeposit, mint, programId }` — drives the deposit screen. */
     chainInfo,
+    /** What the gateway runs, with nobody signed in. For the docs. */
+    gatewayChain,
     walletTokens,
 
     /**

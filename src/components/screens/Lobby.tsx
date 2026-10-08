@@ -306,51 +306,89 @@ export default function Lobby({ v }: { v: any }) {
                   {"\r\n            "}
                   <div>
                     {"\r\n              "}
-                    <h2 style={{ fontFamily: "'Inter Tight',system-ui,sans-serif", fontWeight: "600", letterSpacing: "-.03em", fontSize: "26px", margin: "0 0 3px" }}>
+                    <h2 style={{ fontFamily: "'Inter Tight',system-ui,sans-serif", fontWeight: "600", letterSpacing: "-.03em", fontSize: "23px", margin: "0 0 4px" }}>
                       {"Create a room"}
                     </h2>
                     {"\r\n              "}
-                    <div style={{ fontSize: "12px", color: "#94a3c4", marginBottom: "20px" }}>
+                    <div style={{ fontSize: "12.5px", color: "#94a3c4", marginBottom: "22px" }}>
                       {"A private table, you share the link and the pin"}
                     </div>
                     {"\r\n\r\n              "}
-                    <input value={v.crName ?? ''} onInput={v.crNameInput} placeholder="Room name (optional)" maxLength={40} style={{ width: "100%", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa", marginBottom: "16px" }} />
-                    {"\r\n\r\n              "}
-                    <div style={css(v.crFieldLabel)}>{"Blinds, small / big ($)"}</div>
+                    <div style={css(v.crFieldLabel)}>{"Room name"}</div>
                     {"\r\n              "}
-                    <div style={{ display: "flex", gap: "9px", marginBottom: "14px" }}>
+                    <div className="field-felt" style={css(v.crField)}>
+                      <input value={v.crName ?? ''} onInput={v.crNameInput} placeholder="Friday night" maxLength={40} style={css(v.crFieldInput)} />
+                      <span style={css(v.crHint)}>{"optional"}</span>
+                    </div>
+                    {"\r\n\r\n              "}
+                    {/* Blinds and buy-in: a `$` inside each well instead of a
+                        "($)" bracketed onto the label, and the field's own name
+                        on the right where Profile's wells put their unit. */}
+                    {"\r\n              "}
+                    <div style={{ marginTop: "16px" }}>
                       {"\r\n                "}
-                      <input value={v.crSb ?? ''} onInput={v.crSbInput} inputMode="decimal" placeholder="Small blind" style={{ flex: "1", minWidth: "0", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa" }} />
+                      <div style={css(v.crFieldLabel)}>{"Blinds"}</div>
                       {"\r\n                "}
-                      <input value={v.crBb ?? ''} onInput={v.crBbInput} inputMode="decimal" placeholder="Big blind" style={{ flex: "1", minWidth: "0", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa" }} />
+                      <div style={{ display: "flex", gap: "10px" }}>
+                        {"\r\n                  "}
+                        <div className="field-felt" style={css(v.crField + ';flex:1;min-width:0')}>
+                          <span style={css(v.crCur)}>{"$"}</span>
+                          <input value={v.crSb ?? ''} onInput={v.crSbInput} inputMode="decimal" placeholder="0.05" style={css(v.crFieldInput)} />
+                          <span style={css(v.crHint)}>{"small"}</span>
+                        </div>
+                        {"\r\n                  "}
+                        <div className="field-felt" style={css(v.crField + ';flex:1;min-width:0')}>
+                          <span style={css(v.crCur)}>{"$"}</span>
+                          <input value={v.crBb ?? ''} onInput={v.crBbInput} inputMode="decimal" placeholder="0.10" style={css(v.crFieldInput)} />
+                          <span style={css(v.crHint)}>{"big"}</span>
+                        </div>
+                        {"\r\n                "}
+                      </div>
                       {"\r\n              "}
                     </div>
                     {"\r\n\r\n              "}
-                    <div style={css(v.crFieldLabel)}>{"Buy-in, min / max ($)"}</div>
-                    {"\r\n              "}
-                    <div style={{ display: "flex", gap: "9px", marginBottom: "14px" }}>
+                    <div style={{ marginTop: "16px" }}>
                       {"\r\n                "}
-                      <input value={v.crMin ?? ''} onInput={v.crMinInput} inputMode="decimal" placeholder="Minimum" style={{ flex: "1", minWidth: "0", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa" }} />
+                      <div style={css(v.crFieldLabel)}>{"Buy-in"}</div>
                       {"\r\n                "}
-                      <input value={v.crMax ?? ''} onInput={v.crMaxInput} inputMode="decimal" placeholder="Maximum" style={{ flex: "1", minWidth: "0", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa" }} />
+                      <div style={{ display: "flex", gap: "10px" }}>
+                        {"\r\n                  "}
+                        <div className="field-felt" style={css(v.crField + ';flex:1;min-width:0')}>
+                          <span style={css(v.crCur)}>{"$"}</span>
+                          <input value={v.crMin ?? ''} onInput={v.crMinInput} inputMode="decimal" placeholder="2" style={css(v.crFieldInput)} />
+                          <span style={css(v.crHint)}>{"min"}</span>
+                        </div>
+                        {"\r\n                  "}
+                        <div className="field-felt" style={css(v.crField + ';flex:1;min-width:0')}>
+                          <span style={css(v.crCur)}>{"$"}</span>
+                          <input value={v.crMax ?? ''} onInput={v.crMaxInput} inputMode="decimal" placeholder="10" style={css(v.crFieldInput)} />
+                          <span style={css(v.crHint)}>{"max"}</span>
+                        </div>
+                        {"\r\n                "}
+                      </div>
                       {"\r\n              "}
                     </div>
                     {"\r\n\r\n              "}
-                    <div style={{ display: "flex", gap: "9px" }}>
+                    <div style={{ display: "flex", gap: "10px", marginTop: "16px" }}>
                       {"\r\n                "}
                       <div style={{ flex: "1", minWidth: "0" }}>
                         {"\r\n                  "}
-                        <div style={css(v.crFieldLabel)}>{"Seats (2–6)"}</div>
+                        <div style={css(v.crFieldLabel)}>{"Seats"}</div>
                         {"\r\n                  "}
-                        <input value={v.crSeats ?? ''} onInput={v.crSeatsInput} inputMode="numeric" placeholder="6" style={{ width: "100%", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", caretColor: "#a78bfa" }} />
+                        <div className="field-felt" style={css(v.crField)}>
+                          <input value={v.crSeats ?? ''} onInput={v.crSeatsInput} inputMode="numeric" placeholder="6" style={css(v.crFieldInput)} />
+                          <span style={css(v.crHint)}>{"2–6"}</span>
+                        </div>
                         {"\r\n                "}
                       </div>
                       {"\r\n                "}
                       <div style={{ flex: "1", minWidth: "0" }}>
                         {"\r\n                  "}
-                        <div style={css(v.crFieldLabel)}>{"4-digit pin"}</div>
+                        <div style={css(v.crFieldLabel)}>{"Pin"}</div>
                         {"\r\n                  "}
-                        <input value={v.crPin ?? ''} onInput={v.crPinInput} inputMode="numeric" maxLength={4} placeholder="0000" style={{ width: "100%", boxSizing: "border-box", padding: "11px 15px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.22)", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(232,236,248,0.176)", outline: "none", transition: "box-shadow .16s ease,border-color .16s ease", color: "#e8ecf8", font: "inherit", fontSize: "14px", letterSpacing: ".3em", caretColor: "#a78bfa" }} />
+                        <div className="field-felt" style={css(v.crField)}>
+                          <input value={v.crPin ?? ''} onInput={v.crPinInput} inputMode="numeric" maxLength={4} placeholder="0000" style={css(v.crFieldPin)} />
+                        </div>
                         {"\r\n                "}
                       </div>
                       {"\r\n              "}
@@ -360,13 +398,13 @@ export default function Lobby({ v }: { v: any }) {
                       {interp(v.crMsg)}
                     </div>
                     {"\r\n\r\n              "}
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px", marginTop: "14px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "18px" }}>
                       {"\r\n                "}
-                      <button onClick={v.closeCreateRoom} style={{ fontSize: "13px", color: "#94a3c4", background: "transparent", padding: "13px 8px" }}>
+                      <button className="pill-flat" onClick={v.closeCreateRoom} style={css(v.crGhost)}>
                         {"Cancel"}
                       </button>
                       {"\r\n                "}
-                      <button className="pill-flat" onClick={v.createRoom} style={{ flex: "1", padding: "14px", borderRadius: "5px", background: "linear-gradient(180deg,#222c47,#0d1220)", color: "#e8ecf8", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12),0 2px 4px rgba(0,0,0,0.35)", fontSize: "14px", fontWeight: "500" }}>
+                      <button className="pill-flat" onClick={v.createRoom} style={css(v.crPrimary)}>
                         {interp(v.crCreateLabel)}
                       </button>
                       {"\r\n              "}
@@ -382,41 +420,47 @@ export default function Lobby({ v }: { v: any }) {
                   {"\r\n            "}
                   <div>
                     {"\r\n              "}
-                    <h2 style={{ fontFamily: "'Inter Tight',system-ui,sans-serif", fontWeight: "600", letterSpacing: "-.03em", fontSize: "26px", margin: "0 0 3px" }}>
+                    <h2 style={{ fontFamily: "'Inter Tight',system-ui,sans-serif", fontWeight: "600", letterSpacing: "-.03em", fontSize: "23px", margin: "0 0 4px" }}>
                       {"Room ready"}
                     </h2>
                     {"\r\n              "}
-                    <div style={{ fontSize: "12px", color: "#94a3c4", marginBottom: "20px" }}>
+                    <div style={{ fontSize: "12.5px", color: "#94a3c4", marginBottom: "22px" }}>
                       {"Send both to whoever you're playing with"}
                     </div>
                     {"\r\n\r\n              "}
-                    <div style={{ padding: "16px", borderRadius: "8px", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(10,13,22,0.1)", marginBottom: "12px" }}>
-                      {"\r\n                "}
-                      <div style={{ fontSize: "10px", letterSpacing: ".16em", color: "#94a3c4", marginBottom: "6px" }}>{"LINK"}</div>
-                      {"\r\n                "}
-                      <div style={{ fontSize: "14px", color: "#e8ecf8", wordBreak: "break-all", fontVariantNumeric: "tabular-nums" }}>
-                        {interp(v.crShareUrl)}
-                      </div>
-                      {"\r\n              "}
-                    </div>
+                    {/* The link, with its copy button in the same well rather
+                        than in the button row below — the button belongs to the
+                        link, and putting it there leaves the row underneath for
+                        the one action that moves you on. */}
                     {"\r\n              "}
-                    <div style={{ padding: "16px", borderRadius: "8px", background: "#222c47", boxShadow: "inset 0 1px 2px rgba(10,13,22,0.1)", marginBottom: "16px" }}>
+                    <div style={css(v.crFieldLabel)}>{"Link"}</div>
+                    {"\r\n              "}
+                    <div className="field-felt" style={css(v.crField)}>
+                      <span style={{ flex: "1", minWidth: "0", fontSize: "13px", color: "#e8ecf8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        {interp(v.crShareUrl)}
+                      </span>
+                      <button className="pill-flat" onClick={v.copyRoomLink} style={css(v.crCopyBtn)}>
+                        {interp(v.crCopyLabel)}
+                      </button>
+                    </div>
+                    {"\r\n\r\n              "}
+                    {/* The pin is read down a phone, so it is the biggest thing
+                        on this step — the display serif the rest of the app uses
+                        for a figure that matters, not a slab of its own. */}
+                    {"\r\n              "}
+                    <div style={{ marginTop: "18px" }}>
                       {"\r\n                "}
-                      <div style={{ fontSize: "10px", letterSpacing: ".16em", color: "#94a3c4", marginBottom: "6px" }}>{"PIN"}</div>
+                      <div style={css(v.crFieldLabel)}>{"Pin"}</div>
                       {"\r\n                "}
-                      <div style={{ fontSize: "22px", letterSpacing: ".32em", color: "#e8ecf8", fontVariantNumeric: "tabular-nums" }}>
+                      <div style={css(v.crPinBig)}>
                         {interp(v.crSharePin)}
                       </div>
                       {"\r\n              "}
                     </div>
                     {"\r\n\r\n              "}
-                    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "22px" }}>
                       {"\r\n                "}
-                      <button className="pill-flat" onClick={v.copyRoomLink} style={{ flex: "none", padding: "14px 20px", borderRadius: "5px", border: "1px solid rgba(232,236,248,0.198)", background: "transparent", color: "#e8ecf8", fontSize: "14px" }}>
-                        {interp(v.crCopyLabel)}
-                      </button>
-                      {"\r\n                "}
-                      <button className="pill-flat" onClick={v.enterCreatedRoom} style={{ flex: "1", padding: "14px", borderRadius: "5px", background: "linear-gradient(180deg,#222c47,#0d1220)", color: "#e8ecf8", boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12),0 2px 4px rgba(0,0,0,0.35)", fontSize: "14px", fontWeight: "500" }}>
+                      <button className="pill-flat" onClick={v.enterCreatedRoom} style={css(v.crPrimary)}>
                         {"Take your seat"}
                       </button>
                       {"\r\n              "}

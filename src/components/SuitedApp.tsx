@@ -1129,6 +1129,8 @@ export default class SuitedApp extends React.Component<any, any> {
   state: any = {
     screen: this.props.startScreen || 'landing',
     docSlug: null,
+    /** The docs contents drawer, which only exists below 940px. */
+    docsNav: false,
     ready: false,
     compact: false,
     /* The two shapes a phone gives the table (see `onResize`). `mini` is a
@@ -1658,7 +1660,7 @@ export default class SuitedApp extends React.Component<any, any> {
     if (compact !== this.state.compact || mini !== this.state.mini || upright !== this.state.upright) {
       this.setState({ compact, mini, upright });
     }
-    if (this._docsMounted) this.layoutDocs();
+    // (docs used to re-lay itself here on every resize; the stylesheet does it)
     // A short stacked window cannot hold a playable felt and an open rail at
     // once, so the rail starts closed there — once only, and never after the
     // player has touched the toggle, whose choice outranks the heuristic.
@@ -1729,16 +1731,36 @@ export default class SuitedApp extends React.Component<any, any> {
     this.loadLobby();
     if (this.server && this.wallet.chainInfo) {
       this.wallet.chainInfo()
-        .then((chain) => {
-          this.setState({ chain });
-          // Tell the docs which era's words to render (wallet names, token,
-          // draw entropy). Default stays EVM until this resolves.
-          this.R.docsRender.setDocsChain?.(chain.kind ?? 'evm');
-          // And where its contract-address rows should link to. Unset leaves
-          // them as the plain, full addresses they already were.
-          this.R.docsRender.setDocsExplorer?.(chain.explorerUrl ?? null);
-        })
+        .then((chain) => this.setState({ chain }))
         .catch(() => this.setState({ chain: { enabled: false } }));
+    }
+    /* The docs' chain words come from `gatewayChain`, NOT from `chainInfo`.
+       The two answer different questions and only one of them is about the
+       docs: `chainInfo` describes the signed-in session, so a visitor reading
+       the documentation before connecting — which is most of them — resolved
+       to `{enabled:false}`, no `kind`, and the `?? 'evm'` default. A Solana
+       deployment's docs therefore said Robinhood Chain and MetaMask to
+       everyone who had not yet signed in with a Solana wallet. */
+    if (this.server && this.wallet.gatewayChain) {
+      this.wallet.gatewayChain()
+        .then((chain) => {
+          if (chain && chain.kind) this.R.docsRender.setDocsChain?.(chain.kind);
+          // Where its contract-address rows should link to. Unset leaves them
+          // as the plain, full addresses they already were.
+          this.R.docsRender.setDocsExplorer?.(chain?.explorerUrl ?? null);
+          /* And repaint, if the reader is already looking at the page. The
+             words are filled at render time, so a fetch that lands after
+             `mountDocs` leaves the previous era's text on screen — which on a
+             deep link straight to /docs is the normal case, not the rare one.
+             `renderBody` rebuilds the sections; the nav is re-rendered with it
+             because its labels come from the same word bank. */
+          if (this._docsMounted && this.docsBodyEl && this.docsNavEl) {
+            const pick = (slug) => this.gotoDocSection(slug);
+            this.R.docsRender.renderBody(this.docsBodyEl, pick);
+            this.R.docsRender.renderNav(this.docsNavEl, this.state.docSlug, pick);
+          }
+        })
+        .catch(() => { /* the docs keep whatever era they were built with */ });
     }
     this.sound = R.sound.createSound();   // module-level singleton: closes any predecessor
     this.sound.setMuted(this.state.muted);
@@ -3236,11 +3258,6 @@ export default class SuitedApp extends React.Component<any, any> {
     this._docsSpy = this.R.docsRender.setupScrollSpy(scroller, secIds, (id) => this.onDocsScrollActive(id));
     this._docsMounted = true;
     this._docsRenderedSlug = this.state.docSlug;
-    // Lay out FIRST. Below 760px layoutDocs stacks the nav above the body and
-    // repads the column; doing that after the jump reflows every section out
-    // from under the offset the jump just set, landing a deep link thousands of
-    // pixels away (the glossary, for /docs/contracts on a phone).
-    this.layoutDocs();
     // Deep-link: jump to the requested section without animation on first mount.
     const slug = this.state.docSlug;
     if (slug && secIds.includes(slug)) {
@@ -3262,33 +3279,26 @@ export default class SuitedApp extends React.Component<any, any> {
     }
   }
 
-  // Below ~760px there isn't room for a fixed 240px sidebar beside a readable
-  // body column, so the nav becomes a capped-height horizontal strip stacked
-  // above the body instead of fighting renderNav's vertical-list markup.
-  layoutDocs() {
-    const nav = this.docsNavEl;
-    if (!nav) return;
-    const wrap = nav.parentElement; // the flex container at template line 1116
-    const body = this.docsBodyEl;
-    const mobile = window.innerWidth < 760;
-    if (mobile) {
-      if (wrap) wrap.style.flexDirection = 'column';
-      nav.style.width = 'auto';
-      nav.style.maxHeight = '38vh';
-      nav.style.borderRight = '0';
-      nav.style.borderBottom = '1px solid rgba(232,236,248,0.132)';
-      nav.style.padding = '10px 8px 14px';
-      if (body) body.style.padding = '24px 20px 96px';
-    } else {
-      if (wrap) wrap.style.flexDirection = 'row';
-      nav.style.width = '264px';
-      nav.style.maxHeight = '';
-      nav.style.borderRight = '1px solid rgba(232,236,248,0.132)';
-      nav.style.borderBottom = '0';
-      nav.style.padding = '12px 10px 48px';
-      if (body) body.style.padding = '36px 40px 140px';
-    }
-  }
+  /* `layoutDocs` lived here and is gone. It wrote the docs layout — the rail's
+     width, both borders, the column's padding, and a 38vh cap on the nav —
+     straight onto the elements as INLINE styles, on mount and on every resize.
+   *
+     Two systems writing the same properties, and the imperative one always
+     landing last, is a trap rather than a tie: the stylesheet cannot win
+     without `!important` on every single declaration, and the one it could not
+     win at all was `max-height`, which is exactly the property the mobile
+     drawer needs. A drawer styled `max-height: 0` sat open at 320.72px —
+     38vh of an 844px screen — and no amount of looking at the CSS explained
+     it, because the value was not in the CSS.
+
+     It also quietly overrode the desktop geometry written in Docs.tsx, so the
+     rail was 264px and the column's padding 40px however that file was edited.
+
+     The layout is the stylesheet's now (`.su-docs*` in globals.css, breakpoint
+     940px where the stage's zoom also stops). The ordering note that used to
+     sit at the call site — lay out before the deep-link jump, or the jump's
+     offset is reflowed out from under it — is answered by there being no
+     re-layout to order: CSS is applied before first paint. */
 
   teardownDocs() {
     if (this._docsSpy) { this._docsSpy(); this._docsSpy = null; }
@@ -3305,7 +3315,12 @@ export default class SuitedApp extends React.Component<any, any> {
     const body = this.docsBodyEl;
     const target = body.querySelector(`#docs-${slug}`);
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    this.setState({ docSlug: slug }); // routePath → syncUrl pushes /docs/<slug>
+    /* `docsNav` closes here as well as being set here: on a phone the contents
+       are a drawer over the article, and leaving it open after a choice hides
+       the very thing that was chosen. Above the breakpoint the drawer does not
+       exist and the flag is inert — CSS decides which of the two this is, so
+       nothing here has to know the viewport. */
+    this.setState({ docSlug: slug, docsNav: false }); // routePath → syncUrl pushes /docs/<slug>
     this._docsRenderedSlug = slug;
     const nav = this.docsNavEl;
     if (nav && this.R) this.R.docsRender.renderNav(nav, slug, this.gotoDocSection);
@@ -4894,6 +4909,13 @@ export default class SuitedApp extends React.Component<any, any> {
       backRef: this.backRef, frontRef: this.frontRef,
       cardRef: this.cardRef, ctaRef: this.ctaRef, sealedRef: this.sealedRef, verifiedRef: this.verifiedRef,
       docsNavRef: this.docsNavRef, docsScrollRef: this.docsScrollRef, docsBodyRef: this.docsBodyRef,
+      /* The contents drawer. A class, not a style, because the whole thing is a
+         media query below 940px and an inline style cannot carry one — the
+         same reason the landing page is classes (see globals.css). */
+      docsNavClass: `su-docs-nav${st.docsNav ? ' su-docs-nav--on' : ''}`,
+      docsNavToggle: () => { this.sfx('ui'); this.setState((s) => ({ docsNav: !s.docsNav })); },
+      docsNavLabel: st.docsNav ? 'Hide contents' : 'Contents',
+      docsNavExpanded: st.docsNav ? 'true' : 'false',
       stakingRef: this.stakingRef,
       commitBack: this.demoCommit.back, commitFront: this.demoCommit.front, commitStrip: this.demoCommit.strip,
       isLanding: scr === 'landing', isConnect: scr === 'connect', isLobby: scr === 'lobby',
@@ -7677,8 +7699,14 @@ export default class SuitedApp extends React.Component<any, any> {
       // two links at once — the create-room sheet is not open on the felt.
       vals.waitCopyLabel = st.crCopied ? 'Link copied' : 'Copy table link';
       const btn = 'padding:11px 22px;border-radius:5px;font-size:12.5px;font-weight:500;cursor:pointer;letter-spacing:.01em';
-      vals.waitCopyStyle = `${btn};border:none;background:linear-gradient(180deg,#8b5cf6,#6d35e0);color:#f6f3ff;`
-        + 'box-shadow:inset 0 1px 0 rgba(255,255,255,0.22),0 2px 6px rgba(0,0,0,0.4)';
+      /* The second stop is #6d3fd4 and not a shade near it. globals.css rewrites
+         the app's primary button off the exact serialised pair
+         `rgb(139, 92, 246), rgb(109, 63, 212)` — "was the violet gradient" — so
+         this is how a button joins that family. Written as #6d35e0 it missed by
+         three values and rendered as a raw violet slab while every other primary
+         in the app was white-on-lavender. */
+      vals.waitCopyStyle = `${btn};border:1px solid rgba(255,255,255,0.165);background:linear-gradient(180deg,#8b5cf6,#6d3fd4);color:${ON_FILL};`
+        + 'box-shadow:inset 0 1px 0 rgba(255,255,255,0.285),0 2px 6px rgba(0,0,0,0.375)';
       vals.waitFindLead = 'Or find a table with players';
       vals.waitFindLabel = 'Back to the lobby';
       vals.waitFindStyle = `${btn};border:1px solid rgba(232,236,248,0.28);background:transparent;color:#e8ecf8`;
@@ -8600,7 +8628,45 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.crShowForm = !st.createdRoom;
     vals.crShowShare = !!st.createdRoom;
     vals.crName = st.crName; vals.crNameInput = (e) => this.setState({ crName: e.target.value.slice(0, 40) });
-    vals.crFieldLabel = 'font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#94a3c4;margin-bottom:6px';
+
+    /* ── the sheet's fields ────────────────────────────────────────────────
+       Six inputs used to carry the same 300-character inline style each, and
+       that style was the problem as much as the duplication: a #222c47 well
+       with a LIGHT inner shadow (`inset 0 1px 2px rgba(232,236,248,.176)`),
+       which on a dark sheet reads as haze across the top of every box rather
+       than as a recess. Six hazy slabs of equal weight is what made the sheet
+       look unfinished.
+
+       So they move to the well this app already has — `.field-felt`, the
+       funding amount wrapper in Profile and TournamentResult: a dark recess
+       (`rgba(0,0,0,0.15)` under `inset 0 1px 2px rgba(0,0,0,0.325)`) with the
+       unit sitting quietly inside it. Two things come free. The focus ring is
+       `:focus-within` on the wrapper, which is a class rather than
+       `input[style*="rgb(34, 44, 71)"]:focus` — the attribute selector in
+       globals.css that silently stops matching the moment a background is
+       retuned, and the reason tools/probe-attr.mjs exists. And the money
+       fields can carry a `$` without it being typed into the value or
+       bracketed into the label. */
+    /* The labels stay MUTED (#94a3c4) and are quietened by SIZE, not by colour.
+       Dimming them to #7884a1 looked right and measured 4.22:1 on this sheet,
+       under the 4.5 small text needs — the exact failure docs and README both
+       say reached users three times because it is invisible in a screenshot.
+       #94a3c4 is 6.24:1 here. Hierarchy is cheap in type scale and expensive in
+       contrast; spend it on the first. */
+    vals.crFieldLabel = `font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:${MUTED};margin:0 0 7px`;
+    vals.crField = 'display:flex;align-items:center;gap:8px;border:1px solid rgba(232,236,248,0.24);border-radius:6px;'
+      + 'background:rgba(0,0,0,0.15);box-shadow:inset 0 1px 2px rgba(0,0,0,0.325);padding:11px 14px';
+    // The bare input inside the well: no border, no background, no shadow —
+    // the wrapper is the field, and a second box drawn inside it is the
+    // "rectangle within a rectangle" the globals.css note warns about.
+    vals.crFieldInput = 'flex:1;min-width:0;border:none;background:transparent;box-shadow:none;outline:none;'
+      + 'color:#e8ecf8;font:inherit;font-size:14px;caret-color:#a78bfa;padding:0';
+    vals.crFieldPin = `${vals.crFieldInput};letter-spacing:.34em;font-variant-numeric:tabular-nums`;
+    // `$` on the left of a money well, the field's own name on the right —
+    // which is where the unit sits in Profile's wells, so the two read alike.
+    // Same reasoning as the label above: MUTED, not a dimmer invention.
+    vals.crCur = `flex:none;font-size:14px;color:${MUTED}`;
+    vals.crHint = `flex:none;font-size:11px;letter-spacing:.04em;color:${MUTED}`;
     vals.crSb = st.crSb; vals.crSbInput = (e) => this.setState({ crSb: e.target.value.replace(/[^0-9.]/g, '') });
     vals.crBb = st.crBb; vals.crBbInput = (e) => this.setState({ crBb: e.target.value.replace(/[^0-9.]/g, '') });
     vals.crMin = st.crMin; vals.crMinInput = (e) => this.setState({ crMin: e.target.value.replace(/[^0-9.]/g, '') });
@@ -8610,12 +8676,48 @@ export default class SuitedApp extends React.Component<any, any> {
     vals.createRoom = this.createRoom;
     vals.crCreateLabel = st.crBusy ? 'Creating…' : 'Create room';
     vals.crMsg = st.crMsg;
-    vals.crMsgStyle = `font-size:12px;color:${st.crBad ? RED : INK_MUT};margin-top:8px;min-height:16px`;
+    vals.crMsgStyle = `font-size:12px;color:${st.crBad ? RED : INK_MUT};min-height:${st.crMsg ? 18 : 0}px;transition:min-height .16s ease`;
+
+    /* The sheet's two buttons, in the app's own CTA language rather than in
+       one of their own. The primary used to be `linear-gradient(#222c47,
+       #0d1220)` — DARKER than the sheet it sits on, and all but identical to
+       the inputs above it, so the one action the sheet exists for carried no
+       more weight than a text box. The seat screen's "take your seat" is the
+       reference: the violet fill, the pill, the inset highlight.
+
+       The gradient's first stop has to stay `#8b5cf6`. globals.css hangs the
+       hover and active states off `.pill-flat[style*="rgb(139, 92, 246)"]`,
+       matching the serialised style attribute, so a visually equivalent violet
+       written any other way would look right and feel dead. */
+    vals.crPrimary = 'flex:1;padding:13px;border-radius:999px;border:1px solid rgba(255,255,255,0.165);'
+      + `background:linear-gradient(180deg,#8b5cf6,#6d3fd4);color:${ON_FILL};`
+      + 'box-shadow:inset 0 1px 0 rgba(255,255,255,0.285),0 2px 6px rgba(0,0,0,0.375);'
+      + `font-size:14px;font-weight:500;cursor:${st.crBusy ? 'progress' : 'pointer'};opacity:${st.crBusy ? 0.72 : 1}`;
+    vals.crGhost = 'flex:none;padding:13px 18px;border-radius:999px;border:1px solid rgba(232,236,248,0.22);'
+      + 'background:transparent;color:#94a3c4;font-size:13px;cursor:pointer';
+
     const madeRoom = st.createdRoom;
     vals.crShareUrl = madeRoom ? madeRoom.url : '';
     vals.crSharePin = madeRoom ? madeRoom.pin : '';
     vals.copyRoomLink = this.copyRoomLink;
     vals.crCopyLabel = st.crCopied ? 'Copied' : 'Copy link';
+    // Sits inside the link well, so it is a chip rather than a button: no fill,
+    // and it must not stretch the row it is in.
+    vals.crCopyBtn = 'flex:none;padding:5px 11px;border-radius:999px;border:1px solid rgba(232,236,248,0.28);'
+      + `background:transparent;font-size:11px;cursor:pointer;color:${st.crCopied ? BRASS : '#e8ecf8'}`;
+    /* The pin, as the display numeral the rest of the app uses for a figure
+       that matters (the serif, as on the pot and the bankroll) instead of a
+       22px sans string in a slab of its own. It is read aloud down a phone, so
+       it is the one thing on this step that should be large. */
+    /* The UI face, not the display serif the rest of the app uses for a figure
+       that matters — the one place that rule is wrong. Instrument Serif has
+       only oldstyle figures: 4 descends below the baseline, 2 and 1 sit short,
+       so "4821" renders at three different heights. `font-variant-numeric:
+       lining-nums` does not rescue it, because the font has no lining set for
+       the property to select. On anything else that is a flourish; on a pin
+       somebody reads down a phone to a friend it is the whole job. */
+    vals.crPinBig = `font-family:${UI};font-weight:500;font-size:34px;line-height:1;letter-spacing:.26em;`
+      + `color:${BRASS};font-variant-numeric:tabular-nums`;
     vals.enterCreatedRoom = this.enterCreatedRoom;
 
     // Host controls: the "end the session" item + its confirm sheet, shown only

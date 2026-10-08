@@ -9,7 +9,12 @@ const T = {
   ink: '#e8ecf8',       // headings
   body: '#e8ecf8',      // prose
   muted: '#94a3c4',     // eyebrows, table headers, notes
-  faint: '#5b6684',     // section numbers, the quietest label
+  /* The quietest label on the page, and it was too quiet to read: #5b6684 is
+     2.77:1 on this background, against the 4.5 small text needs, across 58
+     nodes (every section number, every eyebrow). #868fab is 4.91:1 and still
+     reads as the quietest thing here. audit-contrast.mjs walks eight screens
+     and docs is not one of them, which is why this sat unmeasured. */
+  faint: '#868fab',     // section numbers, the quietest label
   brass: '#a78bfa',     // links and the active nav mark
   /* The two hairline weights the page is built from. They were translucent
      near-black because the page was cream; the page is dark now, so the same
@@ -39,9 +44,9 @@ export function setDocsExplorer(url) {
 /** 1 → "01". The running number is the spine of the layout, so it is always two digits. */
 const num2 = (n) => String(n).padStart(2, '0');
 
-const EYEBROW = `font-family:${T.mono};font-size:10.5px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:${T.faint}`;
+const EYEBROW = `font-family:${T.mono};font-size:10px;font-weight:500;letter-spacing:.16em;text-transform:uppercase;color:${T.faint}`;
 /** The sidebar's own label face — the page's type, not the mono the body uses. */
-const NAV_LABEL = `font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:${T.muted}`;
+const NAV_LABEL = `font-size:10.5px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:${T.muted}`;
 
 export function renderInline(parent, text) {
   // Fill {chain}/{token}/{wallets}/… from the active era before parsing inline
@@ -70,19 +75,19 @@ export function renderInline(parent, text) {
 function block(b) {
   if (b.type === 'heading') {
     const h = el(b.level === 2 ? 'h2' : 'h3', b.level === 2
-      ? `font-size:19px;font-weight:600;letter-spacing:-.015em;margin:42px 0 14px;color:${T.ink}`
-      : `font-size:15.5px;font-weight:600;margin:28px 0 8px;color:${T.ink}`);
+      ? `font-size:17px;font-weight:600;letter-spacing:-.015em;margin:42px 0 14px;color:${T.ink}`
+      : `font-size:14.5px;font-weight:600;margin:26px 0 8px;color:${T.ink}`);
     h.textContent = b.text; return h;
   }
-  if (b.type === 'para') { const p = el('p', `margin:0 0 18px;font-size:16px;line-height:1.7;color:${T.body}`); renderInline(p, b.text); return p; }
+  if (b.type === 'para') { const p = el('p', `margin:0 0 17px;font-size:14.5px;line-height:1.72;color:${T.body}`); renderInline(p, b.text); return p; }
   if (b.type === 'list') {
-    const l = el(b.ordered ? 'ol' : 'ul', `margin:0 0 20px;padding-left:20px;font-size:16px;line-height:1.7;color:${T.body}`);
+    const l = el(b.ordered ? 'ol' : 'ul', `margin:0 0 19px;padding-left:20px;font-size:14.5px;line-height:1.72;color:${T.body}`);
     for (const it of b.items) { const li = el('li', 'margin:0 0 9px;padding-left:4px'); renderInline(li, it); l.appendChild(li); }
     return l;
   }
   if (b.type === 'table') {
     const wrap = el('div', 'overflow-x:auto;margin:4px 0 26px');
-    const t = el('table', `border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:15px;color:${T.body}`);
+    const t = el('table', `border-collapse:collapse;width:100%;font-variant-numeric:tabular-nums;font-size:14px;color:${T.body}`);
     const thead = el('thead'); const htr = el('tr');
     for (const h of b.headers) { const th = el('th', `text-align:left;padding:0 20px 10px 0;border-bottom:1px solid ${T.rule};${EYEBROW};white-space:nowrap`); th.textContent = h; htr.appendChild(th); }
     thead.appendChild(htr); t.appendChild(thead);
@@ -102,8 +107,8 @@ function block(b) {
   if (b.type === 'keyvals') {
     const dl = el('dl', 'margin:4px 0 24px');
     for (const r of b.rows) {
-      const dt = el('dt', `font-weight:600;font-size:15.5px;color:${T.ink};margin-top:18px`); dt.textContent = r.term;
-      const dd = el('dd', `margin:4px 0 0;font-size:16px;line-height:1.65;color:${T.body}`); renderInline(dd, r.def);
+      const dt = el('dt', `font-weight:600;font-size:14.5px;color:${T.ink};margin-top:18px`); dt.textContent = r.term;
+      const dd = el('dd', `margin:4px 0 0;font-size:14.5px;line-height:1.68;color:${T.body}`); renderInline(dd, r.def);
       dl.appendChild(dt); dl.appendChild(dd);
     }
     return dl;
@@ -113,16 +118,20 @@ function block(b) {
     // The "key" tone is the don't-trust-us highlight: brass hairline, no fill,
     // so it reads as an aside in the same paper rather than a coloured card.
     const box = el('div', `margin:6px 0 24px;padding:2px 0 2px 20px;border-left:2px solid ${isKey ? T.brass : T.rule}`);
-    if (b.title) { const t = el('div', `${EYEBROW};color:${isKey ? '#7d4cf0' : T.faint};margin-bottom:7px`); t.textContent = b.title; box.appendChild(t); }
-    const p = el('p', `margin:0;font-size:15.5px;line-height:1.65;color:${T.body}`); renderInline(p, b.text); box.appendChild(p);
+    /* `T.brass`, not the #7d4cf0 that was here: the same violet family, but
+       that one is a FILL colour from the sigil set and as 10px text on this
+       background it is 3.13:1. Brass is 5.80:1 and is already what the page
+       uses to mark something live. */
+    if (b.title) { const t = el('div', `${EYEBROW};color:${isKey ? T.brass : T.faint};margin-bottom:7px`); t.textContent = b.title; box.appendChild(t); }
+    const p = el('p', `margin:0;font-size:14.5px;line-height:1.68;color:${T.body}`); renderInline(p, b.text); box.appendChild(p);
     return box;
   }
   if (b.type === 'code') {
-    const pre = el('pre', `margin:4px 0 26px;padding:16px 18px;border:1px solid ${T.rule};border-radius:4px;background:rgba(232,236,248,0.04);color:${T.ink};overflow-x:auto;font-family:${T.mono};font-size:12.5px;line-height:1.6`);
+    const pre = el('pre', `margin:4px 0 26px;padding:16px 18px;border:1px solid ${T.rule};border-radius:4px;background:rgba(232,236,248,0.04);color:${T.ink};overflow-x:auto;font-family:${T.mono};font-size:12px;line-height:1.6`);
     pre.textContent = b.text; return pre;
   }
   if (b.type === 'steps') {
-    const l = el('ol', `margin:4px 0 20px;padding-left:20px;font-size:16px;line-height:1.7;color:${T.body}`);
+    const l = el('ol', `margin:4px 0 20px;padding-left:20px;font-size:14.5px;line-height:1.72;color:${T.body}`);
     for (const it of b.items) { const li = el('li', 'margin:0 0 11px;padding-left:4px'); renderInline(li, it); l.appendChild(li); }
     return l;
   }
@@ -133,13 +142,13 @@ function block(b) {
     const wrap = el('div', `margin:4px 0 26px;border-top:1px solid ${T.rule}`);
     for (const r of b.rows) {
       const row = el('div', `padding:16px 0;border-bottom:1px solid ${T.hair}`);
-      const name = el('div', `font-size:15.5px;font-weight:600;color:${T.ink}`); name.textContent = r.name;
+      const name = el('div', `font-size:14.5px;font-weight:600;color:${T.ink}`); name.textContent = r.name;
       row.appendChild(name);
-      if (r.note) { const n = el('p', `margin:3px 0 0;font-size:15px;line-height:1.6;color:${T.body}`); renderInline(n, r.note); row.appendChild(n); }
+      if (r.note) { const n = el('p', `margin:3px 0 0;font-size:14px;line-height:1.6;color:${T.body}`); renderInline(n, r.note); row.appendChild(n); }
       // A link only where there is an explorer to link to; otherwise the same
       // full address, still selectable and still copyable, without the underline
       // that would promise it goes somewhere.
-      const base = `display:inline-block;margin-top:9px;font-family:${T.mono};font-size:12.5px;line-height:1.5;color:${T.ink};word-break:break-all`;
+      const base = `display:inline-block;margin-top:9px;font-family:${T.mono};font-size:12px;line-height:1.5;color:${T.ink};word-break:break-all`;
       const a = el(explorerUrl ? 'a' : 'span', explorerUrl
         ? `${base};text-decoration:underline;text-decoration-color:${T.brass};text-decoration-thickness:1px;text-underline-offset:3px`
         : base);
@@ -153,7 +162,7 @@ function block(b) {
       // The address goes to the explorer; `source` goes to the verified source.
       // Its own line, because a break-all address can end anywhere on the row.
       if (r.source) {
-        const s = el('a', `display:block;margin-top:6px;font-size:14px;line-height:1.5;color:${T.muted};text-decoration:underline;text-decoration-color:${T.brass};text-decoration-thickness:1px;text-underline-offset:3px`);
+        const s = el('a', `display:block;margin-top:6px;font-size:13.5px;line-height:1.5;color:${T.muted};text-decoration:underline;text-decoration-color:${T.brass};text-decoration-thickness:1px;text-underline-offset:3px`);
         s.className = 'docs-a';
         s.href = r.source; s.target = '_blank'; s.rel = 'noopener noreferrer';
         s.textContent = 'Read the source';
@@ -189,12 +198,12 @@ export function renderNav(container, activeId, onPick) {
       const on = s.id === activeId;
       // The active mark is a brass rule in the gutter, not a filled pill — the
       // page is paper, and a tinted block reads as a button on it.
-      const a = el('a', `display:flex;gap:10px;align-items:baseline;padding:6px 12px;font-size:14px;line-height:1.35;text-decoration:none;`
+      const a = el('a', `display:flex;gap:10px;align-items:baseline;padding:6px 12px;font-size:13.5px;line-height:1.35;text-decoration:none;`
         + `color:${on ? T.ink : T.muted};font-weight:${on ? '600' : '400'};`
         + `box-shadow:inset 2px 0 0 ${on ? T.brass : 'transparent'};transition:color .15s ease,box-shadow .15s ease`);
       a.className = 'docs-nav-a';
       a.href = `/docs/${s.id}`; a.dataset.slug = s.id;
-      const idx = el('span', `font-size:11px;font-variant-numeric:tabular-nums;color:${on ? T.brass : T.faint};flex:none`);
+      const idx = el('span', `font-size:10.5px;font-variant-numeric:tabular-nums;color:${on ? T.brass : T.faint};flex:none`);
       idx.textContent = num2(numbers.get(s.id) ?? 0);
       const label = el('span'); label.textContent = s.title;
       a.appendChild(idx); a.appendChild(label);
@@ -230,7 +239,7 @@ export function renderBody(container, onPick) {
     eyebrow.appendChild(idx);
     if (opensGroup) { const grp = el('span'); grp.textContent = group; eyebrow.appendChild(grp); }
     sec.appendChild(eyebrow);
-    const h = el('h1', 'font-size:clamp(28px,3.2vw,34px);font-weight:600;letter-spacing:-.03em;line-height:1.15;margin:0 0 22px;color:' + T.ink);
+    const h = el('h1', 'font-size:28px;font-weight:600;letter-spacing:-.03em;line-height:1.15;margin:0 0 22px;color:' + T.ink);
     h.textContent = s.title; sec.appendChild(h);
     for (const b of s.blocks) sec.appendChild(block(b));
     container.appendChild(sec);

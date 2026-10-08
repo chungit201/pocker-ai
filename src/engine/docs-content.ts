@@ -133,12 +133,35 @@ export const CHAIN_WORDS = {
     ca: TOKEN_CA || 'not published yet',
     supply: TOKEN_SUPPLY,
   },
+  /* The Solana era, which the docs did not have — and its absence was silent.
+     `setDocsChain('solana')` looked up a key that was not here and fell back to
+     the EVM words, so a Solana deployment's docs told every reader it ran on
+     Robinhood Chain and to install MetaMask. A missing era has to read as
+     missing, so the lookup below now says when it cannot honour a request. */
+  solana: {
+    chain: 'Solana',
+    token: 'USDC',
+    wallets: '**Phantom** and **Solflare**',
+    walletQ: 'a Solana wallet like **Phantom** or **Solflare**',
+    /* The EVM era promises "a future Ethereum block hash". Solana has no block
+       hashes to wait on in the same sense; the equivalent commitment the chain
+       can give is a future slot's blockhash. */
+    entropy: 'a future Solana slot hash',
+    ca: TOKEN_CA || 'not published yet',
+    supply: TOKEN_SUPPLY,
+  },
 };
 
 let activeWords = CHAIN_WORDS.evm;
-/** Called by the app when /api/chain resolves. Robinhood Chain is the only era. */
+/** Called by the app once it knows which chain the GATEWAY runs. */
 export function setDocsChain(kind) {
-  activeWords = CHAIN_WORDS[kind] ?? CHAIN_WORDS.evm;
+  const next = CHAIN_WORDS[kind];
+  if (!next) {
+    /* Loud, because the failure is otherwise invisible: the docs keep
+       rendering, in another chain's words, and read as a deliberate claim. */
+    console.warn(`[docs] no word bank for chain "${kind}" — the docs will describe ${CHAIN_WORDS.evm.chain}`);
+  }
+  activeWords = next ?? CHAIN_WORDS.evm;
 }
 /** Fill {placeholders} in a doc string from the active era's words. */
 export function fillChainWords(text) {
